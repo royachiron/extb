@@ -49,7 +49,7 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[]): string {
       </div>
       <div class="tc-aside" style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-muted);margin-top:3px;flex-shrink:0;">
         <span class="tc-count" style="font-weight:700;color:var(--text-main);">${t.active_reply_count ?? t.reply_count}</span>
-        <span class="tc-label">repl${(t.active_reply_count ?? t.reply_count) === 1 ? 'y' : 'ies'}</span>${mod && t.reply_count > (t.active_reply_count ?? t.reply_count) ? `<span style="font-size:11px;color:var(--text-muted);margin-left:2px;">(${t.reply_count - (t.active_reply_count ?? t.reply_count)} del)</span>` : ''}
+        <span class="tc-label">${(t.active_reply_count ?? t.reply_count) === 1 ? '<!--extb-ui-->reply<!--/extb-ui-->' : '<!--extb-ui-->replies<!--/extb-ui-->'}</span>${mod && t.reply_count > (t.active_reply_count ?? t.reply_count) ? `<span style="font-size:11px;color:var(--text-muted);margin-left:2px;">(${t.reply_count - (t.active_reply_count ?? t.reply_count)} del)</span>` : ''}
         <span>·</span>
         ${relTime(t.last_reply_at)}
       </div>
@@ -90,8 +90,8 @@ export function renderForumIndex(opts: {
       </div>
       <div class="fi-rr-lp">${lastPostHtml}</div>
       <div class="fi-rs-w fi-rr-stats">
-        <div class="fi-rs"><strong>${r.total_topics ?? 0}</strong><small>topics</small></div>
-        <div class="fi-rs"><strong>${r.total_replies ?? 0}</strong><small>replies</small>${isMod(user) && (r.total_replies_all ?? 0) > (r.total_replies ?? 0) ? `<small style="color:var(--text-muted);font-size:10px;"> (${(r.total_replies_all ?? 0) - (r.total_replies ?? 0)} del)</small>` : ''}</div>
+        <div class="fi-rs"><strong>${r.total_topics ?? 0}</strong><small><!--extb-ui-->topics<!--/extb-ui--></small></div>
+        <div class="fi-rs"><strong>${r.total_replies ?? 0}</strong><small><!--extb-ui-->replies<!--/extb-ui--></small>${isMod(user) && (r.total_replies_all ?? 0) > (r.total_replies ?? 0) ? `<small style="color:var(--text-muted);font-size:10px;"> (${(r.total_replies_all ?? 0) - (r.total_replies ?? 0)} del)</small>` : ''}</div>
       </div>
     </div>`;
   }).join('');

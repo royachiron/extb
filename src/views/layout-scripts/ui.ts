@@ -142,7 +142,7 @@ export const SCRIPT_UI = `
           if (!utc) return;
           const date = new Date(utc);
           if (isNaN(date.getTime())) return;
-          el.textContent = date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+          el.textContent = date.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
           el.dataset.localized = '1';
         });
       }

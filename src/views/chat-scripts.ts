@@ -6,7 +6,7 @@
 // Block 1: scroll position + time localization + error clearing.
 export const CHAT_SCRIPT_BOOT = `
   function chatUi(text) {
-    var dictionary = {'Quiet in here right now. A few ways to break the ice:':"שקט כאן כרגע. כמה דרכים לפתוח שיחה:",'<br>&bull; Ask a low-pressure question - "what made this week easier?" works.':"<br>&bull; אפשר להתחיל בשאלה פשוטה, למשל: ״מה הקל עליך השבוע?״",'<br>&bull; Ask what others wish they had known earlier.':"<br>&bull; אפשר לשאול מה אחרים היו רוצים לדעת מוקדם יותר.",'<br>&bull; Type <strong>/bot topic</strong> for a ready-made starter (only you will see the helper).':"<br>&bull; הקלדת <strong>/bot topic</strong> תציע רעיון לשיחה (רק לך יוצג העוזר).", 'Add reaction': 'הוספת תגובה רגשית', 'Reply': 'תגובה', 'Connecting…': 'מתחברים…', 'Message ': 'הודעה בחדר ', ' is typing…': ' מקליד/ה…', ' and ': ' ו־', ' are typing…': ' מקלידים…', 'Several people are typing…': 'כמה משתתפים מקלידים…', 'online': 'מחוברים', 'Send failed.': 'השליחה נכשלה.', 'Stop ignoring': 'הפסקת התעלמות', 'Ignore in chat': 'התעלמות בצ׳אט', 'Block': 'חסימה', 'Unblock': 'ביטול חסימה' };
+    var dictionary = { 'Online':'מחוברים', 'No one yet':'עדיין אין משתתפים','Quiet in here right now. A few ways to break the ice:':"שקט כאן כרגע. כמה דרכים לפתוח שיחה:",'<br>&bull; Ask a low-pressure question - "what made this week easier?" works.':"<br>&bull; אפשר להתחיל בשאלה פשוטה, למשל: ״מה הקל עליך השבוע?״",'<br>&bull; Ask what others wish they had known earlier.':"<br>&bull; אפשר לשאול מה אחרים היו רוצים לדעת מוקדם יותר.",'<br>&bull; Type <strong>/bot topic</strong> for a ready-made starter (only you will see the helper).':"<br>&bull; הקלדת <strong>/bot topic</strong> תציע רעיון לשיחה (רק לך יוצג העוזר).", 'Add reaction': 'הוספת תגובה רגשית', 'Reply': 'תגובה', 'Connecting…': 'מתחברים…', 'Message ': 'הודעה בחדר ', ' is typing…': ' מקליד/ה…', ' and ': ' ו־', ' are typing…': ' מקלידים…', 'Several people are typing…': 'כמה משתתפים מקלידים…', 'online': 'מחוברים', 'Send failed.': 'השליחה נכשלה.', 'Stop ignoring': 'הפסקת התעלמות', 'Ignore in chat': 'התעלמות בצ׳אט', 'Block': 'חסימה', 'Unblock': 'ביטול חסימה' };
     return document.documentElement.lang === 'he' && dictionary[text] ? dictionary[text] : text;
   }
 
@@ -27,7 +27,7 @@ export const CHAT_SCRIPT_BOOT = `
     document.querySelectorAll('.chat-time[data-utc]').forEach(el => {
       if (el.dataset.localized) return;
       const d = new Date(el.getAttribute('data-utc'));
-      el.textContent = d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+      el.textContent = d.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
       el.dataset.localized = '1';
     });
   }
@@ -182,7 +182,7 @@ ${buildersSrc}
     return el ? el.dataset.id : '0';
   }
   function fmtTime(utc) {
-    try { return new Date(utc).toLocaleTimeString(); } catch (e) { return ''; }
+    try { return new Date(utc).toLocaleTimeString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US'); } catch (e) { return ''; }
   }
   function utcOf(created_at) {
     return created_at.indexOf('T') >= 0 ? created_at : created_at.replace(' ', 'T') + 'Z';
@@ -383,7 +383,7 @@ ${buildersSrc}
   function renderPresence(users) {
     if (!participants) return;
     var items = users.length === 0
-      ? '<li style="font-size:12px;color:var(--text-muted);">No one yet</li>'
+      ? '<li style="font-size:12px;color:var(--text-muted);">' + chatUi('No one yet') + '</li>'
       : users.map(function (name) {
           var guest = name.indexOf('[guest]') === 0;
           var disp = name.replace(/^\\[guest\\]\\s*/, '');
@@ -395,7 +395,7 @@ ${buildersSrc}
           return '<li class="chat-user-item"' + (guest ? '' : ' data-nick="' + esc(disp) + '"') + '><div class="chat-user-av">' + esc(disp.slice(0, 2).toUpperCase()) + '</div>' + link + '</li>';
         }).join('');
     var botItem = botDisplayName ? chatBotItem(esc(botDisplayName)) : '';
-    participants.innerHTML = '<p class="chat-users-label">Online</p><ul style="list-style:none;padding:0;margin:0;">' + botItem + items + '</ul>';
+    participants.innerHTML = '<p class="chat-users-label">' + chatUi('Online') + '</p><ul style="list-style:none;padding:0;margin:0;">' + botItem + items + '</ul>';
   }
   function markRead() {
     // In the dock, messages only count as read while the dock is on screen;

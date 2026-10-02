@@ -1,5 +1,5 @@
 import { CHAT_SCRIPT_BOOT } from '../src/views/chat-scripts';
-import { renderIndexPanels } from '../src/views/feed';
+import { renderIndexPanels, renderTopicCards, renderForumIndex } from '../src/views/feed';
 import { renderTosPage } from '../src/views/tos';
 import { STATIC_PAGES } from '../src/views/static-pages';
 import { chatAddBtn, chatReplyBtn } from '../src/views/chat-message';
@@ -97,6 +97,28 @@ describe('interface localization', () => {
  expect(html).toContain('שקט כאן כרגע');
  expect(html).not.toContain('/bot');
  expect(html).not.toContain('Quiet in here');
+ });
+ it('localizes feed count labels without translating titles or room names', () => {
+ const topic={id:1,short_id:'a',room_id:1,title:'replies',tags:'',user_id:1,reply_count:1,last_reply_at:'2026-10-02T00:00:00Z'} as any;
+ const cards=localizeHtml(renderTopicCards([topic,{...topic,reply_count:2}],null,[]),'he');
+ expect(cards).toContain('class="tc-label">תגובה</span>');
+ expect(cards).toContain('class="tc-label">תגובות</span>');
+ expect(cards).toContain('replies</a>');
+ const forum=localizeHtml(renderForumIndex({user:null,rooms:[{name:'topics',slug:'public',total_topics:3,total_replies:4}],topTopics:[],latestReplies:[],topContributors:[]}),'he');
+ expect(forum).toContain('<small>דיונים</small>');
+ expect(forum).toContain('<small>תגובות</small>');
+ expect(forum).toContain('topics</a>');
+ });
+ it('keeps live chat presence Hebrew without translating participant names', () => {
+ const document={documentElement:{lang:'he'}};
+ const helper=CHAT_SCRIPT_BOOT.slice(CHAT_SCRIPT_BOOT.indexOf('function chatUi'),CHAT_SCRIPT_BOOT.indexOf('(function()'));
+ const chatUi=new Function('document',helper+';return chatUi;')(document);
+ const source=renderChat({user:null});
+ const presence=source.slice(source.indexOf('function renderPresence(users)'),source.indexOf('function markRead()'));
+ const participants={innerHTML:''};
+ new Function('participants','botDisplayName','chatBotItem','esc','chatUi',presence+';renderPresence(["Online"]);')(participants,'',()=>'',(text:string)=>text,chatUi);
+ expect(participants.innerHTML).toContain('chat-users-label">מחוברים</p>');
+ expect(participants.innerHTML).toContain('data-nick="Online"');
  });
  it('validates the branding default locale', () => {
  expect(validateBranding({...DEFAULT_BRANDING,default_locale:'he'}).default_locale).toBe('he');
