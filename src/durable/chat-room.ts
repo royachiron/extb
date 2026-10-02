@@ -1,5 +1,9 @@
+import { canRead, canPost, isMod } from '../access';
+import { getUserById } from '../db/users';
+import { getRoomBySlug } from '../db/rooms';
+import { isBlocked } from '../db/blocks';
 import { getSetting } from '../db/settings';
-import type { Env } from '../types';
+import type { Env, User, Room } from '../types';
 import { createDm, toggleChatReaction, getChatReactionCounts, countChatReaction } from '../db';
 import { chatReplyExcerpt } from '../lib/chat-format';
 import {
@@ -110,7 +114,7 @@ export class ChatRoom {
     server.serializeAttachment(meta);
 
     await this.sendBacklog(server, since, meta.scope, meta.authorId);
-    this.broadcastPresence();
+    await this.broadcastPresence();
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -142,6 +146,46 @@ export class ChatRoom {
     ws.send(JSON.stringify({ type: 'backlog', messages: out }));
   }
 
+  /** Socket attachments survive hibernation. Recheck mutable authorization before each write. */
+  private async refreshAuthorization(ws: WebSocket, meta: SocketMeta, scope: string): Promise<boolean> {
+    const user = meta.authorId == null ? null : await getUserById(this.env, meta.authorId);
+    meta.isMod = false;
+    meta.canPost = false;
+    ws.serializeAttachment(meta);
+    if (meta.authorId != null && (!user || user.is_banned || !user.is_approved || !user.display_name)) {
+      ws.serializeAttachment(meta);
+      return false;
+    }
+    if (scope.startsWith('dm:')) {
+      if (!user) return false;
+      const parts = scope.split(':');
+      const x = Number(parts[1]);
+      const y = Number(parts[2]);
+      if (parts.length !== 3 || !Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x < 1 || y < 1 || x === y || (user.id !== x && user.id !== y)) return false;
+      const recipientId = user.id === x ? y : x;
+      if (meta.dmOtherId != null && meta.dmOtherId !== recipientId) return false;
+      const recipient = await getUserById(this.env, recipientId);
+      if (!recipient) return false;
+      const admin = user.access_level === 'admin';
+      if (!admin && (recipient.allow_dms === 0 || await isBlocked(this.env, recipientId, user.id))) return false;
+      meta.canPost = !user.posting_restricted_at || recipient.access_level === 'admin';
+      meta.name = user.display_name!;
+      ws.serializeAttachment(meta);
+      return true;
+    }
+    if (!scope.startsWith('room:')) return false;
+    const room = await getRoomBySlug(this.env, scope.slice(5), user?.id);
+    if (!room || room.kind !== 'chat' || !canRead(user, room)) {
+      ws.serializeAttachment(meta);
+      return false;
+    }
+    meta.isMod = isMod(user);
+    meta.canPost = canPost(user, room);
+    if (user) meta.name = user.display_name!;
+    ws.serializeAttachment(meta);
+    return true;
+  }
+
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     if (typeof raw !== 'string') return;
     const meta = ws.deserializeAttachment() as SocketMeta | null;
@@ -157,6 +201,14 @@ export class ChatRoom {
       msg = JSON.parse(raw) as ClientMsg;
     } catch {
       return;
+    }
+
+    if (['send', 'delete', 'react', 'typing'].includes(msg.type)) {
+      if (!await this.refreshAuthorization(ws, meta, scope)) {
+        ws.send(JSON.stringify({ type: 'error', message: 'You no longer have access here.' }));
+        try { ws.close(1008, 'Access revoked'); } catch {}
+        return;
+      }
     }
 
     if (msg.type === 'send') {
@@ -219,7 +271,7 @@ export class ChatRoom {
         // Signal both ends (sender echo + recipient if connected). Body is sent
         // so an optimistic client could use it, but the canonical render comes
         // from the poke -> getThreadMessages (server-side markdown).
-        this.broadcast({
+        await this.broadcast({
           type: 'message',
           id: row.id,
           author_id: authorId,
@@ -276,22 +328,22 @@ export class ChatRoom {
         reply_to_author: replyToAuthor,
         reply_to_excerpt: replyToExcerpt,
       });
-      if (row) this.broadcast({ type: 'message', ...row });
+      if (row) await this.broadcast({ type: 'message', ...row });
     } else if (msg.type === 'typing') {
       // Ephemeral typing relay - no DB, no timer. Read-only viewers cannot emit.
       if (!meta.canPost) return;
-      this.broadcastExcept(ws, { type: 'typing', name: meta.name, on: !!msg.on });
+      await this.broadcastExcept(ws, { type: 'typing', name: meta.name, on: !!msg.on });
     } else if (msg.type === 'delete') {
       if (!meta.isMod || !msg.id) return;
       // Soft delete, scope-guarded: a mod in room A cannot delete room B's
       // message via a crafted id (scope is server-pinned on this socket).
       const changes = await softDeleteChatMessage(this.env, msg.id, scope);
-      if (changes > 0) this.broadcast({ type: 'delete', id: msg.id });
+      if (changes > 0) await this.broadcast({ type: 'delete', id: msg.id });
     } else if (msg.type === 'react') {
       // Emoji reactions are ROOM-only and require a logged-in author. Guests and
       // DMs are ignored silently (additive protocol; no error on miss).
       if (isDm) return;
-      if (authorId == null) return;
+      if (authorId == null || !meta.canPost) return;
       if (typeof msg.id !== 'number' || !Number.isFinite(msg.id) || msg.id <= 0) return;
       const emoji = msg.emoji;
       if (typeof emoji !== 'string' || !ALLOWED_REACTIONS.includes(emoji)) return;
@@ -303,12 +355,12 @@ export class ChatRoom {
       // Recompute the authoritative count for this (message, emoji) and fan out.
       // Each client tracks its own toggled state; count===0 removes the pill.
       const count = await countChatReaction(this.env, msg.id, emoji);
-      this.broadcast({ type: 'reaction', id: msg.id, emoji, count });
+      await this.broadcast({ type: 'reaction', id: msg.id, emoji, count });
     }
   }
 
   webSocketClose(ws: WebSocket, code: number, reason: string): void {
-    this.broadcastPresence(ws);
+    this.ctx.waitUntil(this.broadcastPresence(ws));
     // Complete the closing handshake. With compat date 2024-09-23 the server
     // does not auto-reply to a client close, so without this the socket lingers
     // in CLOSING. Reserved codes (1005/1006) throw if passed to close() - fall
@@ -321,44 +373,68 @@ export class ChatRoom {
   }
 
   webSocketError(ws: WebSocket): void {
-    this.broadcastPresence(ws);
+    this.ctx.waitUntil(this.broadcastPresence(ws));
     try { ws.close(1011, 'error'); } catch { /* already closed */ }
   }
 
-  private broadcast(obj: unknown): void {
-    const data = JSON.stringify(obj);
-    for (const ws of this.ctx.getWebSockets()) {
-      try {
-        ws.send(data);
-      } catch {
-        // socket closing; ignore
+  /** Two bounded queries authorize a fanout, independent of connected socket count. */
+  private async authorizedSockets(exclude?: WebSocket): Promise<WebSocket[]> {
+    const sockets = this.ctx.getWebSockets().filter(ws => ws !== exclude);
+    if (!sockets.length) return [];
+    const attachments = sockets.map(ws => ({ ws, meta: ws.deserializeAttachment() as SocketMeta | null }));
+    const scope = attachments.find(item => item.meta)?.meta?.scope ?? 'room:chat';
+    const ids = [...new Set(attachments.flatMap(item => item.meta?.authorId != null ? [item.meta.authorId] : []))];
+    let room: Room | null = null;
+    if (scope.startsWith('room:')) room = await getRoomBySlug(this.env, scope.slice(5));
+    // JSON avoids D1's 100 bound-parameter limit and one query per recipient.
+    const result = ids.length ? await this.env.DB.prepare(
+      `SELECT u.id, u.display_name, u.access_level, u.is_banned, u.is_approved,
+              rp.access_type AS user_permission FROM users u
+       LEFT JOIN room_permissions rp ON rp.user_id = u.id AND rp.room_id = ?
+       WHERE u.id IN (SELECT value FROM json_each(?))`
+    ).bind(room?.id ?? 0, JSON.stringify(ids)).all<User & { user_permission: Room['user_permission'] }>() : { results: [] };
+    const users = new Map(result.results.map(user => [user.id, user]));
+    const allowed: WebSocket[] = [];
+    for (const { ws, meta } of attachments) {
+      const user = meta?.authorId != null ? users.get(meta.authorId) : null;
+      const member = !!user && !user.is_banned && !!user.is_approved && !!user.display_name;
+      const sameScope = !!meta && (meta.scope ?? 'room:chat') === scope;
+      const readable = sameScope && (scope.startsWith('dm:')
+        ? member && scope.split(':').slice(1).map(Number).includes(user!.id)
+        : !!room && room.kind === 'chat' && (meta!.authorId == null || member) && canRead(user ?? null, { ...room, user_permission: user?.user_permission ?? null }));
+      if (!readable) {
+        try { ws.close(1008, 'Access revoked'); } catch { /* socket already closed */ }
+        continue;
       }
+      allowed.push(ws);
+    }
+    return allowed;
+  }
+
+  private async broadcast(obj: unknown): Promise<void> {
+    const data = JSON.stringify(obj);
+    for (const ws of await this.authorizedSockets()) {
+      try { ws.send(data); } catch { /* socket closing */ }
     }
   }
 
-  // Like broadcast, but skips the originating socket (used for typing relay so a
-  // sender never sees their own "is typing").
-  private broadcastExcept(sender: WebSocket, obj: unknown): void {
+  private async broadcastExcept(sender: WebSocket, obj: unknown): Promise<void> {
     const data = JSON.stringify(obj);
-    for (const ws of this.ctx.getWebSockets()) {
-      if (ws === sender) continue;
-      try {
-        ws.send(data);
-      } catch {
-        // socket closing; ignore
-      }
+    for (const ws of await this.authorizedSockets(sender)) {
+      try { ws.send(data); } catch { /* socket closing */ }
     }
   }
 
-  // Unique connected names. `exclude` drops a socket that is mid-close (the
-  // hibernation API may still list it during webSocketClose).
-  private broadcastPresence(exclude?: WebSocket): void {
+  private async broadcastPresence(exclude?: WebSocket): Promise<void> {
+    const sockets = await this.authorizedSockets(exclude);
     const names = new Set<string>();
-    for (const ws of this.ctx.getWebSockets()) {
-      if (ws === exclude) continue;
+    for (const ws of sockets) {
       const meta = ws.deserializeAttachment() as SocketMeta | null;
       if (meta?.name) names.add(meta.name);
     }
-    this.broadcast({ type: 'presence', users: [...names] });
+    const data = JSON.stringify({ type: 'presence', users: [...names] });
+    for (const ws of sockets) {
+      try { ws.send(data); } catch { /* socket closing */ }
+    }
   }
 }

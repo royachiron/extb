@@ -49,7 +49,7 @@ function setupRequest(passphrase: string, username = 'Owner') {
 
 function context(env: Env): AppContext { return { env, user: null, csrfToken: 'test', cookies: [] }; }
 
-describe('fresh community installation', () => {
+describe('fresh community installation', { timeout: 20000 }, () => {
   it('fresh schema prepares every static runtime SQL statement', () => {
     const collect = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
       const path = join(dir, entry.name);

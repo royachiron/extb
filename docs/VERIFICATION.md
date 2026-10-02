@@ -15,7 +15,7 @@ A neutral local development installation was exercised through the browser. Conf
 
 The README screenshot comes from that neutral fixture, not a production community or seeded installation content. Optional email delivery and R2 uploads have not been exercised against external services.
 
-The release checks passed TypeScript, 538 tests across 64 test files, a Wrangler deployment dry run, and `npm audit` with zero vulnerabilities.
+The release checks passed TypeScript, 547 tests across 65 test files, a Wrangler deployment dry run, and `npm audit` with zero vulnerabilities.
 
 `npm run verify` runs TypeScript checks and the automated suite. The suite includes fresh schema and seeding, setup and invitation safeguards, core forum/chat behavior, branding escaping, and MCP authorization and deletion confirmation checks. Run it again on the final release revision; development snapshots can have different results.
 
@@ -29,6 +29,6 @@ This did not use a newly created Cloudflare account. It does not establish the R
 
 ## Public deploy button
 
-The README uses Cloudflare's official deploy-button URL. A complete click-through using a clean Cloudflare account has not been verified. No measured installation time is claimed here. Account creation, GitHub connection, resource provisioning, and build duration depend on those services.
+The README uses Cloudflare's official deploy-button URL. Automated navigation reached the Cloudflare dashboard, which required a human security check. A complete click-through using a clean Cloudflare account has not been verified. No measured installation time is claimed here. Account creation, GitHub connection, resource provisioning, and build duration depend on those services.
 
 The release acceptance target is a fresh community ready within a few minutes after account prerequisites. Confirm that experience using the published repository button before treating it as a measured result.
