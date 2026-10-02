@@ -49,7 +49,8 @@ export async function getChat(
   const rooms = await listRooms(ctx.env, ctx.user?.id);
   // Chat-room switcher: only kind='chat' rooms this user can read.
   const chatRooms = rooms.filter(r => r.kind === 'chat' && canRead(ctx.user, r));
-  const activeSlug = new URL(req.url).searchParams.get('room') || 'chat';
+  const requestedSlug = new URL(req.url).searchParams.get('room');
+  const activeSlug = requestedSlug ?? chatRooms.find(r => r.slug === 'chat')?.slug ?? chatRooms[0]?.slug ?? 'chat';
   const chatRoom = await getRoomBySlug(ctx.env, activeSlug, ctx.user?.id);
   if (!chatRoom || chatRoom.kind !== 'chat' || !canRead(ctx.user, chatRoom)) {
     if (!ctx.user || !ctx.user.is_approved) return redirect('/login');

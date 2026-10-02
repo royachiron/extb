@@ -1,3 +1,4 @@
+import { roomReadVisibility } from './room-visibility';
 import type { ContentStatus, Env, Post, ProfilePostRow } from '../types';
 import { orderPostsDfs } from './post-pages';
 
@@ -187,12 +188,7 @@ export async function getRecentPostsByUser(
   viewerId?: number
 ): Promise<ProfilePostRow[]> {
   const modFilter = viewerId ? `AND (t.require_review = 0 OR t.user_id = ? OR (SELECT access_level FROM users WHERE id = ?) IN ('mod', 'admin'))` : 'AND t.require_review = 0';
-  const exclusiveFilter = `AND (
-    r.is_exclusive = 0
-    OR ? IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow'))
-    OR (SELECT access_level FROM users WHERE id = ?) IN ('mod','admin')
-  )`;
-  const uid = viewerId ?? 0;
+  const vis = roomReadVisibility(viewerId);
   const modParams = viewerId ? [viewerId, viewerId] : [];
   const res = await env.DB.prepare(
     `SELECT p.id, p.topic_id, t.short_id as topic_short_id, p.content, p.created_at,
@@ -201,10 +197,10 @@ export async function getRecentPostsByUser(
        JOIN topics t ON t.id = p.topic_id
        JOIN rooms r ON r.id = t.room_id
        WHERE p.user_id = ? AND p.deleted_at IS NULL AND p.status = 'approved'
-         AND t.deleted_at IS NULL ${modFilter} ${exclusiveFilter}
+         AND t.deleted_at IS NULL ${modFilter} AND ${vis.sql}
        ORDER BY p.created_at DESC LIMIT ?`
   )
-    .bind(userId, ...modParams, uid, uid, limit)
+    .bind(userId, ...modParams, ...vis.params, limit)
     .all<ProfilePostRow>();
   return res.results ?? [];
 }

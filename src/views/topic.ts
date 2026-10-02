@@ -81,7 +81,7 @@ export function renderTopic(opts: {
             <option value="">- pick a room -</option>
             ${allRooms.map(r => `<option value="${r.id}">${esc(r.name)} (/r/${esc(r.slug)})${(r.min_read === 'full' || r.min_post === 'full') ? ' ⚠️ gated' : ''}</option>`).join('')}
           </select>
-          <label style="font-size:12px;color:var(--text-muted);">Reason (optional)</label>
+          <label style="font-size:12px;color:var(--text-muted);"><!--extb-ui-->Reason (optional)<!--/extb-ui--></label>
           <input type="text" name="reason" maxlength="200" placeholder="e.g. better fit for /r/coping" style="padding:6px;">
           <button type="submit" class="btn btn-sm" data-confirm="Move this thread to the selected room?">Move</button>
         </form>
@@ -109,7 +109,7 @@ export function renderTopic(opts: {
           ${csrfField({ csrfToken })}
           <textarea name="memo" rows="3" required placeholder="Warning message to the author…"></textarea>
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" data-warn-close="${warnKey}">Cancel</button>
+            <button type="button" class="btn-secondary" data-warn-close="${warnKey}"><!--extb-ui-->Cancel<!--/extb-ui--></button>
             <button type="submit" class="btn btn-sm">Send warning</button>
           </div>
         </form>
@@ -148,7 +148,7 @@ export function renderTopic(opts: {
 
   const breadcrumbs = `
     <nav class="breadcrumb">
-      <a href="/" hx-get="/" hx-target=".main" hx-push-url="true">Home</a>
+      <a href="/" hx-get="/" hx-target=".main" hx-push-url="true"><!--extb-ui-->Home<!--/extb-ui--></a>
       <span class="breadcrumb-sep">&rsaquo;</span>
       <a href="/r/${esc(room.slug)}" hx-get="/r/${esc(room.slug)}" hx-target=".main" hx-push-url="true">${esc(room.name)}</a>
     </nav>`;
@@ -156,28 +156,28 @@ export function renderTopic(opts: {
   const replyComposer = user && mayPost
     ? `
     <div class="reply-composer" style="margin-top:48px; padding-top:32px; border-top:2px solid var(--border-color);">
-      <h3 style="margin:0 0 20px; font-size:20px; font-weight:700;">Join the Discussion</h3>
+      <h3 style="margin:0 0 20px; font-size:20px; font-weight:700;"><!--extb-ui-->Join the Discussion<!--/extb-ui--></h3>
       <form method="post" hx-post="/posts" hx-target="#post-list" hx-swap="beforeend" hx-on::after-request="if(event.detail.successful){this.reset();document.getElementById('reply-content').focus();}">
         <input type="hidden" name="topic_id" value="${topic.id}">
         ${markdownToolbar('reply-content', 'reply-preview')}
         <textarea id="reply-content" name="content" required rows="6" placeholder="Type your reply here..." style="margin-bottom:12px;"></textarea>
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-          <span style="font-size:13px; color:var(--text-muted);">Ctrl+Enter to post</span>
+          <span style="font-size:13px; color:var(--text-muted);"><!--extb-ui-->Ctrl+Enter to post<!--/extb-ui--></span>
           <button type="submit" class="btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg><!--extb-ui-->
             Post Reply
-          </button>
+          <!--/extb-ui--></button>
         </div>
       </form>
     </div>`
     : !user && room.min_post === 'anon' && !topic.is_locked
     ? `
     <div class="reply-composer" style="margin-top:48px; padding-top:32px; border-top:2px solid var(--border-color);">
-      <h3 style="margin:0 0 20px; font-size:20px; font-weight:700;">Reply</h3>
+      <h3 style="margin:0 0 20px; font-size:20px; font-weight:700;"><!--extb-ui-->Reply<!--/extb-ui--></h3>
       <form method="post" action="/posts">
         ${csrfField({ csrfToken })}
         <input type="hidden" name="topic_id" value="${topic.id}">
-        <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-main)">Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span>
+        <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-main)"><!--extb-ui-->Name <!--/extb-ui--><span style="font-weight:400;color:var(--text-muted)"><!--extb-ui-->(optional)<!--/extb-ui--></span>
           <input type="text" name="anon_name" maxlength="40" placeholder="anonymous" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;background:var(--card-bg);color:var(--text-main);">
         </label>
         <label style="display:block;font-weight:600;margin:16px 0 8px;color:var(--text-main)">Your reply
@@ -185,8 +185,8 @@ export function renderTopic(opts: {
         </label>
         ${turnstileWidgetBlock(siteKey)}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
-          <span style="font-size:13px;color:var(--text-muted);">Posts go to moderator review before appearing.</span>
-          <button type="submit" class="btn">Submit Reply</button>
+          <span style="font-size:13px;color:var(--text-muted);"><!--extb-ui-->Posts go to moderator review before appearing.<!--/extb-ui--></span>
+          <button type="submit" class="btn"><!--extb-ui-->Submit Reply<!--/extb-ui--></button>
         </div>
       </form>
       ${turnstileScript(siteKey)}
@@ -194,13 +194,13 @@ export function renderTopic(opts: {
     : user
     ? `
     <div style="margin-top:48px; padding:32px; background:var(--card-bg); border-radius:16px; text-align:center; border: 2px dashed var(--border-color);">
-      <p style="margin:0 0 8px; font-weight:600; color:var(--text-main);">This room is read-only for your access level.</p>
+      <p style="margin:0 0 8px; font-weight:600; color:var(--text-main);"><!--extb-ui-->This room is read-only for your access level.<!--/extb-ui--></p>
       <p style="margin:0 0 16px; font-size:14px; color:var(--text-muted);">You don&rsquo;t have permission to reply in this room.</p>
     </div>`
     : `
     <div style="margin-top:48px; padding:32px; background:var(--card-bg); border-radius:16px; text-align:center; border: 2px dashed var(--border-color);">
-      <p style="margin:0 0 16px; font-weight:600; color:var(--text-muted);">Want to join the conversation?</p>
-      <a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true" class="btn">Log in to Reply</a>
+      <p style="margin:0 0 16px; font-weight:600; color:var(--text-muted);"><!--extb-ui-->Want to join the conversation?<!--/extb-ui--></p>
+      <a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true" class="btn"><!--extb-ui-->Log in to Reply<!--/extb-ui--></a>
     </div>`;
 
   return `
@@ -220,8 +220,8 @@ export function renderTopic(opts: {
     <span id="batch-count" style="font-size:14px;font-weight:600;">0 selected</span>
     <button type="button" onclick="submitBatchAction('${topic.short_id}', 'soft')" class="btn" style="padding:6px 14px;font-size:13px;">Soft Delete</button>
     <button type="button" onclick="submitBatchAction('${topic.short_id}', 'hard')" class="btn" style="background:var(--danger);border-color:var(--danger);padding:6px 14px;font-size:13px;">Hard Delete</button>
-    <button type="button" onclick="submitBatchAction('${topic.short_id}', 'remove')" class="btn" style="padding:6px 14px;font-size:13px;">Remove</button>
-    <button type="button" onclick="exitBatchMode()" class="action-btn" style="padding:6px 14px;font-size:13px;">Cancel</button>
+    <button type="button" onclick="submitBatchAction('${topic.short_id}', 'remove')" class="btn" style="padding:6px 14px;font-size:13px;"><!--extb-ui-->Remove<!--/extb-ui--></button>
+    <button type="button" onclick="exitBatchMode()" class="action-btn" style="padding:6px 14px;font-size:13px;"><!--extb-ui-->Cancel<!--/extb-ui--></button>
   </div>
   ` : ''}
 
@@ -292,7 +292,7 @@ export function renderPoll(poll: any, user: any, userVotes: number[], topic: any
           return `
             <div class="poll-result-row">
               <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; font-weight:600;">
-                <span>${esc(o.text)} ${isChosen ? '<span style="color:var(--primary);margin-left:8px;">✓ Your vote</span>' : ''}</span>
+                <span>${esc(o.text)} ${isChosen ? '<span style="color:var(--primary);margin-left:8px;"><!--extb-ui-->✓ Your vote<!--/extb-ui--></span>' : ''}</span>
                 <span>${o.votes} votes (${pct}%)</span>
               </div>
               <div style="height:12px; background:var(--border-color); border-radius:6px; overflow:hidden;">
@@ -303,7 +303,7 @@ export function renderPoll(poll: any, user: any, userVotes: number[], topic: any
         <div style="font-size:13px; color:var(--text-muted); margin-top:8px;">
           Total votes: ${totalVotes} ${isEnded ? '• Poll ended' : ''}
         </div>
-        ${!user && !isEnded ? '<p style="font-size:13px; color:var(--text-muted); margin:0;"><a href="/login" style="color:var(--primary);text-decoration:none;">Log in</a> to vote.</p>' : ''}
+        ${!user && !isEnded ? '<p style="font-size:13px; color:var(--text-muted); margin:0;"><a href="/login" style="color:var(--primary);text-decoration:none;"><!--extb-ui-->Log in<!--/extb-ui--></a> to vote.</p>' : ''}
       </div>`;
   } else {
     body = `
@@ -316,7 +316,7 @@ export function renderPoll(poll: any, user: any, userVotes: number[], topic: any
             </label>
           `).join('')}
         </div>
-        <button type="submit" class="btn" style="margin-top:20px; width:100%; justify-content:center;">Cast Vote</button>
+        <button type="submit" class="btn" style="margin-top:20px; width:100%; justify-content:center;"><!--extb-ui-->Cast Vote<!--/extb-ui--></button>
       </form>`;
   }
 
@@ -341,29 +341,29 @@ export function renderEditTopicForm(opts: {
   return `
     <form method="POST" action="/t/${topic.short_id}/edit" class="edit-topic" style="max-width:780px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)">
       ${csrfField(opts)}
-      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;">Edit Topic</h1>
-      <label style="display:block;font-weight:600;margin-bottom:8px;color:#374151">Title
-        <input name="title" required maxlength="140" value="${esc(topic.title)}" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;transition:border-color 0.2s">
+      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;"><!--extb-ui-->Edit Topic<!--/extb-ui--></h1>
+      <label style="display:block;font-weight:600;margin-bottom:8px;color:#374151"><!--extb-ui-->Title
+        <!--/extb-ui--><input name="title" required maxlength="140" value="${esc(topic.title)}" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;transition:border-color 0.2s">
       </label>
       <label style="display:block;font-weight:600;margin:16px 0 8px;color:#374151">Message
         ${markdownToolbar('edit-topic-content', 'edit-topic-preview')}
         <textarea id="edit-topic-content" name="content" required rows="16" style="width:100%;font:15px/1.6 inherit;padding:12px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;resize:vertical;transition:border-color 0.2s">${esc(topic.content)}</textarea>
       </label>
-      <label style="display:block;font-weight:600;margin:16px 0 8px;color:#374151">Tags <span style="font-weight:400;color:#6b7280">(comma separated)</span>
+      <label style="display:block;font-weight:600;margin:16px 0 8px;color:#374151"><!--extb-ui-->Tags <!--/extb-ui--><span style="font-weight:400;color:#6b7280"><!--extb-ui-->(comma separated)<!--/extb-ui--></span>
         <input name="tags" value="${esc(topic.tags ?? '')}" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;transition:border-color 0.2s" placeholder="e.g. general, help, discussion">
       </label>
       ${tagPicker(allCwTags, selectedTagIds)}
       <div style="margin-top:24px;display:flex;gap:12px">
-        <button type="submit" class="btn" style="padding:10px 20px;font-size:15px">Save Changes</button>
-        <a href="/t/${topic.short_id}" hx-get="/t/${topic.short_id}" hx-target=".main" hx-push-url="true" class="btn" style="background:#f3f4f6;color:#374151;padding:10px 20px;font-size:15px;display:inline-flex;align-items:center">Cancel</a>
+        <button type="submit" class="btn" style="padding:10px 20px;font-size:15px"><!--extb-ui-->Save Changes<!--/extb-ui--></button>
+        <a href="/t/${topic.short_id}" hx-get="/t/${topic.short_id}" hx-target=".main" hx-push-url="true" class="btn" style="background:#f3f4f6;color:#374151;padding:10px 20px;font-size:15px;display:inline-flex;align-items:center"><!--extb-ui-->Cancel<!--/extb-ui--></a>
       </div>
     </form>`;
 }
 
 export function renderFollowingButton(shortId: string): string {
-  return `<button hx-post="/t/${shortId}/unfollow" hx-target="closest div" hx-swap="outerHTML" class="action-btn" style="background:#e5e7eb; color:#374151;">Following</button>`;
+  return `<button hx-post="/t/${shortId}/unfollow" hx-target="closest div" hx-swap="outerHTML" class="action-btn" style="background:#e5e7eb; color:#374151;"><!--extb-ui-->Following<!--/extb-ui--></button>`;
 }
 
 export function renderFollowButton(shortId: string): string {
-  return `<button hx-post="/t/${shortId}/follow" hx-target="closest div" hx-swap="outerHTML" class="action-btn" style="background:#2563eb; color:#fff;">Follow</button>`;
+  return `<button hx-post="/t/${shortId}/follow" hx-target="closest div" hx-swap="outerHTML" class="action-btn" style="background:#2563eb; color:#fff;"><!--extb-ui-->Follow<!--/extb-ui--></button>`;
 }

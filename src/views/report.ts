@@ -20,16 +20,16 @@ export function renderReportForm(
       ${csrfField({ csrfToken })}
       <input type="hidden" name="type" value="${esc(targetType)}">
       <input type="hidden" name="id" value="${targetId}">
-      <label style="font-size:13px;font-weight:700;color:var(--text-main);">Why are you reporting this?</label>
+      <label style="font-size:13px;font-weight:700;color:var(--text-main);"><!--extb-ui-->Why are you reporting this?<!--/extb-ui--></label>
       <select name="reason" required style="padding:8px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg);color:var(--text-main);">
         ${options}
       </select>
       <textarea name="detail" maxlength="500" rows="3" placeholder="Anything the mods should know? (optional)" style="padding:8px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg);color:var(--text-main);font:inherit;"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button type="button" class="btn-sm" onclick="this.closest('form').remove()">Cancel</button>
-        <button type="submit" class="btn btn-sm">Send report</button>
+        <button type="button" class="btn-sm" onclick="this.closest('form').remove()"><!--extb-ui-->Cancel<!--/extb-ui--></button>
+        <button type="submit" class="btn btn-sm"><!--extb-ui-->Send report<!--/extb-ui--></button>
       </div>
-      <p style="margin:0;font-size:12px;color:var(--text-muted);">Reports are private - only the mod team sees them.</p>
+      <p style="margin:0;font-size:12px;color:var(--text-muted);"><!--extb-ui-->Reports are private - only the mod team sees them.<!--/extb-ui--></p>
     </form>`;
 }
 

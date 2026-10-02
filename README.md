@@ -35,7 +35,7 @@ Account onboarding and the first build can take extra time. The button flow depe
 | Practical moderation | Reports, warnings, bans, appeals, content review, and audit history |
 | Admin work from an agent | Built-in MCP tools with scoped, revocable tokens |
 
-The interface supports full page navigation and HTMX updates, desktop and mobile layouts, and light and dark themes. Email and image uploads are optional upgrades.
+The interface supports full page navigation and HTMX updates, desktop and mobile layouts, Hebrew RTL and English LTR with a persistent language switch, and light and dark themes. Email and image uploads are optional upgrades.
 
 ![A community running on EXTB](docs/screenshots/community.png)
 

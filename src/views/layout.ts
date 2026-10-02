@@ -221,8 +221,8 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
     html { scroll-behavior: auto !important; }
   }
 
-  .skip-link { position: absolute; left: -9999px; top: 0; z-index: 1000; padding: 10px 16px; background: var(--primary); color: #ffffff; font-weight: 700; border-radius: 0 0 8px 0; }
-  .skip-link:focus { left: 0; }
+  .skip-link { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .skip-link:focus { width:auto; height:auto; margin:0; overflow:visible; clip-path:none; inset-inline-start:0; top:0; z-index:1000; padding:10px 16px; background:var(--card-bg); color:var(--text-main); border:2px solid var(--primary); font-weight:700; }
 
   a { color: var(--primary); text-decoration: none; font-weight: 500; }
   a:hover { text-decoration: none; }
@@ -235,6 +235,7 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   .hamburger:active { opacity: 0.6; }
   .hamburger svg { width: 24px; height: 24px; }
   .brand { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 24px; letter-spacing: -0.75px; line-height: 1; align-self: center; background: linear-gradient(to right, #e40303, #ff8c00, #ffed00, #008026, #004dff, #732982); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+  .brand:has(img) { background:none; color:var(--primary); -webkit-text-fill-color:currentColor; filter:none; }
   .topnav nav { display: flex; align-items: center; gap: 20px; margin-right: auto; }
   .topnav nav a { display: flex; align-items: center; height: 64px; color: var(--text-main); font-weight: 600; font-size: 14px; transition: color 0.2s; }
   .topnav nav a:hover { color: var(--primary); text-decoration: none; }
@@ -934,10 +935,38 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   }
   .bot-opt:hover { border-color: var(--primary); color: var(--primary); }
   .bot-page { max-width: 680px; margin: 0 auto; padding: 20px 16px; }
+/* Mirror navigation and the dock while preserving their sizing controls. */
+  [dir="rtl"] .topnav .right { margin-left:0; margin-right:auto; }
+  [dir="rtl"] .dropdown { right:auto; left:0; }
+  [dir="rtl"] .sidebar { border-right:0; border-left:1px solid var(--border-color); }
+  [dir="rtl"] .chat-dock { border-left:0; border-right:1px solid var(--border-color); }
+  [dir="rtl"] .chat-dock-resize { left:auto; right:-4px; }
+  [dir="rtl"] .fab { right:auto; left:32px; }
+  [dir="rtl"] body.chat-dock-open .fab { right:auto; left:calc(var(--chat-dock-w) + 32px); }
+  [dir="rtl"] .chat-msg, [dir="rtl"] .chat-input, [dir="rtl"] textarea { text-align:start; }
+  [dir="rtl"] body.has-chat-dock:not(.chat-dock-open) .chat-dock-tab { right:auto; left:0; border-right:1px solid var(--border-color); border-left:none; }
+  [dir="rtl"] body.has-chat-dock:not(.chat-dock-open) .chat-fab { right:auto; left:16px; }
+  @media (min-width:768.02px) and (max-width:1199px) { [dir="rtl"] .chat-dock { right:auto; left:0; } }
+  html[lang="he"] .language-switch[data-language="he"], html[lang="en"] .language-switch[data-language="en"] { display:none; }
+  .language-switch { font-size:12px; white-space:nowrap; }
+  @media (max-width:768px) {
+    [dir="rtl"] .sidebar { left:auto; right:0; transform:translateX(100%); }
+    [dir="rtl"] .sidebar.open { transform:translateX(0); }
+    [dir="rtl"] .drawer-close { right:auto; left:16px; }
+    .topnav .brand img { width:90px !important; height:42px !important; }
+    .topnav { gap:8px; }
+    .topnav .right { gap:4px; min-width:0; }
+    .topnav .staff-nav, .topnav #font-size-toggle { display:none; }
+    .topnav .brand:has(img) .brand-name { display:none; }
+    .topnav .icon-btn { width:32px; height:32px; padding:4px; }
+    .topnav .brand img { margin-inline-end:0 !important; }
+    .topnav { padding-inline:12px; }
+
+  }
 </style>
 </head>
 <body data-uploads-enabled="${opts.uploadsEnabled ? 'true' : 'false'}" class="${opts.user?.show_nsfw ? 'show-nsfw' : ''}"${dockRooms.length && opts.openChatDock !== undefined ? ` data-chat-open="${esc(opts.openChatDock)}"` : ''}>${dockRooms.length ? `<script>${CHAT_DOCK_BOOT}</script>` : ''}
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <a class="skip-link" href="#main-content"><!--extb-ui-->Skip to content<!--/extb-ui--></a>
   ${renderTopnav({ user, verified, cPanelLink, userMenu, branding })}
 <div class="drawer-overlay" id="drawer-overlay"></div>
 ${verifyBanner}

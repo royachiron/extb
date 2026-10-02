@@ -22,7 +22,7 @@ export function badgeHtml(level: string): string {
     member: '#6b7280', full: '#10b981', mod: '#3b82f6', admin: '#ef4444',
   };
   const bg = colors[level] ?? '#6b7280';
-  return `<span class="badge" style="background:${bg};color:#fff;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;">${esc(level === 'full' ? 'Trusted member' : level)}</span>`;
+  return `<span class="badge" style="background:${bg};color:#fff;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;">${['member','full','mod','admin'].includes(level) ? '<!--extb-ui-->' + esc(level === 'full' ? 'Trusted member' : level) + '<!--/extb-ui-->' : esc(level)}</span>`;
 }
 
 export const TIMEZONES = [

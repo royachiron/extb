@@ -1,6 +1,8 @@
+import { localizeHtml } from '../src/lib/localization';
 import { describe, expect, it } from 'vitest';
-import { renderSidebar } from '../src/views/layout-shell';
+import { renderSidebar as renderSidebarRaw } from '../src/views/layout-shell';
 import { renderLayout } from '../src/views/layout';
+const renderSidebar = (...args: Parameters<typeof renderSidebarRaw>) => localizeHtml(renderSidebarRaw(...args), 'en');
 
 const authenticatedUser = { id: 7, email_verified: 1, is_approved: 1 } as any;
 

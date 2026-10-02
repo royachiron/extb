@@ -13,7 +13,7 @@ export function renderUserDirectory(opts: {
   const canAdmin = isAdmin(user);
 
   const userCards = users.length === 0
-    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);background:var(--card-bg);border-radius:12px;border:1px solid var(--border-color);">No users found.</div>`
+    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);background:var(--card-bg);border-radius:12px;border:1px solid var(--border-color);"><!--extb-ui-->No users found.<!--/extb-ui--></div>`
     : `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:16px;">
         ${users.map(u => {
           const avatar = u.avatar_url 
@@ -34,8 +34,8 @@ export function renderUserDirectory(opts: {
   return `
     <header class="page-head" style="margin-bottom: 32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
       <div>
-        <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-main);">User Directory</h1>
-        <p class="subtitle" style="margin: 4px 0 0; color: var(--text-muted); font-size: 14px;">Find and connect with members of the community.</p>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-main);"><!--extb-ui-->User Directory<!--/extb-ui--></h1>
+        <p class="subtitle" style="margin: 4px 0 0; color: var(--text-muted); font-size: 14px;"><!--extb-ui-->Find and connect with members of the community.<!--/extb-ui--></p>
       </div>
       <form action="/users" style="position:relative;">
         <input name="q" value="${esc(q || '')}" placeholder="Search users..." style="padding:10px 16px 10px 40px; border:1px solid var(--border-color); border-radius:9999px; font-size:14px; width:240px; background: var(--bg-color); color:var(--text-main);">

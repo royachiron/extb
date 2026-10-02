@@ -3,6 +3,15 @@
 // relative-time localizer, smooth scroll, toasts, copy-link, thread collapse,
 // delete panels, [data-confirm]. See layout-scripts/index.ts for ordering.
 export const SCRIPT_UI = `
+      document.addEventListener('click', function(event) {
+        var link = event.target.closest && event.target.closest('a[data-language]');
+        if (!link) return;
+        var language = link.getAttribute('data-language');
+        if (language !== 'he' && language !== 'en') return;
+        var target = new URL(window.location.href);
+        target.searchParams.set('lang', language);
+        link.href = target.href;
+      });
 
       document.addEventListener('keydown', function(e) {
         if (e.key !== 'Escape') return;

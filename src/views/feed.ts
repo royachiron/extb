@@ -57,7 +57,7 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[]): string {
 }
 
 export function renderTopicCards(topics: Topic[], user: User | null, rooms: Room[]): string {
-  if (topics.length === 0) return '<p style="color:var(--text-muted);padding:16px 0;">No topics yet.</p>';
+  if (topics.length === 0) return '<p style="color:var(--text-muted);padding:16px 0;"><!--extb-ui-->No topics yet.<!--/extb-ui--></p>';
   return topics.map((t) => renderTopicCard(t, user, rooms)).join('');
 }
 
@@ -78,7 +78,7 @@ export function renderForumIndex(opts: {
     const lastPostHtml = r.last_topic_id
       ? `<a href="/t/${r.last_short_id}" hx-get="/t/${r.last_short_id}" hx-target=".main" hx-push-url="true" class="fi-lp-lnk">${esc((r.last_topic_title || '').substring(0, 45))}${(r.last_topic_title || '').length > 45 ? '…' : ''}</a>
          <div class="fi-lp-meta">${esc(r.last_author || 'unknown')} · ${relTime(r.last_activity_at || '')}</div>`
-      : '<span class="fi-lp-meta">No posts yet</span>';
+      : '<span class="fi-lp-meta"><!--extb-ui-->No posts yet<!--/extb-ui--></span>';
     return `
     <div class="fi-rr">
       <div class="fi-rr-top fi-rc">
@@ -100,10 +100,10 @@ export function renderForumIndex(opts: {
 <div class="fi-layout">
   <div class="fi-main">
     <div class="fi-hdr">
-      <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.3px;">FORUM INDEX</h1>
+      <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.3px;"><!--extb-ui-->FORUM INDEX<!--/extb-ui--></h1>
     </div>
-    <div class="fi-rl">${rows || '<div style="padding:24px;text-align:center;color:var(--text-muted);">No rooms yet.</div>'}</div>
-    ${user ? '' : '<p style="margin-top:16px;font-size:13px;color:var(--text-muted);"><a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true" style="color:var(--primary);">Log in</a> to post.</p>'}
+    <div class="fi-rl">${rows || '<div style="padding:24px;text-align:center;color:var(--text-muted);"><!--extb-ui-->No rooms yet.<!--/extb-ui--></div>'}</div>
+    ${user ? '' : '<p style="margin-top:16px;font-size:13px;color:var(--text-muted);"><a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true" style="color:var(--primary);"><!--extb-ui-->Log in<!--/extb-ui--></a> to post.</p>'}
   </div>
   <aside class="fi-aside">
     ${renderIndexPanels(user, topTopics, latestReplies, topContributors)}
@@ -136,7 +136,7 @@ export function renderIndexPanels(
         ${relTime(t.last_reply_at)}
       </div>`;
       }).join('')
-    : '<p style="font-size:13px;color:var(--text-muted);">No topics yet.</p>';
+    : '<p style="font-size:13px;color:var(--text-muted);"><!--extb-ui-->No topics yet.<!--/extb-ui--></p>';
 
   const latestRepliesHtml = latestReplies.length
     ? latestReplies.map((p: any) => {
@@ -157,7 +157,7 @@ export function renderIndexPanels(
           </div>
         </div>`;
       }).join('')
-    : '<p style="font-size:13px;color:var(--text-muted);">No replies yet.</p>';
+    : '<p style="font-size:13px;color:var(--text-muted);"><!--extb-ui-->No replies yet.<!--/extb-ui--></p>';
 
   const topContributorsHtml = topContributors.length
     ? topContributors.map((u: any, i: number) => {
@@ -172,7 +172,7 @@ export function renderIndexPanels(
           ${avatarEl}
           <div style="min-width:0;flex:1;">
             <a href="/u/${esc(u.display_name)}" hx-get="/u/${esc(u.display_name)}" hx-target=".main" hx-push-url="true" style="font-size:13px;font-weight:600;color:var(--text-main);text-decoration:none;">${esc(u.display_name)}</a>
-            <div style="font-size:11px;color:var(--text-muted);">Posts: ${u.topic_count}, Comments: ${u.post_count}</div>
+            <div style="font-size:11px;color:var(--text-muted);"><!--extb-ui-->Posts:<!--/extb-ui--> ${u.topic_count}, <!--extb-ui-->Comments:<!--/extb-ui--> ${u.post_count}</div>
           </div>
         </div>`;
       }).join('')
@@ -180,15 +180,15 @@ export function renderIndexPanels(
 
   return `
     <div class="fi-sc">
-      <div class="fi-sc-hd">Top Topics</div>
+      <div class="fi-sc-hd"><!--extb-ui-->Top Topics<!--/extb-ui--></div>
       <div style="padding:12px 14px;">${topTopicsHtml}</div>
     </div>
     <div class="fi-sc">
-      <div class="fi-sc-hd">Latest Replies <span class="fi-sc-new">NEW</span></div>
+      <div class="fi-sc-hd"><!--extb-ui-->Latest Replies <!--/extb-ui--><span class="fi-sc-new">NEW</span></div>
       <div style="padding:12px 14px;">${latestRepliesHtml}</div>
     </div>
     <div class="fi-sc">
-      <div class="fi-sc-hd">Top Contributors <span class="fi-sc-new">NEW</span></div>
+      <div class="fi-sc-hd"><!--extb-ui-->Top Contributors <!--/extb-ui--><span class="fi-sc-new">NEW</span></div>
       <div style="padding:12px 14px;">${topContributorsHtml}</div>
     </div>`;
 }
@@ -213,9 +213,9 @@ export function renderNeedsYou(opts: {
 
   const list = topics.length === 0
     ? `<div class="ny-empty">
-         <div class="ny-empty-title">Nothing waiting</div>
-         <p class="ny-empty-sub">Everyone's been answered.</p>
-         <a href="/post" hx-get="/post" hx-target=".main" hx-push-url="true" class="btn btn-primary">Start a discussion</a>
+         <div class="ny-empty-title"><!--extb-ui-->Nothing waiting<!--/extb-ui--></div>
+         <p class="ny-empty-sub"><!--extb-ui-->Everyone's been answered.<!--/extb-ui--></p>
+         <a href="/post" hx-get="/post" hx-target=".main" hx-push-url="true" class="btn btn-primary"><!--extb-ui-->Start a discussion<!--/extb-ui--></a>
        </div>`
     : topics.map((t) => {
         const room = rooms.find((r) => r.id === t.room_id);
@@ -251,7 +251,7 @@ export function renderNeedsYou(opts: {
   <div class="fi-main">
     <div class="fi-hdr">
       <div>
-        <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.3px;">Needs you</h1>
+        <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.3px;"><!--extb-ui-->Needs you<!--/extb-ui--></h1>
         <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">${sub}</p>
       </div>
     </div>
@@ -278,7 +278,7 @@ export function renderFeedMore(baseUrl: string, nextPage: number | null): string
       hx-get="${esc(baseUrl)}?list=1&append=1&page=${nextPage}"
       hx-target="#feed-more" hx-swap="outerHTML"
       hx-on::after-request="document.getElementById('topic-list').dataset.paged='1'"
-    >Load more topics</button>
+    ><!--extb-ui-->Load more topics<!--/extb-ui--></button>
   </div>`;
 }
 
@@ -301,16 +301,16 @@ export function renderFeed(opts: {
 
   const anonComposer = activeRoom?.min_post === 'anon' && !user
     ? `<div class="card" style="margin-bottom:24px;">
-        <h3 style="margin:0 0 8px;font-size:18px;font-weight:700;">Ask a question</h3>
+        <h3 style="margin:0 0 8px;font-size:18px;font-weight:700;"><!--extb-ui-->Ask a question<!--/extb-ui--></h3>
         <p style="margin:0 0 16px;color:var(--text-muted);font-size:14px;">Anyone can ask. Posts go to moderator review before appearing.</p>
         <form method="post" action="/topics">
           ${csrfField({ csrfToken })}
           <input type="hidden" name="room_id" value="${activeRoom.id}">
-          <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-main)">Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span>
+          <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-main)"><!--extb-ui-->Name <!--/extb-ui--><span style="font-weight:400;color:var(--text-muted)"><!--extb-ui-->(optional)<!--/extb-ui--></span>
             <input type="text" name="anon_name" maxlength="40" placeholder="anonymous" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;background:var(--card-bg);color:var(--text-main);">
           </label>
-          <label style="display:block;font-weight:600;margin:16px 0 8px;color:var(--text-main)">Title
-            <input type="text" name="title" required maxlength="200" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;background:var(--card-bg);color:var(--text-main);">
+          <label style="display:block;font-weight:600;margin:16px 0 8px;color:var(--text-main)"><!--extb-ui-->Title
+            <!--/extb-ui--><input type="text" name="title" required maxlength="200" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border-color);border-radius:6px;margin-top:4px;background:var(--card-bg);color:var(--text-main);">
           </label>
           <label style="display:block;font-weight:600;margin:16px 0 8px;color:var(--text-main)">Your question
             <textarea name="content" required maxlength="10000" rows="5" style="width:100%;font:15px/1.6 inherit;padding:12px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;resize:vertical;background:var(--card-bg);color:var(--text-main);"></textarea>
@@ -318,7 +318,7 @@ export function renderFeed(opts: {
           ${turnstileWidgetBlock(siteKey)}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
             <span style="font-size:13px;color:var(--text-muted);">Posts go to moderator review.</span>
-            <button type="submit" class="btn">Submit for review</button>
+            <button type="submit" class="btn"><!--extb-ui-->Submit for review<!--/extb-ui--></button>
           </div>
         </form>
         ${turnstileScript(siteKey)}
@@ -328,7 +328,7 @@ export function renderFeed(opts: {
   const postHref = activeRoom ? `/post?room=${esc(activeRoom.slug)}` : '/post';
   const composer = !user && !anonComposer
     ? ''
-    : (user && canCompose) ? `<div style="margin-bottom:16px;"><a class="btn" href="${postHref}" hx-get="${postHref}" hx-target=".main" hx-push-url="true">+ New Topic</a></div>` : '';
+    : (user && canCompose) ? `<div style="margin-bottom:16px;"><a class="btn" href="${postHref}" hx-get="${postHref}" hx-target=".main" hx-push-url="true"><!--extb-ui-->+ New Topic<!--/extb-ui--></a></div>` : '';
 
   const rawDesc = activeRoom?.description || '';
   const truncatedDesc = rawDesc.length > 120 ? rawDesc.substring(0, 117) + '...' : rawDesc;
@@ -341,7 +341,7 @@ export function renderFeed(opts: {
   return `
 <header class="feed-head" style="margin-bottom:20px;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-    <h1 class="feed-title" style="margin:0;font-size:22px;font-weight:700;color:var(--text-main);">${activeRoom ? esc(activeRoom.name) : 'most recently updated'}</h1>
+    <h1 class="feed-title" style="margin:0;font-size:22px;font-weight:700;color:var(--text-main);">${activeRoom ? esc(activeRoom.name) : '<!--extb-ui-->most recently updated<!--/extb-ui-->'}</h1>
     <div style="display:flex;gap:8px;align-items:center;">
       ${activeRoom && isMod(user) ? `
         <button class="btn btn-secondary" 

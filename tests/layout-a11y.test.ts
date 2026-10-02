@@ -1,7 +1,9 @@
+import { localizeHtml } from '../src/lib/localization';
 import { describe, it, expect } from 'vitest';
-import { renderLayout } from '../src/views/layout';
+import { renderLayout as renderLayoutRaw } from '../src/views/layout';
 import { renderReactions } from '../src/views/post';
 import { renderPoll } from '../src/views/topic';
+const renderLayout = (...args: Parameters<typeof renderLayoutRaw>) => localizeHtml(renderLayoutRaw(...args), 'en');
 
 const page = renderLayout({ user: null, rooms: [], title: 'Test', body: '<p>x</p>' });
 

@@ -60,10 +60,10 @@ function userInitials(name: string): string {
 export function renderChatParticipants(activeNames: string[]): string {
   return `
     <div id="chat-participants" hx-swap-oob="true">
-      <p class="chat-users-label">Online</p>
+      <p class="chat-users-label"><!--extb-ui-->Online<!--/extb-ui--></p>
       <ul style="list-style:none;padding:0;margin:0;">
         ${activeNames.length === 0
-          ? `<li style="font-size:12px;color:var(--text-muted);">No one yet</li>`
+          ? `<li style="font-size:12px;color:var(--text-muted);"><!--extb-ui-->No one yet<!--/extb-ui--></li>`
           : activeNames.map(name => {
               const isGuest = name.startsWith('[guest]');
               const displayName = name.replace(/^\[guest\]\s*/, '');
@@ -134,8 +134,8 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
   // Desktop/tablet: one » hide button. Phone: one size button that steps the
   // floating window default -> large -> closed (icon shows the next step).
   const dockClose = dock
-    ? `<button type="button" class="chat-dock-x" data-chat-dock-close aria-label="Hide chat" title="Hide chat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>` +
-      `<button type="button" class="chat-dock-m chat-dock-cycle" data-chat-dock-cycle aria-label="Make chat larger" title="Larger">` +
+    ? `<button type="button" class="chat-dock-x" data-chat-dock-close aria-label="Hide chat" data-extb-i18n-aria-label="Hide chat" title="Hide chat" data-extb-i18n-title="Hide chat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>` +
+      `<button type="button" class="chat-dock-m chat-dock-cycle" data-chat-dock-cycle aria-label="Make chat larger" data-extb-i18n-aria-label="Make chat larger" title="Larger" data-extb-i18n-title="Larger">` +
         `<svg class="chat-cycle-grow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>` +
         `<svg class="chat-cycle-close" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>` +
       `</button>`
@@ -506,7 +506,7 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
     <div class="chat-main">
       <div id="chat-root" data-me="${esc(user ? (user.display_name || user.email?.split('@')[0] || '') : '')}" data-ismod="${user && ['mod', 'admin'].includes(user.access_level) ? '1' : '0'}" data-room="${esc(activeSlug)}" data-dock="${dock ? '1' : '0'}" data-csrf="${csrfToken}" data-bot-name="${esc(botName || '')}" style="display:none"></div>
       <div id="chat-messages">
-        <div id="chat-loading-placeholder" style="padding:20px;color:var(--text-muted);font-size:13px;text-align:center;">Connecting…</div>
+        <div id="chat-loading-placeholder" style="padding:20px;color:var(--text-muted);font-size:13px;text-align:center;"><!--extb-ui-->Connecting…<!--/extb-ui--></div>
       </div>
 
       <div id="chat-typing" aria-live="polite"></div>
@@ -514,13 +514,13 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
         ${csrfField({ csrfToken })}
         ${guestIndicator}
         <div id="chat-reply-bar">
-          <span class="chat-reply-bar-txt">Replying to <strong id="chat-reply-bar-author"></strong></span>
-          <button type="button" id="chat-reply-cancel" title="Cancel reply" aria-label="Cancel reply">✕</button>
+          <span class="chat-reply-bar-txt"><!--extb-ui-->Replying to <!--/extb-ui--><strong id="chat-reply-bar-author"></strong></span>
+          <button type="button" id="chat-reply-cancel" title="Cancel reply" data-extb-i18n-title="Cancel reply" aria-label="Cancel reply" data-extb-i18n-aria-label="Cancel reply">✕</button>
         </div>
         <div id="chat-hints" role="listbox" aria-label="Suggestions" hidden></div>
         <div class="chat-input-inner">
-          <input type="text" id="chat-input" name="content" required maxlength="500" placeholder="Type a message, or / for commands" autocomplete="off" aria-autocomplete="list" aria-controls="chat-hints">
-          <button type="submit" id="chat-send" class="chat-send-btn" title="Send">
+          <input type="text" id="chat-input" name="content" required maxlength="500" placeholder="Type a message, or / for commands" data-extb-i18n-placeholder="Type a message, or / for commands" autocomplete="off" aria-autocomplete="list" aria-controls="chat-hints">
+          <button type="submit" id="chat-send" class="chat-send-btn" title="Send" data-extb-i18n-title="Send">
             <svg id="chat-send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/>
             </svg>          </button>
@@ -533,7 +533,7 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
     <div id="chat-nick-menu" role="menu" aria-label="Member options" hidden></div>
     <aside class="chat-users">
       <div id="chat-participants">
-        <p class="chat-users-label">Online</p>
+        <p class="chat-users-label"><!--extb-ui-->Online<!--/extb-ui--></p>
         <ul style="list-style:none;padding:0;margin:0;">
           ${botName ? chatBotItem(esc(botName)) : ''}
         </ul>

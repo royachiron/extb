@@ -1,3 +1,4 @@
+import { roomReadVisibility } from './room-visibility';
 import type { ContentStatus, Env, ProfileTopicRow, Topic } from '../types';
 import { getBlockedIds } from './blocks';
 
@@ -10,18 +11,12 @@ import { getBlockedIds } from './blocks';
  */
 function topicVisibility(viewerId: number | undefined, blockedIds: number[]): { sql: string; params: number[] } {
   const uid = viewerId ?? 0;
-  // Guests: only show topics from rooms with min_read='anon'. Stops member-only content leaking to homepage feed.
-  const guestFilter = viewerId ? '' : `AND r.min_read = 'anon'`;
+  const vis = roomReadVisibility(viewerId);
   const blockFilter = blockedIds.length > 0 ? `AND t.user_id NOT IN (${blockedIds.map(() => '?').join(',')})` : '';
-  const sql = `t.status = 'approved' AND t.deleted_at IS NULL AND t.removed_at IS NULL AND r.is_locked = 0
+  const sql = `t.status = 'approved' AND t.deleted_at IS NULL AND t.removed_at IS NULL
     AND (t.require_review = 0 OR t.user_id = ?)
-    ${guestFilter} ${blockFilter}
-    AND (
-      r.is_exclusive = 0
-      OR ? IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow'))
-      OR (SELECT access_level FROM users WHERE id = ?) IN ('mod','admin')
-    )`;
-  return { sql, params: [uid, ...blockedIds, uid, uid] };
+    ${blockFilter} AND ${vis.sql}`;
+  return { sql, params: [uid, ...blockedIds, ...vis.params] };
 }
 
 /** Days a thread stays in the Needs You queue before it ages out. */
@@ -357,20 +352,15 @@ export async function getRecentTopicsByUser(
   viewerId?: number
 ): Promise<ProfileTopicRow[]> {
   const modFilter = viewerId ? `AND (t.require_review = 0 OR t.user_id = ? OR (SELECT access_level FROM users WHERE id = ?) IN ('mod', 'admin'))` : 'AND t.require_review = 0';
-  const exclusiveFilter = `AND (
-    r.is_exclusive = 0
-    OR ? IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow'))
-    OR (SELECT access_level FROM users WHERE id = ?) IN ('mod','admin')
-  )`;
-  const uid = viewerId ?? 0;
+  const vis = roomReadVisibility(viewerId);
   const modParams = viewerId ? [viewerId, viewerId] : [];
   const res = await env.DB.prepare(
     `SELECT t.id, t.short_id, t.title, t.created_at, t.room_id, r.name AS room_name, r.slug AS room_slug
        FROM topics t JOIN rooms r ON r.id = t.room_id
-       WHERE t.user_id = ? AND t.deleted_at IS NULL AND t.status = 'approved' ${modFilter} ${exclusiveFilter}
+       WHERE t.user_id = ? AND t.deleted_at IS NULL AND t.status = 'approved' ${modFilter} AND ${vis.sql}
        ORDER BY t.created_at DESC LIMIT ?`
   )
-    .bind(userId, ...modParams, uid, uid, limit)
+    .bind(userId, ...modParams, ...vis.params, limit)
     .all<ProfileTopicRow>();
   return res.results ?? [];
 }

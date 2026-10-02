@@ -61,7 +61,7 @@ export async function getProfile(
     listRooms(ctx.env),
     getRecentTopicsByUser(ctx.env, profileUser.id, 10, ctx.user?.id),
     getRecentPostsByUser(ctx.env, profileUser.id, 10, ctx.user?.id),
-    countUserActivity(ctx.env, profileUser.id),
+    countUserActivity(ctx.env, profileUser.id, ctx.user?.id),
     listBadgesForUser(ctx.env, profileUser.id),
   ]);
 
@@ -265,9 +265,11 @@ export async function getUsers(
   _params: Record<string, string>,
 ): Promise<Response> {
   if (!ctx.user) return redirect("/login");
+  if (ctx.user.is_banned) return redirect("/appeal");
+  if (!ctx.user.is_approved) return redirect("/verify-sent");
   if (ctx.user.access_level !== "full" && ctx.user.access_level !== "mod" && ctx.user.access_level !== "admin") {
     const rooms = await listRooms(ctx.env);
-    const body = renderOnboarding({ note: 'You clicked Members - that directory opens once your intro is approved.' });
+    const body = renderOnboarding({ note: 'You clicked Members - that directory opens once your intro is approved.', noteIsUi: true });
     if (req.headers.get('hx-request') === 'true') return html(body);
     return html(
       renderLayout({ branding: ctx.branding, origin: ctx.origin, uploadsEnabled: !!ctx.env.MEDIA,

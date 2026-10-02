@@ -1,3 +1,4 @@
+import { resolveLocale, localizeResponse } from './lib/localization';
 import { loadBranding } from './lib/branding';
 import { getSetting } from './db/settings';
 import { handleMcp } from './mcp/index';
@@ -35,12 +36,15 @@ export default {
     if (pathname === '/mcp') return handleMcp(req, env, exeCtx);
     const origin = env.COMMUNITY_ORIGIN || new URL(req.url).origin;
     const branding = await loadBranding(env);
+    const locale = resolveLocale(req, branding.default_locale);
     const secret = env.CHAT_DO_SECRET || (await getSetting(env, 'chat_auth_secret'))?.value || '';
     const requestEnv: Env = { ...env, COMMUNITY_ORIGIN: origin, CHAT_DO_SECRET: secret };
-    const ctx: AppContext = { env: requestEnv, user: null, cookies: [], branding, origin };
+    const ctx: AppContext = { env: requestEnv, user: null, cookies: [], branding, origin, locale };
     if (pathname !== '/setup' && !pathname.startsWith('/css/') && !pathname.startsWith('/icons/') && pathname !== '/favicon.svg' && !(await isSetupComplete(ctx))) {
       return Response.redirect(`${origin}/setup`, 302);
     }
+    const chosenLanguage = new URL(req.url).searchParams.get('lang');
+    if (chosenLanguage === 'he' || chosenLanguage === 'en') ctx.cookies.push(`extb_locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${new URL(req.url).protocol === 'https:' ? '; Secure' : ''}`);
     const user = await resolveSession(req, env, ctx);
     ctx.user = user;
 
@@ -61,6 +65,7 @@ export default {
     // Without this, cache.default's URL-only keying serves pre-deploy HTML
     // for the full TTL window (acute once REC-4 raises cold TTLs to 1h).
     const cacheUrl = new URL(req.url);
+    cacheUrl.searchParams.set('__extb_locale', locale);
     cacheUrl.searchParams.set('__extb_build', env.BUILD_ID || 'dev');
     // Branding content is part of the key: panel and MCP edits take effect immediately.
     const brandingDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(branding)));
@@ -115,7 +120,7 @@ export default {
       }
     }
 
-    return withCookies(response, ctx);
+    return withCookies(await localizeResponse(response, locale, req.url), ctx);
   }
 };
 
@@ -157,6 +162,8 @@ async function renderAndMaybeCache(
       response = new Response(null, { status: 200, headers: { 'HX-Redirect': loc } });
     }
   }
+
+  response = await localizeResponse(response, ctx.locale ?? 'en', req.url);
 
   // Store cacheable guest responses. Built from the dispatch result BEFORE
   // ctx.cookies is merged, so the stored Response carries no Set-Cookie

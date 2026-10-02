@@ -90,7 +90,7 @@ export async function getFeed(
       // register-or-verify warning so the user knows why they were redirected.
       if (!ctx.user || !ctx.user.is_approved) return redirect('/login', 302);
       if (ctx.user.access_level === 'member' && !activeRoom.is_page && activeRoom.min_read === 'full') {
-        return html('<h1>Trusted membership is required for this room.</h1>', 403);
+        return html('<h1><!--extb-ui-->Trusted membership is required for this room.<!--/extb-ui--></h1>', 403);
       }
       return html('<h1>403 - locked room</h1>', 403);
     }
@@ -170,7 +170,7 @@ export async function getForumIndex(
       listRoomsForIndex(ctx.env, ctx.user?.id),
       listFeedTopics(ctx.env, null, 5, 0, ctx.user?.id),
       getLatestReplies(ctx.env, 5, ctx.user?.id),
-      getTopContributors(ctx.env, 5),
+      getTopContributors(ctx.env, 5, ctx.user?.id),
     ]);
     const body = renderForumIndex({ user: ctx.user, rooms: indexRooms, topTopics, latestReplies, topContributors });
     if (req.headers.get('hx-request') === 'true') return html(body);
@@ -213,7 +213,7 @@ export async function getNeedsYou(
       listUnansweredTopics(ctx.env, user.id),
       listFeedTopics(ctx.env, null, 5, 0, user.id),
       getLatestReplies(ctx.env, 5, user.id),
-      getTopContributors(ctx.env, 5),
+      getTopContributors(ctx.env, 5, ctx.user?.id),
     ]);
 
     // `all` comes from listRooms(env, userId), which projects user_permission -
@@ -287,7 +287,7 @@ async function loadVisibleTopic(
   if (!canRead(ctx.user, room)) {
     if (!ctx.user || !ctx.user.is_approved) return redirect('/login');
     if (ctx.user.access_level === 'member' && !room.is_page && room.min_read === 'full') {
-      return html('<h1>Trusted membership is required for this room.</h1>', 403);
+      return html('<h1><!--extb-ui-->Trusted membership is required for this room.<!--/extb-ui--></h1>', 403);
     }
     return html('<h1>403</h1>', 403);
   }

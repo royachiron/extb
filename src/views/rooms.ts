@@ -69,7 +69,7 @@ export function renderRoomAccessControl(opts: {
           hx-delete="/r/${esc(room.slug)}/access/user/${p.id}"
           hx-target="#room-access-modal"
           hx-swap="outerHTML"
-          title="Remove"
+          title="Remove" data-extb-i18n-title="Remove"
           style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:20px; line-height:1; padding:4px 6px; border-radius:6px; flex-shrink:0;">×</button>
       </div>`
     ).join('');
@@ -151,13 +151,13 @@ export function renderRoomAccessControl(opts: {
                   style="padding:9px 10px; border:1.5px solid var(--border-color); border-radius:8px; background:var(--bg-color); color:var(--text-main); font-size:13px; font-weight:600; cursor:pointer; flex-shrink:0;">
             ${addLevelOpts}
           </select>
-          <button type="submit" class="btn" style="padding:9px 16px; flex-shrink:0;">+ Add</button>
+          <button type="submit" class="btn" style="padding:9px 16px; flex-shrink:0;"><!--extb-ui-->+ Add<!--/extb-ui--></button>
         </form>
 
         <div style="border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
           <div style="display:grid; grid-template-columns:1fr auto 36px; gap:10px; padding:8px 14px; background:var(--bg-color); border-bottom:1px solid var(--border-color);">
-            <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">User</span>
-            <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">Access level</span>
+            <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);"><!--extb-ui-->User<!--/extb-ui--></span>
+            <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);"><!--extb-ui-->Access level<!--/extb-ui--></span>
             <span></span>
           </div>
           ${permRows}

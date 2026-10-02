@@ -1,3 +1,4 @@
+import { roomReadVisibility } from './room-visibility';
 // FTS5 search over posts + topics with the viewer's read-access mirrored into
 // SQL. Interpolated clauses use only server-derived literals (numeric user id,
 // fixed level lists) - the query text itself stays parameterized.
@@ -19,20 +20,9 @@ export async function searchContent(
   limit: number,
   offset: number,
 ): Promise<SearchResultRow[]> {
-  // Hardening: Filter out locked rooms from search unless user is mod
-  const isMod = user && ['mod', 'admin'].includes(user.access_level);
-  // Mirror canRead()'s min_read rank gate so search never leaks titles or
-  // excerpts from rooms the viewer cannot open. Verified email required
-  // for any rank above anon, matching rank() in src/access.ts.
-  const verified = !!user && !!user.is_approved && !user.is_banned;
-  const readableLevels = !verified
-    ? `('anon')`
-    : user!.access_level === 'member'
-      ? `('anon','member')`
-      : `('anon','member','full')`;
-  const accessClause = isMod
-    ? ''
-    : `AND r.is_locked = 0 AND r.min_read IN ${readableLevels} AND (r.is_exclusive = 0 OR ${user?.id ?? 0} IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow')))`;
+  const isMod = !!user && !!user.is_approved && !user.is_banned && ['mod', 'admin'].includes(user.access_level);
+  const vis = roomReadVisibility(user?.id);
+  const accessClause = `AND ${vis.sql}`;
   const reviewClause = isMod ? '' : `AND (t.require_review = 0 OR t.user_id = ${user?.id ?? 0})`;
 
   return env.DB.prepare(
@@ -49,5 +39,5 @@ export async function searchContent(
      JOIN rooms r ON r.id = t.room_id
      WHERE topics_fts MATCH ? AND t.status = 'approved' AND t.deleted_at IS NULL ${accessClause} ${reviewClause}
      ORDER BY rank LIMIT ? OFFSET ?`
-  ).bind(ftsQuery, ftsQuery, limit, offset).all<SearchResultRow>().then(r => r.results ?? []);
+  ).bind(ftsQuery, ...vis.params, ftsQuery, ...vis.params, limit, offset).all<SearchResultRow>().then(r => r.results ?? []);
 }

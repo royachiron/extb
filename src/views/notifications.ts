@@ -31,9 +31,9 @@ export function renderNotificationItem(n: Notification): string {
 }
 
 export function renderNotificationInbox(notifications: Notification[]): string {
-  const footer = `<a href="/notifications" hx-get="/notifications" hx-target=".main" hx-push-url="true" style="display:block;padding:10px;text-align:center;font-size:13px;color:var(--primary);border-top:1px solid var(--border-color);text-decoration:none;">View all</a>`;
+  const footer = `<a href="/notifications" hx-get="/notifications" hx-target=".main" hx-push-url="true" style="display:block;padding:10px;text-align:center;font-size:13px;color:var(--primary);border-top:1px solid var(--border-color);text-decoration:none;"><!--extb-ui-->View all<!--/extb-ui--></a>`;
   if (notifications.length === 0) {
-    return `<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:14px;">No notifications yet.</div>${footer}`;
+    return `<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:14px;"><!--extb-ui-->No notifications yet.<!--/extb-ui--></div>${footer}`;
   }
   return `<div style="max-height:400px;overflow-y:auto;">${notifications.map(renderNotificationItem).join('')}</div>${footer}`;
 }
@@ -50,14 +50,14 @@ export function renderNotificationsPage(opts: {
 }): string {
   const { notifications, nextBeforeId, csrfToken } = opts;
   const items = notifications.length === 0
-    ? `<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:14px;">No notifications yet.</div>`
+    ? `<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:14px;"><!--extb-ui-->No notifications yet.<!--/extb-ui--></div>`
     : notifications.map(renderNotificationItem).join('');
   return `
     <section class="page-head" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <h1 style="font-size:24px;font-weight:700;margin:0;">Notifications</h1>
+      <h1 style="font-size:24px;font-weight:700;margin:0;"><!--extb-ui-->Notifications<!--/extb-ui--></h1>
       <form method="POST" action="/api/notifications/read-all" hx-post="/api/notifications/read-all" hx-target=".main" style="margin:0;">
         ${csrfToken ? `<input type="hidden" name="csrf" value="${esc(csrfToken)}">` : ''}
-        <button type="submit" class="btn btn-secondary" style="font-size:13px;">Mark all read</button>
+        <button type="submit" class="btn btn-secondary" style="font-size:13px;"><!--extb-ui-->Mark all read<!--/extb-ui--></button>
       </form>
     </section>
     <div id="notif-list" class="card" style="padding:0;overflow:hidden;">${items}</div>

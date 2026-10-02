@@ -18,7 +18,7 @@ export function canRead(user: User | null, room: Room): boolean {
   // Per-user override (handles both old 'allow'/'deny' and new 'blocked'/'read'/'full')
   const rp = room.user_permission as string | null | undefined;
   if (rp === 'blocked' || rp === 'deny') return false;
-  if (rp === 'read' || rp === 'full' || rp === 'allow') return true;
+  if ((rp === 'read' || rp === 'full' || rp === 'allow') && user?.is_approved) return true;
 
   // Exclusive mode: no explicit permission = blocked
   if (room.is_exclusive) return false;
@@ -34,7 +34,7 @@ export function canRead(user: User | null, room: Room): boolean {
 // can't read are fully hidden; everything else stays visible. Relies on
 // canRead already returning true for mods and explicitly-granted users.
 export function isHiddenRoom(user: User | null, room: Room): boolean {
-  return !!room.is_exclusive && !canRead(user, room);
+  return (!!room.is_exclusive || room.min_read === 'full' || room.min_read === 'mod') && !canRead(user, room);
 }
 
 export function canPost(user: User | null, room: Room, ironGateActive?: boolean): boolean {

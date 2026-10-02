@@ -4,7 +4,7 @@ export const CURRENT_TOS_VERSION = 1;
 export const TOS_LAST_UPDATED = '2026-10-02';
 export const TOS_TLDR = [{ title: 'Respect each other', body: 'No harassment, hate, spam, or illegal content.' }, { title: 'Protect privacy', body: 'Share only information you have permission to share.' }, { title: 'Moderation', body: 'Moderators can remove content and restrict access. Report issues through the community tools.' }];
 const CHAPTERS = [{ id: 's1', num: 1, label: 'Community rules' }, { id: 's2', num: 2, label: 'Your account and content' }];
-export function renderTosBody(branding: Branding = DEFAULT_BRANDING): string { return `<section id="s1" class="tos-section"><h2>Community rules</h2><p style="white-space:pre-wrap">${esc(branding.rules)}</p></section><section id="s2" class="tos-section"><h2>Your account and content</h2><p>You remain responsible for your contributions. Do not post material you have no right to share. Keep your password private. Community administrators may moderate content and restrict accounts to enforce these rules.</p><p>This installation is operated by its community owner. Contact your community administrators for privacy, account, or moderation questions.</p>${branding.contact_email ? `<p><a href="mailto:${esc(branding.contact_email)}">${esc(branding.contact_email)}</a></p>` : ''}</section>`; }
+export function renderTosBody(branding: Branding = DEFAULT_BRANDING): string { return `<section id="s1" class="tos-section"><h2><!--extb-ui-->Community rules<!--/extb-ui--></h2><p style="white-space:pre-wrap">${esc(branding.rules)}</p></section><section id="s2" class="tos-section"><h2><!--extb-ui-->Your account and content<!--/extb-ui--></h2><p><!--extb-ui-->You remain responsible for your contributions. Do not post material you have no right to share. Keep your password private. Community administrators may moderate content and restrict accounts to enforce these rules.<!--/extb-ui--></p><p><!--extb-ui-->This installation is operated by its community owner. Contact your community administrators for privacy, account, or moderation questions.<!--/extb-ui--></p>${branding.contact_email ? `<p><a href="mailto:${esc(branding.contact_email)}">${esc(branding.contact_email)}</a></p>` : ''}</section>`; }
 
 const TOS_PAGE_CSS = `
 <style>
@@ -47,25 +47,25 @@ const TOS_PAGE_CSS = `
 `;
 
 export function renderTosPage(branding: Branding = DEFAULT_BRANDING): string {
-  const toc = CHAPTERS.map(c => `<li><a href="#${c.id}">${c.label}</a></li>`).join('');
+  const toc = CHAPTERS.map(c => `<li><a href="#${c.id}"><!--extb-ui-->${c.label}<!--/extb-ui--></a></li>`).join('');
   return `
     ${TOS_PAGE_CSS}
     <div class="tos-wrap">
       <div class="tos-head">
-        <h1>Community Guidelines &amp; Terms of Use</h1>
-        <div class="tos-meta">Last updated: ${TOS_LAST_UPDATED} · Version ${CURRENT_TOS_VERSION}</div>
+        <h1><!--extb-ui-->Community Guidelines &amp; Terms of Use<!--/extb-ui--></h1>
+        <div class="tos-meta"><!--extb-ui-->Last updated:<!--/extb-ui--> ${TOS_LAST_UPDATED} · <!--extb-ui-->Version<!--/extb-ui--> ${CURRENT_TOS_VERSION}</div>
       </div>
       <div class="tos-grid">
         <aside class="tos-toc">
-          <h3>Contents</h3>
+          <h3><!--extb-ui-->Contents<!--/extb-ui--></h3>
           <ol>${toc}</ol>
         </aside>
         <div class="tos-body">
           <section class="tos-tldr-block" aria-labelledby="tos-tldr-heading">
-            <h2 id="tos-tldr-heading">TL;DR</h2>
-            <p class="tos-tldr-sub">The short version &mdash; the full text below is what governs.</p>
+            <h2 id="tos-tldr-heading"><!--extb-ui-->TL;DR<!--/extb-ui--></h2>
+            <p class="tos-tldr-sub"><!--extb-ui-->The short version &mdash; the full text below is what governs.<!--/extb-ui--></p>
             <ul>
-              ${TOS_TLDR.map(p => `<li><strong>${p.title}</strong><span>${p.body}</span></li>`).join('')}
+              ${TOS_TLDR.map(p => `<li><strong><!--extb-ui-->${p.title}<!--/extb-ui--></strong><span><!--extb-ui-->${p.body}<!--/extb-ui--></span></li>`).join('')}
             </ul>
           </section>
           ${renderTosBody(branding)}
@@ -165,21 +165,21 @@ export function renderTosBanner(opts: { csrfToken: string; branding?: Branding }
     ${TOS_MODAL_CSS}
     <div class="tos-banner" id="tosb-banner">
       <div class="tos-banner-text">
-        <strong>The Community Guidelines have been updated.</strong>
-        <span>Please review and acknowledge to continue participating.</span>
+        <strong><!--extb-ui-->The Community Guidelines have been updated.<!--/extb-ui--></strong>
+        <span><!--extb-ui-->Please review and acknowledge to continue participating.<!--/extb-ui--></span>
       </div>
-      <button type="button" id="tosb-cta" class="tos-banner-cta">Review &amp; accept</button>
+      <button type="button" id="tosb-cta" class="tos-banner-cta"><!--extb-ui-->Review &amp; accept<!--/extb-ui--></button>
     </div>
 
     <div id="tosb-modal" class="tos-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tosb-modal-title" aria-hidden="true">
       <div class="tos-modal-card">
         <button type="button" class="tos-modal-close" id="tosb-close" aria-label="Close">✕</button>
-        <h2 id="tosb-modal-title" class="tos-modal-title">Community Guidelines - TL;DR</h2>
+        <h2 id="tosb-modal-title" class="tos-modal-title"><!--extb-ui-->Community Guidelines - TL;DR<!--/extb-ui--></h2>
         <p class="tos-modal-sub">Version ${CURRENT_TOS_VERSION} · Last updated ${TOS_LAST_UPDATED}</p>
         <ul class="tos-tldr-list">
-          ${TOS_TLDR.map(p => `<li><strong>${p.title}</strong><span>${p.body}</span></li>`).join('')}
+          ${TOS_TLDR.map(p => `<li><strong><!--extb-ui-->${p.title}<!--/extb-ui--></strong><span><!--extb-ui-->${p.body}<!--/extb-ui--></span></li>`).join('')}
         </ul>
-        <button type="button" id="tosb-expand" class="tos-modal-expand">Read full guidelines ▾</button>
+        <button type="button" id="tosb-expand" class="tos-modal-expand"><!--extb-ui-->Read full guidelines ▾<!--/extb-ui--></button>
         <div id="tosb-full" class="tos-modal-full">
           ${renderTosBody(opts.branding)}
         </div>
@@ -187,7 +187,7 @@ export function renderTosBanner(opts: { csrfToken: string; branding?: Branding }
           <input type="hidden" name="csrf" value="${escAttr(opts.csrfToken)}">
           <input type="hidden" name="tos_accepted_version" value="${CURRENT_TOS_VERSION}">
           <input type="hidden" name="return_to" id="tosb-return-to" value="/">
-          <button type="submit" class="tos-modal-accept">I understand &mdash; accept and continue</button>
+          <button type="submit" class="tos-modal-accept"><!--extb-ui-->I understand &mdash; accept and continue<!--/extb-ui--></button>
         </form>
       </div>
     </div>
@@ -240,23 +240,23 @@ export function renderTosPill(): string {
     <input type="hidden" id="tos-accepted-version" name="tos_accepted_version" value="">
     <button type="button" id="tos-pill" class="tos-pill" data-version="${CURRENT_TOS_VERSION}" aria-haspopup="dialog" aria-controls="tos-modal">
       <span class="tos-pill-icon">📜</span>
-      <span class="tos-pill-label">Read and accept the Community Guidelines</span>
+      <span class="tos-pill-label"><!--extb-ui-->Read and accept the Community Guidelines<!--/extb-ui--></span>
       <span class="tos-pill-arrow">›</span>
     </button>
 
     <div id="tos-modal" class="tos-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tos-modal-title" aria-hidden="true">
       <div class="tos-modal-card">
         <button type="button" class="tos-modal-close" id="tos-close" aria-label="Close">✕</button>
-        <h2 id="tos-modal-title" class="tos-modal-title">Community Guidelines - TL;DR</h2>
+        <h2 id="tos-modal-title" class="tos-modal-title"><!--extb-ui-->Community Guidelines - TL;DR<!--/extb-ui--></h2>
         <p class="tos-modal-sub">Version ${CURRENT_TOS_VERSION} · Last updated ${TOS_LAST_UPDATED}</p>
         <ul class="tos-tldr-list">
-          ${TOS_TLDR.map(p => `<li><strong>${p.title}</strong><span>${p.body}</span></li>`).join('')}
+          ${TOS_TLDR.map(p => `<li><strong><!--extb-ui-->${p.title}<!--/extb-ui--></strong><span><!--extb-ui-->${p.body}<!--/extb-ui--></span></li>`).join('')}
         </ul>
-        <button type="button" id="tos-expand" class="tos-modal-expand">Read full guidelines ▾</button>
+        <button type="button" id="tos-expand" class="tos-modal-expand"><!--extb-ui-->Read full guidelines ▾<!--/extb-ui--></button>
         <div id="tos-full" class="tos-modal-full">
           ${renderTosBody()}
         </div>
-        <button type="button" id="tos-accept" class="tos-modal-accept">I understand - accept and continue</button>
+        <button type="button" id="tos-accept" class="tos-modal-accept"><!--extb-ui-->I understand - accept and continue<!--/extb-ui--></button>
       </div>
     </div>
 

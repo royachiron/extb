@@ -88,10 +88,10 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
         </button>` : ''}
         ${isMod ? `
-        <button type="button" class="report-icon-btn" data-delete-toggle="${post.id}" title="Delete" aria-label="Delete this reply">
+        <button type="button" class="report-icon-btn" data-delete-toggle="${post.id}" title="Delete" data-extb-i18n-title="Delete" aria-label="Delete this reply">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>` : (isOwner ? `
-        <button type="button" class="report-icon-btn" hx-post="/p/${post.id}/delete" hx-target="#post-${post.id}" hx-disabled-elt="this" hx-confirm="Delete this reply? This cannot be undone." title="Delete" aria-label="Delete this reply">
+        <button type="button" class="report-icon-btn" hx-post="/p/${post.id}/delete" hx-target="#post-${post.id}" hx-disabled-elt="this" hx-confirm="Delete this reply? This cannot be undone." title="Delete" data-extb-i18n-title="Delete" aria-label="Delete this reply">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>` : '')}
         ${isMod && post.user_id && (!currentUser || post.user_id !== currentUser.id) ? `
@@ -102,9 +102,9 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
     : '';
   const replyBtnHtml = !isOriginal && canReply && !post.deleted_at && !post.removed_at
     ? `<button hx-get="/p/${post.id}/reply" hx-target="#post-${post.id}" hx-swap="afterend" class="action-btn" style="margin-left:auto;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg><!--extb-ui-->
         Reply
-      </button>`
+      <!--/extb-ui--></button>`
     : '';
   // Original posts never had a 'post'-type report trigger here - OP reporting
   // is a separate 'topic'-type button in topic.ts's header. Keep that split:
@@ -206,20 +206,20 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
     ${!isOriginal ? `${post.deleted_at || post.removed_at ? `
     <div class="post-actions">
       ${isMod ? `
-      <button type="button" class="btn-sm" hx-post="/p/${post.id}/restore" hx-disabled-elt="this">Restore</button>` : ''}
+      <button type="button" class="btn-sm" hx-post="/p/${post.id}/restore" hx-disabled-elt="this"><!--extb-ui-->Restore<!--/extb-ui--></button>` : ''}
       ${isMod && post.deleted_at && !post.removed_at ? `
-      <button type="button" class="btn-sm" hx-post="/p/${post.id}/remove" hx-target="#post-${post.id}" hx-disabled-elt="this">Remove</button>` : ''}
+      <button type="button" class="btn-sm" hx-post="/p/${post.id}/remove" hx-target="#post-${post.id}" hx-disabled-elt="this"><!--extb-ui-->Remove<!--/extb-ui--></button>` : ''}
     </div>` : ''}
     ${canReport ? renderReportSlot('post', post.id) : ''}
     ${isMod ? `
     <div id="delete-expand-${post.id}" class="delete-expand" style="display:none">
       <div class="delete-expand-inner">
-        <input type="text" name="reason" placeholder="Reason (optional)" class="delete-reason-input" id="delete-reason-${post.id}">
+        <input type="text" name="reason" placeholder="Reason (optional)" data-extb-i18n-placeholder="Reason (optional)" class="delete-reason-input" id="delete-reason-${post.id}">
         <div class="delete-expand-actions">
           <button type="button" class="btn-sm" hx-post="/p/${post.id}/delete" hx-vals='{"action":"soft"}' hx-include="#delete-reason-${post.id}" hx-target="#post-${post.id}" hx-disabled-elt="this">Soft Delete</button>
           <button type="button" class="btn-sm btn-danger" hx-post="/p/${post.id}/delete" hx-vals='{"action":"hard"}' hx-include="#delete-reason-${post.id}" hx-target="#post-${post.id}" hx-disabled-elt="this" hx-confirm="Permanently delete this post? This cannot be undone.">Hard Delete</button>
-          <button type="button" class="btn-sm" hx-post="/p/${post.id}/remove" hx-include="#delete-reason-${post.id}" hx-target="#post-${post.id}" hx-disabled-elt="this">Remove</button>
-          <button type="button" class="btn-sm" data-delete-cancel="${post.id}">Cancel</button>
+          <button type="button" class="btn-sm" hx-post="/p/${post.id}/remove" hx-include="#delete-reason-${post.id}" hx-target="#post-${post.id}" hx-disabled-elt="this"><!--extb-ui-->Remove<!--/extb-ui--></button>
+          <button type="button" class="btn-sm" data-delete-cancel="${post.id}"><!--extb-ui-->Cancel<!--/extb-ui--></button>
         </div>
       </div>
     </div>` : ''}
@@ -232,7 +232,7 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
           ${csrfField({ csrfToken })}
           <textarea name="memo" rows="3" required placeholder="Warning message to the author…"></textarea>
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" data-warn-close="${post.id}">Cancel</button>
+            <button type="button" class="btn-secondary" data-warn-close="${post.id}"><!--extb-ui-->Cancel<!--/extb-ui--></button>
             <button type="submit" class="btn btn-sm">Send warning</button>
           </div>
         </form>
@@ -246,8 +246,8 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
         <input type="hidden" name="content_id" value="${post.id}">
         ${tagPicker(allCwTags, (post.cw_tags ?? []).map((t: CwTag) => t.id))}
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-          <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('dialog').close()">Cancel</button>
-          <button type="submit" class="btn">Save</button>
+          <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('dialog').close()"><!--extb-ui-->Cancel<!--/extb-ui--></button>
+          <button type="submit" class="btn"><!--extb-ui-->Save<!--/extb-ui--></button>
         </div>
       </form>
     </dialog>` : ''}` : ''}
@@ -265,11 +265,11 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
 // downstream (poll submit handler) needed to change.
 const POLL_BUILDER_HTML = `
       <details class="poll-builder" id="poll-builder" style="padding:8px 12px; background:var(--bg-color); border-radius:8px; border:1px solid var(--border-color);">
-        <summary style="font-size:15px; font-weight:600; color:var(--text-main); cursor:pointer;">📊 Add a Poll <span style="font-size:13px; font-weight:400; color:var(--text-muted);">(optional)</span></summary>
+        <summary style="font-size:15px; font-weight:600; color:var(--text-main); cursor:pointer;"><!--extb-ui-->📊 Add a Poll <!--/extb-ui--><span style="font-size:13px; font-weight:400; color:var(--text-muted);"><!--extb-ui-->(optional)<!--/extb-ui--></span></summary>
         <label style="display:block;font-weight:600;margin:8px 0 4px;color:var(--text-main)">Question
           <input type="text" name="poll_question" style="margin-top:2px;">
         </label>
-        <label style="display:block;font-weight:600;margin:8px 0 4px;color:var(--text-main)">Options <span style="font-weight:400;color:var(--text-muted)">(one per line, minimum 2)</span>
+        <label style="display:block;font-weight:600;margin:8px 0 4px;color:var(--text-main)"><!--extb-ui-->Options <!--/extb-ui--><span style="font-weight:400;color:var(--text-muted)"><!--extb-ui-->(one per line, minimum 2)<!--/extb-ui--></span>
           <textarea name="poll_options" rows="3" style="margin-top:2px;" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
         </label>
         <div style="display:flex; gap:20px; margin-top:8px; flex-wrap:wrap;">
@@ -294,8 +294,8 @@ function renderComposerFields(opts: {
       <div class="post-body-wrap">
         ${roomFieldHtml}
         ${tagPicker(allCwTags, [], true)}
-        <label class="form-label">Title
-          <input type="text" name="title" class="post-title-in" required maxlength="140" placeholder="Title" autocomplete="off" value="${esc(prefillTitle)}">
+        <label class="form-label"><!--extb-ui-->Title
+          <!--/extb-ui--><input type="text" name="title" class="post-title-in" required maxlength="140" placeholder="Title" data-extb-i18n-placeholder="Title" autocomplete="off" value="${esc(prefillTitle)}">
         </label>
         <label class="form-label">Body
           <textarea id="topic-content" name="content" class="post-text-in" placeholder="Body text (optional)">${esc(prefillBody)}</textarea>
@@ -307,7 +307,7 @@ function renderComposerFields(opts: {
       <div class="post-ft">
         ${markdownToolbar('topic-content', 'topic-preview', { pollTargetId: 'poll-builder' })}
         <div class="post-ft-actions">
-          <button type="submit" class="btn">Post</button>
+          <button type="submit" class="btn"><!--extb-ui-->Post<!--/extb-ui--></button>
         </div>
       </div>`;
 }
@@ -333,7 +333,7 @@ export function renderNewTopicComposer(opts: {
     <div class="post-wrap">
       <form method="POST" action="/topics">
         ${csrfField(opts)}
-        <div class="post-hd"><h1>New Topic</h1></div>
+        <div class="post-hd"><h1><!--extb-ui-->New Topic<!--/extb-ui--></h1></div>
         ${renderComposerFields({ roomFieldHtml, prefillTitle, prefillBody, showAutoDelete, allCwTags })}
       </form>
     </div>`;
@@ -348,12 +348,12 @@ export function renderRoomTopicComposer(opts: {
   const { room, showAutoDelete, allCwTags } = opts;
   const roomFieldHtml = `
         <input type="hidden" name="room_id" value="${room.id}">
-        <div class="post-room-label">Posting in <strong>${esc(room.name)}</strong></div>`;
+        <div class="post-room-label"><!--extb-ui-->Posting in <!--/extb-ui--><strong>${esc(room.name)}</strong></div>`;
   return `
     <div class="post-wrap">
       <form method="POST" action="/topics">
         ${csrfField(opts)}
-        <div class="post-hd"><h1>New Topic</h1></div>
+        <div class="post-hd"><h1><!--extb-ui-->New Topic<!--/extb-ui--></h1></div>
         ${renderComposerFields({ roomFieldHtml, prefillTitle: '', prefillBody: '', showAutoDelete, allCwTags })}
       </form>
     </div>`;
@@ -371,13 +371,13 @@ export function renderEditPostForm(opts: {
   return `
     <form method="POST" action="/p/${post.id}/edit" hx-post="/p/${post.id}/edit" hx-target="this" hx-swap="outerHTML" class="edit-post" style="padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:var(--bg-color);margin-top:12px;">
       ${csrfField(opts)}
-      <h1 style="margin:0 0 14px;font-size:16px;font-weight:600;">Edit Post</h1>
+      <h1 style="margin:0 0 14px;font-size:16px;font-weight:600;"><!--extb-ui-->Edit Post<!--/extb-ui--></h1>
       ${markdownToolbar(`edit-post-${post.id}-content`, `edit-post-${post.id}-preview`)}
       <textarea id="edit-post-${post.id}-content" name="content" required rows="6" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;font-family:inherit;margin-bottom:12px;">${esc(post.content)}</textarea>
       ${tagPicker(allCwTags, selectedIds)}
       <div style="display:flex;gap:12px;">
-        <button type="submit" class="btn">Save Changes</button>
-        <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('form').remove()">Cancel</button>
+        <button type="submit" class="btn"><!--extb-ui-->Save Changes<!--/extb-ui--></button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('form').remove()"><!--extb-ui-->Cancel<!--/extb-ui--></button>
       </div>
     </form>`;
 }
@@ -401,13 +401,13 @@ export function renderReplyPostForm(opts: {
       ${csrfField(opts)}
       <input type="hidden" name="topic_id" value="${topic.id}">
       <input type="hidden" name="parent_post_id" value="${post.id}">
-      <h1 style="margin:0 0 14px;font-size:16px;font-weight:600;">Reply</h1>
+      <h1 style="margin:0 0 14px;font-size:16px;font-weight:600;"><!--extb-ui-->Reply<!--/extb-ui--></h1>
       ${markdownToolbar(`reply-post-${post.id}-content`, `reply-post-${post.id}-preview`)}
       <textarea id="reply-post-${post.id}-content" name="content" required rows="6" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;font-family:inherit;margin-bottom:12px;">${quotePrefill}</textarea>
       ${tagPicker(allCwTags, [])}
       <div style="display:flex;gap:12px;">
-        <button type="submit" class="btn">Post Reply</button>
-        <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('form').remove()">Cancel</button>
+        <button type="submit" class="btn"><!--extb-ui-->Post Reply<!--/extb-ui--></button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151;" onclick="this.closest('form').remove()"><!--extb-ui-->Cancel<!--/extb-ui--></button>
       </div>
     </form>`;
 }

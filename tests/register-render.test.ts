@@ -1,6 +1,8 @@
+import { localizeHtml } from '../src/lib/localization';
 import { describe, expect, it } from 'vitest';
-import { renderRegister } from '../src/views/auth';
+import { renderRegister as renderRegisterRaw } from '../src/views/auth';
 import { renderLayout } from '../src/views/layout';
+const renderRegister = (...args: Parameters<typeof renderRegisterRaw>) => localizeHtml(renderRegisterRaw(...args), 'en');
 
 describe('register form rendering', () => {
   it('renders disabled submit, TOS field, and flexible Turnstile widget', () => {

@@ -29,14 +29,14 @@ export function renderSearchResults(opts: {
   const count = results.length;
   return `
     <section class="page-head" style="margin-bottom: 24px;">
-      <h1 style="font-size:24px;font-weight:700;margin:0 0 8px;">Search Results</h1>
+      <h1 style="font-size:24px;font-weight:700;margin:0 0 8px;"><!--extb-ui-->Search Results<!--/extb-ui--></h1>
       <form action="/search" method="GET" role="search" style="display:flex;gap:8px;margin:0 0 12px;max-width:480px;">
-        <input name="q" value="${esc(q)}" placeholder="Search..." autocomplete="off" aria-label="Search" style="flex:1;">
-        <button type="submit" class="btn">Search</button>
+        <input name="q" value="${esc(q)}" placeholder="Search..." data-extb-i18n-placeholder="Search..." autocomplete="off" aria-label="Search" data-extb-i18n-aria-label="Search" style="flex:1;">
+        <button type="submit" class="btn"><!--extb-ui-->Search<!--/extb-ui--></button>
       </form>
       <p class="subtitle" style="color:var(--text-muted);margin:0;">${offset > 0 ? `Results ${offset + 1}-${offset + count}` : `${count}${hasMore ? '+' : ''} result${count === 1 && !hasMore ? '' : 's'}`} for: <strong>${esc(q)}</strong></p>
     </section>
     ${resultsHtml}
-    ${hasMore ? `<div style="margin:16px 0;text-align:center;"><a class="btn btn-secondary" href="/search?q=${encodeURIComponent(q)}&offset=${offset + PAGE}">More results</a></div>` : ''}
+    ${hasMore ? `<div style="margin:16px 0;text-align:center;"><a class="btn btn-secondary" href="/search?q=${encodeURIComponent(q)}&offset=${offset + PAGE}"><!--extb-ui-->More results<!--/extb-ui--></a></div>` : ''}
   `;
 }

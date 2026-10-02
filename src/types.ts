@@ -331,6 +331,7 @@ export interface ModWarningThread extends Warning {
 }
 
 export interface AppContext {
+  locale?: import('./lib/localization').Locale;
   env: Env;
   user: User | null;
   cookies: string[];

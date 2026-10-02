@@ -5,6 +5,11 @@
 
 // Block 1: scroll position + time localization + error clearing.
 export const CHAT_SCRIPT_BOOT = `
+  function chatUi(text) {
+    var dictionary = {'Quiet in here right now. A few ways to break the ice:':"שקט כאן כרגע. כמה דרכים לפתוח שיחה:",'<br>&bull; Ask a low-pressure question - "what made this week easier?" works.':"<br>&bull; אפשר להתחיל בשאלה פשוטה, למשל: ״מה הקל עליך השבוע?״",'<br>&bull; Ask what others wish they had known earlier.':"<br>&bull; אפשר לשאול מה אחרים היו רוצים לדעת מוקדם יותר.",'<br>&bull; Type <strong>/bot topic</strong> for a ready-made starter (only you will see the helper).':"<br>&bull; הקלדת <strong>/bot topic</strong> תציע רעיון לשיחה (רק לך יוצג העוזר).", 'Add reaction': 'הוספת תגובה רגשית', 'Reply': 'תגובה', 'Connecting…': 'מתחברים…', 'Message ': 'הודעה בחדר ', ' is typing…': ' מקליד/ה…', ' and ': ' ו־', ' are typing…': ' מקלידים…', 'Several people are typing…': 'כמה משתתפים מקלידים…', 'online': 'מחוברים', 'Send failed.': 'השליחה נכשלה.', 'Stop ignoring': 'הפסקת התעלמות', 'Ignore in chat': 'התעלמות בצ׳אט', 'Block': 'חסימה', 'Unblock': 'ביטול חסימה' };
+    return document.documentElement.lang === 'he' && dictionary[text] ? dictionary[text] : text;
+  }
+
 (function() {
   let wasNearBottom = true;
   let messageCount = 0;
@@ -99,9 +104,9 @@ ${buildersSrc}
     var names = [];
     for (var n in typingNames) { if (typingNames.hasOwnProperty(n)) names.push(n); }
     var txt = '';
-    if (names.length === 1) txt = esc(names[0]) + ' is typing…';
-    else if (names.length === 2) txt = esc(names[0]) + ' and ' + esc(names[1]) + ' are typing…';
-    else if (names.length > 2) txt = 'Several people are typing…';
+    if (names.length === 1) txt = esc(names[0]) + chatUi(' is typing…');
+    else if (names.length === 2) txt = esc(names[0]) + chatUi(' and ') + esc(names[1]) + chatUi(' are typing…');
+    else if (names.length > 2) txt = chatUi('Several people are typing…');
     typingEl.innerHTML = txt;
   }
   function setTyping(name, on) {
@@ -210,8 +215,8 @@ ${buildersSrc}
     var del = isMod
       ? '<button class="chat-del" data-del="' + m.id + '" title="Delete" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;font-weight:700;">✕</button>'
       : '';
-    var reply = chatReplyBtn(m.id, esc(m.author_name));
-    var add = chatAddBtn(m.id);
+    var reply = chatReplyBtn(m.id, esc(m.author_name), chatUi('Reply'), false);
+    var add = chatAddBtn(m.id, chatUi('Add reaction'), false);
     var quote = m.reply_to_id
       ? '<div class="chat-reply-quote">↳ <span class="chat-reply-author">' + esc(m.reply_to_author || '') + '</span>: ' + esc(m.reply_to_excerpt || '') + '</div>'
       : '';
@@ -486,7 +491,7 @@ ${buildersSrc}
     presenceBase = null; clearPendingLeaves();
     clearReply(); hideHints();
     retries = 0;
-    box.innerHTML = '<div id="chat-loading-placeholder" style="padding:20px;color:var(--text-muted);font-size:13px;text-align:center;">Connecting…</div>';
+    box.innerHTML = '<div id="chat-loading-placeholder" style="padding:20px;color:var(--text-muted);font-size:13px;text-align:center;">' + chatUi('Connecting…') + '</div>';
     room = slug;
     roomQ = '&room=' + encodeURIComponent(room);
     root.dataset.room = room;
@@ -495,7 +500,7 @@ ${buildersSrc}
       b.classList.toggle('active', on);
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     });
-    if (input) input.placeholder = 'Message ' + tab.textContent;
+    if (input) input.placeholder = chatUi('Message ') + tab.textContent;
     try { localStorage.setItem('chat_dock_room', room); } catch (e) {}
     if (started) connect();
   }
@@ -531,10 +536,10 @@ ${buildersSrc}
     if (box.querySelector('.chat-message') || document.getElementById('chat-empty-hints')) return;
     box.insertAdjacentHTML('beforeend',
       '<div id="chat-empty-hints" style="padding:20px;color:var(--text-muted);font-size:13px;line-height:1.7;">' +
-      'Quiet in here right now. A few ways to break the ice:' +
-      '<br>&bull; Ask a low-pressure question - "what made this week easier?" works.' +
-      '<br>&bull; Ask what others wish they had known earlier.' +
-      '<br>&bull; Type <strong>/bot topic</strong> for a ready-made starter (only you will see the helper).' +
+      chatUi('Quiet in here right now. A few ways to break the ice:') +
+      chatUi('<br>&bull; Ask a low-pressure question - "what made this week easier?" works.') +
+      chatUi('<br>&bull; Ask what others wish they had known earlier.') +
+      (botDisplayName ? chatUi('<br>&bull; Type <strong>/bot topic</strong> for a ready-made starter (only you will see the helper).') : '') +
       '</div>');
   }
 
@@ -570,7 +575,7 @@ ${buildersSrc}
     }).then(function (r) {
       if (!r.ok) { r.text().then(showErr); return; }
       if (!pollTimer) startPoll(); // ensure the new message gets pulled in
-    }).catch(function () { showErr('Send failed.'); });
+    }).catch(function () { showErr(chatUi('Send failed.')); });
     clearReply();
   }
 
@@ -764,7 +769,7 @@ ${buildersSrc}
     menu.innerHTML = html;
     var nick = menu.dataset.nick;
     var il = menu.querySelector('.cnm-ignore-label');
-    if (il) il.textContent = ignored[nick] ? 'Stop ignoring' : 'Ignore in chat';
+    if (il) il.textContent = ignored[nick] ? chatUi('Stop ignoring') : chatUi('Ignore in chat');
     if (window.htmx) window.htmx.process(menu);
     positionMenu();
     var first = menu.querySelector('.cnm-item');
@@ -829,7 +834,7 @@ ${buildersSrc}
       delete menuCache[nick];
       btn.setAttribute('data-blocked', was ? '0' : '1');
       var lbl = btn.querySelector('.cnm-block-label');
-      if (lbl) lbl.textContent = was ? 'Block' : 'Unblock';
+      if (lbl) lbl.textContent = was ? chatUi('Block') : chatUi('Unblock');
       sysLine(was ? 'Unblocked ' + nick + '.' : 'Blocked ' + nick + '.');
     }).catch(function () { showErr('Could not update block.'); });
   }
@@ -956,7 +961,7 @@ ${buildersSrc}
         var nq = before.slice(at + 1).toLowerCase();
         knownNames().forEach(function (n) {
           if (hintItems.length < 6 && n.toLowerCase().indexOf(nq) === 0) {
-            hintItems.push({ label: '@' + n, desc: onlineNames.indexOf(n) >= 0 ? 'online' : '', text: '@' + n + ' ', start: at, end: caret });
+            hintItems.push({ label: '@' + n, desc: onlineNames.indexOf(n) >= 0 ? chatUi('online') : '', text: '@' + n + ' ', start: at, end: caret });
           }
         });
       }

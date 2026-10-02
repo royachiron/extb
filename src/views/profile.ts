@@ -40,7 +40,7 @@ function modActionsCard(viewer: User, target: User, csrfToken?: string): string 
             <select name="access_level" style="flex:1; padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:14px; background:var(--bg-color); color:var(--text-main);">
               ${ACCESS_LEVELS.map(l => `<option value="${l}"${target.access_level === l ? ' selected' : ''}>${l === 'full' ? 'Trusted member' : l}</option>`).join('')}
             </select>
-            <button type="submit" class="btn" style="flex-shrink:0;">Save</button>
+            <button type="submit" class="btn" style="flex-shrink:0;"><!--extb-ui-->Save<!--/extb-ui--></button>
           </form>
         </div>
 
@@ -84,14 +84,14 @@ function modActionsCard(viewer: User, target: User, csrfToken?: string): string 
 
               <div class="drawer-body">
                 <section class="drawer-section">
-                  <h3 class="drawer-section-title">Identity</h3>
+                  <h3 class="drawer-section-title"><!--extb-ui-->Identity<!--/extb-ui--></h3>
                   <div class="drawer-field">
-                    <label for="edu-${target.id}-display_name">Display Name</label>
+                    <label for="edu-${target.id}-display_name"><!--extb-ui-->Display Name<!--/extb-ui--></label>
                     <input id="edu-${target.id}-display_name" type="text" name="display_name" value="${esc(target.display_name || '')}" maxlength="32">
                   </div>
                   <div class="drawer-row">
                     <div class="drawer-field">
-                      <label for="edu-${target.id}-pronouns">Pronouns</label>
+                      <label for="edu-${target.id}-pronouns"><!--extb-ui-->Pronouns<!--/extb-ui--></label>
                       <input id="edu-${target.id}-pronouns" type="text" name="pronouns" value="${esc(target.pronouns || '')}" maxlength="32" placeholder="they/them">
                     </div>
                     <div class="drawer-field">
@@ -100,15 +100,15 @@ function modActionsCard(viewer: User, target: User, csrfToken?: string): string 
                     </div>
                   </div>
                   <div class="drawer-checkbox-group">
-                    <label><input type="checkbox" name="remove_avatar" value="1"> Remove Profile Picture</label>
-                    <label><input type="checkbox" name="remove_cover" value="1"> Remove Cover Image</label>
+                    <label><input type="checkbox" name="remove_avatar" value="1"><!--extb-ui--> Remove Profile Picture<!--/extb-ui--></label>
+                    <label><input type="checkbox" name="remove_cover" value="1"><!--extb-ui--> Remove Cover Image<!--/extb-ui--></label>
                   </div>
                 </section>
 
                 <section class="drawer-section">
-                  <h3 class="drawer-section-title">Profile</h3>
+                  <h3 class="drawer-section-title"><!--extb-ui-->Profile<!--/extb-ui--></h3>
                   <div class="drawer-field">
-                    <label for="edu-${target.id}-bio">Bio</label>
+                    <label for="edu-${target.id}-bio"><!--extb-ui-->Bio<!--/extb-ui--></label>
                     <textarea id="edu-${target.id}-bio" name="bio" rows="3" maxlength="500">${esc(target.bio || '')}</textarea>
                     <span class="drawer-field-hint">Up to 500 characters. Shown on the public profile.</span>
                   </div>
@@ -121,7 +121,7 @@ function modActionsCard(viewer: User, target: User, csrfToken?: string): string 
                 <section class="drawer-section">
                   <h3 class="drawer-section-title">Links</h3>
                   <div class="drawer-field">
-                    <label for="edu-${target.id}-website_url">Website</label>
+                    <label for="edu-${target.id}-website_url"><!--extb-ui-->Website<!--/extb-ui--></label>
                     <input id="edu-${target.id}-website_url" type="url" name="website_url" value="${esc(target.website_url || '')}" placeholder="https://...">
                   </div>
                   <div class="drawer-field">
@@ -131,22 +131,22 @@ function modActionsCard(viewer: User, target: User, csrfToken?: string): string 
                 </section>
 
                 <section class="drawer-section">
-                  <h3 class="drawer-section-title">Moderation</h3>
+                  <h3 class="drawer-section-title"><!--extb-ui-->Moderation<!--/extb-ui--></h3>
                   <div class="drawer-field">
                     <label for="edu-${target.id}-mod_note">Mod Note (private)</label>
                     <textarea id="edu-${target.id}-mod_note" name="mod_note" rows="3" placeholder="Admin-only notes about this user...">${esc(target.mod_note || '')}</textarea>
                     <span class="drawer-field-hint">Visible only to moderators and admins.</span>
                   </div>
                   <div class="drawer-checkbox-group">
-                    <label><input type="checkbox" name="hide_activity" value="1" ${target.hide_activity ? 'checked' : ''}> Hide activity from public profile</label>
-                    <label><input type="checkbox" name="hide_bio" value="1" ${target.hide_bio ? 'checked' : ''}> Hide bio from public profile</label>
+                    <label><input type="checkbox" name="hide_activity" value="1" ${target.hide_activity ? 'checked' : ''}><!--extb-ui--> Hide activity from public profile<!--/extb-ui--></label>
+                    <label><input type="checkbox" name="hide_bio" value="1" ${target.hide_bio ? 'checked' : ''}><!--extb-ui--> Hide bio from public profile<!--/extb-ui--></label>
                   </div>
                 </section>
               </div>
 
               <div class="drawer-footer">
-                <button type="button" class="btn-ghost" onclick="document.getElementById('edit-user-drawer-${target.id}').classList.remove('open')">Cancel</button>
-                <button type="submit" class="btn-primary">Save Changes</button>
+                <button type="button" class="btn-ghost" onclick="document.getElementById('edit-user-drawer-${target.id}').classList.remove('open')"><!--extb-ui-->Cancel<!--/extb-ui--></button>
+                <button type="submit" class="btn-primary"><!--extb-ui-->Save Changes<!--/extb-ui--></button>
               </div>
             </form>
           </div>
@@ -179,7 +179,7 @@ export function renderProfile(opts: {
           <div style="color:var(--text-muted); font-size:13px;">in <strong>${esc(t.room_name)}</strong> &middot; <span class="rel-time" data-utc="${t.created_at.replace(' ', 'T') + 'Z'}">${esc(t.created_at)}</span></div>
         </div>
       `).join('')
-    : '<p style="color:var(--text-muted);">No topics yet.</p>';
+    : '<p style="color:var(--text-muted);"><!--extb-ui-->No topics yet.<!--/extb-ui--></p>';
 
   const postsHtml = recentPosts.length
     ? recentPosts.map(p => `
@@ -189,16 +189,16 @@ export function renderProfile(opts: {
           <div style="margin-top:8px; color:var(--text-muted); font-size:12px;"><span class="rel-time" data-utc="${p.created_at.replace(' ', 'T') + 'Z'}">${esc(p.created_at)}</span></div>
         </div>
       `).join('')
-    : '<p style="color:var(--text-muted);">No replies yet.</p>';
+    : '<p style="color:var(--text-muted);"><!--extb-ui-->No replies yet.<!--/extb-ui--></p>';
 
   const bioHtml = profileUser.hide_bio && !isSelf
-    ? '<p style="font-style:italic; color:var(--text-muted); background:var(--card-bg); padding:16px; border-radius:12px; border:1px solid var(--border-color);">This user has hidden their bio.</p>'
+    ? '<p style="font-style:italic; color:var(--text-muted); background:var(--card-bg); padding:16px; border-radius:12px; border:1px solid var(--border-color);"><!--extb-ui-->This user has hidden their bio.<!--/extb-ui--></p>'
     : profileUser.bio
       ? `<div style="line-height:1.7; color:var(--text-main); font-size:16px; white-space:pre-wrap;">${esc(profileUser.bio)}</div>`
-      : '<p style="font-style:italic; color:var(--text-muted);">No bio provided yet.</p>';
+      : '<p style="font-style:italic; color:var(--text-muted);"><!--extb-ui-->No bio provided yet.<!--/extb-ui--></p>';
 
   const twitterHtml = profileUser.twitter_url ? `<a href="${esc(profileUser.twitter_url)}" target="_blank" class="btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.84 4.996 4.904 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg> Twitter</a>` : '';
-  const websiteHtml = profileUser.website_url ? `<a href="${esc(profileUser.website_url)}" target="_blank" class="btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Website</a>` : '';
+  const websiteHtml = profileUser.website_url ? `<a href="${esc(profileUser.website_url)}" target="_blank" class="btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg><!--extb-ui--> Website<!--/extb-ui--></a>` : '';
   const collapsedBadges = (badges || []);
   const haveBadges = collapsedBadges;
   const needBadges: any[] = [];
@@ -246,10 +246,10 @@ export function renderProfile(opts: {
               ${badgeHtml(profileUser.access_level)}
               
               <div style="margin-left:auto; display:flex; gap:8px;">
-                ${isSelf ? `<a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true" class="btn btn-secondary">Edit Profile</a>` : ''}
+                ${isSelf ? `<a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true" class="btn btn-secondary"><!--extb-ui-->Edit Profile<!--/extb-ui--></a>` : ''}
                 ${!isSelf ? `
                   <div id="profile-actions" style="display:flex; gap:8px;">
-                    ${(user?.access_level === 'admin' || (profileUser as any).allow_dms !== 0) ? `<a href="/dms/new?to=${encodeURIComponent(profileUser.display_name ?? '')}" class="btn">Message</a>` : ''}
+                    ${(user?.access_level === 'admin' || (profileUser as any).allow_dms !== 0) ? `<a href="/dms/new?to=${encodeURIComponent(profileUser.display_name ?? '')}" class="btn"><!--extb-ui-->Message<!--/extb-ui--></a>` : ''}
                     <button class="btn btn-secondary"
                       hx-post="/u/${esc(profileUser.display_name || `user${profileUser.id}`)}/block"
                       hx-target="#profile-actions"
@@ -291,7 +291,7 @@ export function renderProfile(opts: {
         <div class="profile-grid">
           <div>
             <section style="margin-bottom:48px;">
-              <h2 style="font-size:22px; font-weight:800; color:var(--text-main); margin-bottom:20px; letter-spacing:-0.02em;">About</h2>
+              <h2 style="font-size:22px; font-weight:800; color:var(--text-main); margin-bottom:20px; letter-spacing:-0.02em;"><!--extb-ui-->About<!--/extb-ui--></h2>
               ${bioHtml}
               <div style="display:flex; gap:12px; margin-top:24px;">
                 ${twitterHtml}
@@ -300,15 +300,15 @@ export function renderProfile(opts: {
             </section>
 
             <section>
-              <h2 style="font-size:22px; font-weight:800; color:var(--text-main); margin-bottom:24px; letter-spacing:-0.02em;">Recent Activity</h2>
-              ${!canSeeActivity ? '<p style="font-style:italic; color:var(--text-muted); background:var(--card-bg); padding:16px; border-radius:12px; border:1px solid var(--border-color);">This user has hidden their activity.</p>' : `
+              <h2 style="font-size:22px; font-weight:800; color:var(--text-main); margin-bottom:24px; letter-spacing:-0.02em;"><!--extb-ui-->Recent Activity<!--/extb-ui--></h2>
+              ${!canSeeActivity ? '<p style="font-style:italic; color:var(--text-muted); background:var(--card-bg); padding:16px; border-radius:12px; border:1px solid var(--border-color);"><!--extb-ui-->This user has hidden their activity.<!--/extb-ui--></p>' : `
                 ${profileUser.hide_activity && !isSelf && isAdmin(user) ? '<p style="font-size:12px; font-style:italic; color:var(--text-muted); margin:0 0 16px;">Activity hidden from public - visible to you as admin.</p>' : ''}
                 <div style="margin-bottom:40px;">
-                  <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:20px; font-weight:800;">Latest Topics</h3>
+                  <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:20px; font-weight:800;"><!--extb-ui-->Latest Topics<!--/extb-ui--></h3>
                   <div class="profile-topics">${topicsHtml}</div>
                 </div>
                 <div>
-                  <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:20px; font-weight:800;">Latest Replies</h3>
+                  <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:20px; font-weight:800;"><!--extb-ui-->Latest Replies<!--/extb-ui--></h3>
                   <div class="profile-posts">${postsHtml}</div>
                 </div>
               `}
@@ -320,11 +320,11 @@ export function renderProfile(opts: {
               <h2 style="font-size:18px; font-weight:800; color:var(--text-main); margin-bottom:20px;">Platform Stats</h2>
               <div style="display:flex; flex-direction:column; gap:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="color:var(--text-muted); font-size:14px; font-weight:600;">Topics Started</span>
+                  <span style="color:var(--text-muted); font-size:14px; font-weight:600;"><!--extb-ui-->Topics Started<!--/extb-ui--></span>
                   <strong style="color:var(--primary); font-size:20px; font-weight:900;">${counts.topics}</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="color:var(--text-muted); font-size:14px; font-weight:600;">Community Replies</span>
+                  <span style="color:var(--text-muted); font-size:14px; font-weight:600;"><!--extb-ui-->Community Replies<!--/extb-ui--></span>
                   <strong style="color:var(--primary); font-size:20px; font-weight:900;">${counts.posts}</strong>
                 </div>
                 <div style="margin-top:12px; padding-top:20px; border-top:1px solid var(--border-color);">

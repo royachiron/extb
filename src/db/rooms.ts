@@ -1,3 +1,4 @@
+import { roomReadVisibility } from './room-visibility';
 import type { Env, Room, RoomKind } from '../types';
 
 export async function upsertLastVisit(env: Env, userId: number, roomId: number): Promise<void> {
@@ -49,15 +50,18 @@ export async function listRooms(env: Env, userId?: number): Promise<Room[]> {
        WHERE r.is_archived = 0
        ORDER BY is_page ASC, sort_order ASC, id ASC`;
 
-  const res = userId
-    ? await env.DB.prepare(query).bind(userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId).all<Room>()
-    : await env.DB.prepare(query).all<Room>();
-
-  return res.results ?? [];
+  const vis = roomReadVisibility(userId);
+  // Keep room metadata for locked-board discovery while suppressing activity.
+  const scopedQuery = `SELECT r.*, (${vis.sql}) AS viewer_can_read FROM (${query}) r`;
+  const params = userId ? Array(11).fill(userId) : [];
+  const res = await env.DB.prepare(scopedQuery).bind(...vis.params, ...params).all<Room & { viewer_can_read: number }>();
+  return (res.results ?? []).map(({ viewer_can_read, ...room }) => viewer_can_read
+    ? room
+    : { ...room, total_topics: 0, total_posts: 0, total_posts_all: 0, unread_count: 0 });
 }
 export async function listRoomsForIndex(env: Env, userId?: number): Promise<any[]> {
   const modFilter = userId ? `(t.require_review = 0 OR t.user_id = ? OR (SELECT access_level FROM users WHERE id = ?) IN ('mod', 'admin'))` : 't.require_review = 0';
-  const uid = userId ?? 0;
+  const vis = roomReadVisibility(userId);
   const modParams = userId ? Array(16).fill(userId) : [];
   const res = await env.DB.prepare(`
     SELECT r.id, r.name, r.slug, r.description, r.icon, r.is_locked, r.sort_order,
@@ -70,27 +74,15 @@ export async function listRoomsForIndex(env: Env, userId?: number): Promise<any[
       (SELECT t.last_reply_at FROM topics t WHERE t.room_id = r.id AND t.status = 'approved' AND t.deleted_at IS NULL AND ${modFilter} ORDER BY t.last_reply_at DESC LIMIT 1) as last_activity_at
     FROM rooms r
     WHERE r.is_archived = 0 AND r.is_page = 0
-      AND (
-        r.is_exclusive = 0
-        OR ? IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow'))
-        OR (SELECT access_level FROM users WHERE id = ?) IN ('mod','admin')
-      )
+      AND ${vis.sql}
     ORDER BY r.sort_order ASC, r.id ASC
-  `).bind(...modParams, uid, uid).all<any>();
+  `).bind(...modParams, ...vis.params).all<any>();
   return res.results ?? [];
 }
 
 export async function getLatestReplies(env: Env, limit = 5, viewerId?: number): Promise<any[]> {
-  // Guests: only surface replies from rooms with min_read='anon'.
-  const guestFilter = viewerId ? '' : `AND r.min_read = 'anon'`;
+  const vis = roomReadVisibility(viewerId);
   const modFilter = viewerId ? `AND (t.require_review = 0 OR t.user_id = ? OR (SELECT access_level FROM users WHERE id = ?) IN ('mod', 'admin'))` : 'AND t.require_review = 0';
-  // Hide rooms flagged is_exclusive unless the viewer is granted or a mod.
-  const exclusiveFilter = `AND (
-    r.is_exclusive = 0
-    OR ? IN (SELECT rp.user_id FROM room_permissions rp WHERE rp.room_id = r.id AND rp.access_type IN ('read','full','allow'))
-    OR (SELECT access_level FROM users WHERE id = ?) IN ('mod','admin')
-  )`;
-  const uid = viewerId ?? 0;
   const modParams = viewerId ? [viewerId, viewerId] : [];
 
   const res = await env.DB.prepare(`
@@ -102,26 +94,33 @@ export async function getLatestReplies(env: Env, limit = 5, viewerId?: number): 
     JOIN topics t ON p.topic_id = t.id
     JOIN rooms r ON t.room_id = r.id
     LEFT JOIN users u ON p.user_id = u.id
-    WHERE p.deleted_at IS NULL AND t.deleted_at IS NULL AND t.removed_at IS NULL AND p.status = 'approved' ${guestFilter} ${modFilter} ${exclusiveFilter}
+    WHERE p.deleted_at IS NULL AND t.deleted_at IS NULL AND t.removed_at IS NULL AND p.status = 'approved' ${modFilter} AND ${vis.sql}
     ORDER BY p.created_at DESC
     LIMIT ?
-  `).bind(...modParams, uid, uid, limit).all<any>();
+  `).bind(...modParams, ...vis.params, limit).all<any>();
   return res.results ?? [];
 }
 
-export async function getTopContributors(env: Env, limit = 5): Promise<any[]> {
+export async function getTopContributors(env: Env, limit = 5, viewerId?: number): Promise<any[]> {
+  const vis = roomReadVisibility(viewerId);
   const res = await env.DB.prepare(`
+    WITH visible_topics AS (
+      SELECT t.* FROM topics t JOIN rooms r ON r.id = t.room_id
+      WHERE t.deleted_at IS NULL AND t.removed_at IS NULL AND t.status = 'approved'
+        AND (t.require_review = 0 OR t.user_id = ? OR EXISTS (SELECT 1 FROM users v WHERE v.id = ? AND v.is_approved = 1 AND v.is_banned = 0 AND v.access_level IN ('mod','admin'))) AND ${vis.sql}
+    )
     SELECT u.id, u.display_name, u.avatar_color, u.avatar_url,
       COUNT(DISTINCT t.id) as topic_count,
       COUNT(DISTINCT p.id) as post_count
     FROM users u
-    LEFT JOIN topics t ON t.user_id = u.id AND t.deleted_at IS NULL AND t.status = 'approved'
+    LEFT JOIN visible_topics t ON t.user_id = u.id
     LEFT JOIN posts p ON p.user_id = u.id AND p.deleted_at IS NULL AND p.status = 'approved'
+      AND p.topic_id IN (SELECT id FROM visible_topics)
     WHERE u.is_banned = 0
     GROUP BY u.id
     ORDER BY (COUNT(DISTINCT t.id) + COUNT(DISTINCT p.id)) DESC
     LIMIT ?
-  `).bind(limit).all<any>();
+  `).bind(viewerId ?? 0, viewerId ?? 0, ...vis.params, limit).all<any>();
   return res.results ?? [];
 }
 

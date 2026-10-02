@@ -219,8 +219,9 @@ export const CHAT_DOCK_SCRIPT = `
   function syncCycle() {
     if (!cycleBtn) return;
     var big = isFull();
-    cycleBtn.setAttribute('aria-label', big ? 'Close chat' : 'Make chat larger');
-    cycleBtn.setAttribute('title', big ? 'Close' : 'Larger');
+    var hebrew = document.documentElement.lang === 'he';
+    cycleBtn.setAttribute('aria-label', hebrew ? (big ? 'סגירת צ׳אט' : 'הגדלת הצ׳אט') : (big ? 'Close chat' : 'Make chat larger'));
+    cycleBtn.setAttribute('title', hebrew ? (big ? 'סגירה' : 'הגדלה') : (big ? 'Close' : 'Larger'));
   }
   function phoneDefault() {
     body.classList.add('chat-dock-open');
@@ -413,7 +414,7 @@ export const CHAT_DOCK_SCRIPT = `
       if (raf) return;
       raf = requestAnimationFrame(function () {
         raf = 0;
-        setPct((window.innerWidth - lastX) / window.innerWidth * 100, false);
+        setPct((document.documentElement.dir === 'rtl' ? lastX : window.innerWidth - lastX) / window.innerWidth * 100, false);
       });
     });
     function endDrag(e) {
@@ -430,8 +431,8 @@ export const CHAT_DOCK_SCRIPT = `
     handle.addEventListener('pointercancel', endDrag);
     handle.addEventListener('dblclick', function () { setPct(DEFAULT_PCT, true); });
     handle.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); setPct(currentPct() + 2, true); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); setPct(currentPct() - 2, true); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setPct(currentPct() + (document.documentElement.dir === 'rtl' ? -2 : 2), true); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setPct(currentPct() + (document.documentElement.dir === 'rtl' ? 2 : -2), true); }
       else if (e.key === 'Home') { e.preventDefault(); setPct(DEFAULT_PCT, true); }
     });
   }
@@ -451,7 +452,7 @@ export function renderChatDock(p: {
   csrfToken?: string;
 }): string {
   const activeSlug = p.chatRooms.some(r => r.slug === 'chat') ? 'chat' : p.chatRooms[0]!.slug;
-  return `<aside id="chat-dock" class="chat-dock" aria-label="Chat">
+  return `<aside id="chat-dock" class="chat-dock" aria-label="Chat" data-extb-i18n-aria-label="Chat">
 <style>${CHAT_DOCK_CSS}</style>
 <div class="chat-dock-resize" role="separator" aria-orientation="vertical" aria-label="Resize chat (arrow keys, double-click to reset)" tabindex="0" aria-valuemin="15" aria-valuemax="75" aria-valuenow="25"></div>
 ${renderChat({ user: p.user, csrfToken: p.csrfToken, rooms: p.chatRooms, activeSlug, dock: true })}
@@ -463,7 +464,7 @@ ${renderChat({ user: p.user, csrfToken: p.csrfToken, rooms: p.chatRooms, activeS
 export function renderChatDockTab(): string {
   return `<button type="button" class="chat-dock-tab" data-chat-dock-open aria-label="Show chat">
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-  <span class="chat-dock-tab-label">Chat</span>
+  <span class="chat-dock-tab-label"><!--extb-ui-->Chat<!--/extb-ui--></span>
   <span class="js-chat-badge"></span>
 </button>`;
 }
@@ -471,7 +472,7 @@ export function renderChatDockTab(): string {
 /** Phone chat button, stacked above the + post button. Opens the floating
  *  chat window; carries the heartbeat .js-chat-badge unread count. */
 export function renderChatFab(): string {
-  return `<button type="button" class="chat-fab" data-chat-dock-open aria-label="Open chat">
+  return `<button type="button" class="chat-fab" data-chat-dock-open aria-label="Open chat" data-extb-i18n-aria-label="Open chat">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
   <span class="js-chat-badge"></span>
 </button>`;
@@ -480,8 +481,8 @@ export function renderChatFab(): string {
 /** What /chat shows in .main when the chat lives in the dock. */
 export function renderChatDockPlaceholder(): string {
   return `<div class="chat-dock-placeholder">
-  <h1>Chat is open in the panel</h1>
-  <p>It stays open while you browse. Use the Chat button to show or hide it.</p>
-  <button type="button" class="btn" data-chat-dock-open>Open chat</button>
+  <h1><!--extb-ui-->Chat is open in the panel<!--/extb-ui--></h1>
+  <p><!--extb-ui-->It stays open while you browse. Use the Chat button to show or hide it.<!--/extb-ui--></p>
+  <button type="button" class="btn" data-chat-dock-open><!--extb-ui-->Open chat<!--/extb-ui--></button>
 </div>`;
 }

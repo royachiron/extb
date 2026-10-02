@@ -67,14 +67,14 @@ export const chatReactionPill = (
   ' <span class="chat-react-n">' + count + '</span></button>';
 
 // The "+" add-reaction button (static; margin-left:auto pushes it right).
-export const chatAddBtn = (messageId: number | string): string =>
+export const chatAddBtn = (messageId: number | string, label = 'Add reaction', markUi = true): string =>
   '<button type="button" class="chat-react-add" data-react-add="' + messageId +
-  '" title="Add reaction" aria-label="Add reaction" style="margin-left:auto;">+</button>';
+  '" title="' + label + '" ' + (markUi ? 'data-extb-i18n-title="Add reaction"' : '') + ' aria-label="' + label + '" ' + (markUi ? 'data-extb-i18n-aria-label="Add reaction"' : '') + ' style="margin-left:auto;">+</button>';
 
 // The reply button. `authorEsc` MUST be pre-escaped (goes in data-reply-author).
-export const chatReplyBtn = (messageId: number | string, authorEsc: string): string =>
+export const chatReplyBtn = (messageId: number | string, authorEsc: string, label = 'Reply', markUi = true): string =>
   '<button type="button" class="chat-reply-btn" data-reply="' + messageId +
-  '" data-reply-author="' + authorEsc + '" title="Reply" aria-label="Reply">↩</button>';
+  '" data-reply-author="' + authorEsc + '" title="' + label + '" ' + (markUi ? 'data-extb-i18n-title="Reply"' : '') + ' aria-label="' + label + '" ' + (markUi ? 'data-extb-i18n-aria-label="Reply"' : '') + '>↩</button>';
 
 // Optimistic send: which locally-shown pending message does this server echo
 // confirm? Oldest pending (or failed - a late echo still wins) entry with the

@@ -1,3 +1,4 @@
+import { roomReadVisibility } from './room-visibility';
 import type { AccessLevel, Env, User } from '../types';
 
 export async function getUserById(env: Env, id: number): Promise<User | null> {
@@ -127,9 +128,13 @@ export async function updateChatIcon(env: Env, userId: number, icon: string): Pr
   ).bind(icon, userId).run();
 }
 
-export async function countUserActivity(env: Env, userId: number): Promise<{ topics: number, posts: number }> {
-  const topics = await env.DB.prepare('SELECT COUNT(*) as n FROM topics WHERE user_id = ? AND deleted_at IS NULL AND status = "approved"').bind(userId).first<{ n: number }>();
-  const posts = await env.DB.prepare('SELECT COUNT(*) as n FROM posts WHERE user_id = ? AND deleted_at IS NULL AND status = "approved"').bind(userId).first<{ n: number }>();
+export async function countUserActivity(env: Env, userId: number, viewerId?: number): Promise<{ topics: number, posts: number }> {
+  const vis = roomReadVisibility(viewerId);
+  const visible = `t.deleted_at IS NULL AND t.removed_at IS NULL AND t.status = 'approved' AND (t.require_review = 0 OR t.user_id = ? OR EXISTS (SELECT 1 FROM users v WHERE v.id = ? AND v.is_approved = 1 AND v.is_banned = 0 AND v.access_level IN ('mod','admin'))) AND ${vis.sql}`;
+  const topics = await env.DB.prepare(`SELECT COUNT(*) as n FROM topics t JOIN rooms r ON r.id = t.room_id WHERE t.user_id = ? AND ${visible}`)
+    .bind(userId, viewerId ?? 0, viewerId ?? 0, ...vis.params).first<{ n: number }>();
+  const posts = await env.DB.prepare(`SELECT COUNT(*) as n FROM posts p JOIN topics t ON t.id = p.topic_id JOIN rooms r ON r.id = t.room_id WHERE p.user_id = ? AND p.deleted_at IS NULL AND p.status = 'approved' AND ${visible}`)
+    .bind(userId, viewerId ?? 0, viewerId ?? 0, ...vis.params).first<{ n: number }>();
   return { topics: topics?.n ?? 0, posts: posts?.n ?? 0 };
 }
 

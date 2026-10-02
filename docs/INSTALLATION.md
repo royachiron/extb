@@ -56,3 +56,9 @@ Review upstream changes, merge them into your repository copy, run `npm ci` and 
 For Workers Builds, keep the build/deploy command aligned with the configuration you use. Changing back to the core configuration removes the upload binding, so upload controls disappear until the binding is restored.
 
 Never reinitialize a production database, delete its migration history, or replace its binding with a new empty database during an upgrade.
+
+## Hebrew and English UI
+
+In Admin > Settings > Community branding, set the default locale: `he` for Hebrew with RTL layout, or `en` for English with LTR layout. Visitors can choose their interface language from the header. Their preference persists across navigation. Community posts and room names remain in the language their authors wrote.
+
+Room reading and posting gates are independent of language. Use `full` for both gates to create a private space for manually approved full members. The operator defines what full membership means and performs verification before granting it. Signup and invitations create ordinary members, never full members.

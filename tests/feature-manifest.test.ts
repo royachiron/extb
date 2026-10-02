@@ -26,7 +26,7 @@ import { join } from 'node:path';
  */
 
 const root = join(__dirname, '..');
-const src = (p: string) => readFileSync(join(root, p), 'utf8');
+const src = (p: string) => readFileSync(join(root, p), 'utf8').replace(/<!--\/?extb-ui-->/g, '').replace(/EXTB_UI:/g, '');
 
 interface Feature {
   name: string;

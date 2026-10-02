@@ -156,7 +156,7 @@ export function renderConversations(opts: {
   // must still emit the list container and the control, or older conversations
   // become permanently unreachable.
   const list = conversations.length === 0 && !nextBeforeId
-    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);background:var(--card-bg);border-radius:12px;border:1px solid var(--border-color);margin:20px;">No conversations yet.</div>`
+    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);background:var(--card-bg);border-radius:12px;border:1px solid var(--border-color);margin:20px;"><!--extb-ui-->No conversations yet.<!--/extb-ui--></div>`
     : `<div class="inbox-list"><div id="inbox-items">${renderConversationRows(conversations, onlineNames)}</div>${renderConversationsMore(nextBeforeId)}</div>`;
 
   return `
@@ -209,8 +209,8 @@ export function renderConversations(opts: {
 
     <div class="inbox-wrap">
       <header class="inbox-hdr">
-        <h1>Inbox</h1>
-        ${vapidPublicKey ? `<button id="dm-push-btn" class="btn btn-sm" data-vapid-key="${esc(vapidPublicKey)}" style="background:#1d4ed8; border-radius:8px;">Enable Notifications</button>` : ''}
+        <h1><!--extb-ui-->Inbox<!--/extb-ui--></h1>
+        ${vapidPublicKey ? `<button id="dm-push-btn" class="btn btn-sm" data-vapid-key="${esc(vapidPublicKey)}" style="background:#1d4ed8; border-radius:8px;"><!--extb-ui-->Enable Notifications<!--/extb-ui--></button>` : ''}
       </header>
       ${list}
     </div>
@@ -232,7 +232,7 @@ export function renderThread(opts: {
   const { user, other, dms, isOnline, composeContent, error, csrfToken, vapidPublicKey } = opts;
 
   const messages = dms.length === 0
-    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">No messages yet. Say hi.</div>`
+    ? `<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;"><!--extb-ui-->No messages yet. Say hi.<!--/extb-ui--></div>`
     : renderDmMessages(dms, user.id);
 
   const errorHtml = error ? `<div class="flash flash-warn" style="margin:4px 12px;">${esc(error)}</div>` : '';
@@ -424,13 +424,13 @@ export function renderThread(opts: {
             </a>
             <div class="dm-user-det">
               <h2>${otherName}</h2>
-              <p><span class="dm-status-dot" style="display:inline-block; width:6px; height:6px; background:${isOnline ? '#10b981' : '#9ca3af'}; border-radius:50%;"></span> <span id="dm-status-text">${isOnline ? 'online' : 'offline'}</span><span id="dm-typing" style="display:none; color:var(--primary);">typing…</span></p>
+              <p><span class="dm-status-dot" style="display:inline-block; width:6px; height:6px; background:${isOnline ? '#10b981' : '#9ca3af'}; border-radius:50%;"></span> <span id="dm-status-text">${isOnline ? '<!--extb-ui-->online<!--/extb-ui-->' : '<!--extb-ui-->offline<!--/extb-ui-->'}</span><span id="dm-typing" style="display:none; color:var(--primary);"><!--extb-ui-->typing…<!--/extb-ui--></span></p>
             </div>
           </div>
         </div>
         <div class="dm-hd-right">
-          ${vapidPublicKey ? `<button id="dm-push-btn" class="action-btn dm-push-mobile" data-vapid-key="${esc(vapidPublicKey)}" style="background:var(--primary); border-color:var(--primary); color:#fff;" title="Enable Notifications"><svg class="dm-push-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dm-push-label">mobile notifications</span></button>` : ''}
-          <a href="/u/${otherName}" hx-get="/u/${otherName}" hx-target=".main" hx-push-url="true" class="action-btn" style="padding:8px 14px; background:var(--bg-color);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profile</a>
+          ${vapidPublicKey ? `<button id="dm-push-btn" class="action-btn dm-push-mobile" data-vapid-key="${esc(vapidPublicKey)}" style="background:var(--primary); border-color:var(--primary); color:#fff;" title="Enable Notifications" data-extb-i18n-title="Enable Notifications"><svg class="dm-push-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dm-push-label"><!--extb-ui-->mobile notifications<!--/extb-ui--></span></button>` : ''}
+          <a href="/u/${otherName}" hx-get="/u/${otherName}" hx-target=".main" hx-push-url="true" class="action-btn" style="padding:8px 14px; background:var(--bg-color);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><!--extb-ui--> Profile<!--/extb-ui--></a>
           <button class="icon-btn mobile-hide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
           <button class="icon-btn mobile-hide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
         </div>
@@ -466,7 +466,7 @@ export function renderThread(opts: {
               <button type="button" class="dm-tool-btn dm-mobile-only" onclick="insertMd('dm-textarea', '[', '](url)')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></button>
               <button type="button" class="dm-tool-btn mobile-hide" onclick="insertMd('dm-textarea', '- ', '')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
             </div>
-            <button class="dm-send-pill" type="submit" title="Send">
+            <button class="dm-send-pill" type="submit" title="Send" data-extb-i18n-title="Send">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/>
               </svg>

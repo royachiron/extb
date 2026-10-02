@@ -42,7 +42,7 @@ export function renderAssignedBadgeList(opts: { userBadges: any[]; csrfToken?: s
           <form hx-post="/settings/badges/remove" hx-target="#assigned-badges" hx-swap="outerHTML" style="margin:0;display:inline;">
             ${csrfField({ csrfToken })}
             <input type="hidden" name="badge_id" value="${b.id}">
-            <button type="submit" title="Remove" style="background:rgba(0,0,0,0.18);border:none;color:${tc};width:20px;height:20px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;font-weight:900;">×</button>
+            <button type="submit" title="Remove" data-extb-i18n-title="Remove" style="background:rgba(0,0,0,0.18);border:none;color:${tc};width:20px;height:20px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;font-weight:900;">×</button>
           </form>
         </span>`;
       }).join('')
@@ -56,24 +56,24 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
 
 
   const formContent = `
-    <h1 class="page-title">Account Settings</h1>
+    <h1 class="page-title"><!--extb-ui-->Account Settings<!--/extb-ui--></h1>
     ${error ? `<div class="flash flash-warn" style="margin-bottom:24px;">${esc(error)}</div>` : ''}
     
     <form method="POST" action="/settings/profile" hx-post="/settings/profile" hx-swap="none" style="display:flex; flex-direction:column; gap:32px;">
       ${csrfField({ csrfToken })}
       
       <div class="card" style="border-radius:24px;">
-        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:24px; border-bottom:2px solid #f3f4f6; padding-bottom:12px;">Public Identity</h2>
+        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:24px; border-bottom:2px solid #f3f4f6; padding-bottom:12px;"><!--extb-ui-->Public Identity<!--/extb-ui--></h2>
         
         <div class="form-group" style="margin-bottom:32px;">
-          <label class="form-label">Profile Picture</label>
+          <label class="form-label"><!--extb-ui-->Profile Picture<!--/extb-ui--></label>
           <div style="display:flex; align-items:center; gap:20px;">
             <div id="avatar-preview-wrap">
               ${avatarHtml(user.display_name ?? '?', user.avatar_color ?? '#6366f1', 80, avatarUrl)}
             </div>
             <div>
-              <button type="button" class="btn btn-secondary btn-sm profile-upload" onclick="triggerAvatarUpload()">Change Photo</button>
-              ${avatarUrl ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('avatar_url_input').value='';document.getElementById('avatar-preview-wrap').innerHTML='${avatarHtml(user.display_name ?? '?', user.avatar_color ?? '#6366f1', 80, null).replace(/'/g, "\\'")}';">Remove</button>` : ''}
+              <button type="button" class="btn btn-secondary btn-sm profile-upload" onclick="triggerAvatarUpload()"><!--extb-ui-->Change Photo<!--/extb-ui--></button>
+              ${avatarUrl ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('avatar_url_input').value='';document.getElementById('avatar-preview-wrap').innerHTML='${avatarHtml(user.display_name ?? '?', user.avatar_color ?? '#6366f1', 80, null).replace(/'/g, "\\'")}';"><!--extb-ui-->Remove<!--/extb-ui--></button>` : ''}
               <p class="form-hint" style="margin-top:8px;">Max 3MB. Resized to 256x256.</p>
               <input type="hidden" name="avatar_url" id="avatar_url_input" value="${esc(avatarUrl || '')}">
             </div>
@@ -81,28 +81,28 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
         </div>
 
         <div class="form-group" style="margin-bottom:32px;">
-          <label class="form-label">Cover Image</label>
+          <label class="form-label"><!--extb-ui-->Cover Image<!--/extb-ui--></label>
           <div id="cover-preview-wrap" style="height:140px; border-radius:12px; background-size:cover; background-position:center; background-color:var(--bg-color); border:1px solid var(--border-color); margin-bottom:12px; ${user.cover_image ? `background-image:url('${esc(user.cover_image)}');` : `background-image:linear-gradient(135deg, ${esc(user.avatar_color || '#6366f1')}, #000);`}"></div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="btn btn-secondary btn-sm profile-upload" onclick="triggerCoverUpload()">Upload Cover</button>
-            ${user.cover_image ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('cover_image_input').value='';document.getElementById('cover-preview-wrap').style.backgroundImage='linear-gradient(135deg, ${esc(user.avatar_color || '#6366f1')}, #000)';">Remove</button>` : ''}
+            <button type="button" class="btn btn-secondary btn-sm profile-upload" onclick="triggerCoverUpload()"><!--extb-ui-->Upload Cover<!--/extb-ui--></button>
+            ${user.cover_image ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('cover_image_input').value='';document.getElementById('cover-preview-wrap').style.backgroundImage='linear-gradient(135deg, ${esc(user.avatar_color || '#6366f1')}, #000)';"><!--extb-ui-->Remove<!--/extb-ui--></button>` : ''}
             <span class="form-hint" style="margin:0;">Max 3MB. Wide image works best (1500x500).</span>
           </div>
           <input type="hidden" name="cover_image" id="cover_image_input" value="${esc(user.cover_image || '')}">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Display name <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(Permanent)</span></label>
+          <label class="form-label"><!--extb-ui-->Display name <!--/extb-ui--><span style="font-weight:400; color:var(--text-muted); font-size:12px;">(Permanent)</span></label>
           <div style="padding:12px 16px; background:var(--bg-color); border:2px solid var(--border-color); border-radius:12px; color:var(--text-muted); font-weight:700;">${esc(user.display_name ?? '')}</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Preferred Pronouns</label>
+          <label class="form-label"><!--extb-ui-->Preferred Pronouns<!--/extb-ui--></label>
           <input type="text" name="pronouns" value="${esc(user.pronouns || '')}" maxlength="20" placeholder="e.g. they/them">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Personal Bio</label>
+          <label class="form-label"><!--extb-ui-->Personal Bio<!--/extb-ui--></label>
           <textarea name="bio" rows="4" maxlength="500" placeholder="Tell the community a bit about yourself...">${esc(user.bio ?? '')}</textarea>
         </div>
 
@@ -113,7 +113,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
         </div>
 
         <div class="form-group">
-          <label class="form-label">Local Timezone</label>
+          <label class="form-label"><!--extb-ui-->Local Timezone<!--/extb-ui--></label>
           <select name="timezone">
             ${timezoneOptions(user.timezone)}
           </select>
@@ -123,7 +123,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
       </div>
 
       <div class="card" style="border-radius:24px;">
-        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:24px; border-bottom:2px solid #f3f4f6; padding-bottom:12px;">Social & Privacy</h2>
+        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:24px; border-bottom:2px solid #f3f4f6; padding-bottom:12px;"><!--extb-ui-->Social & Privacy<!--/extb-ui--></h2>
         
         <div class="form-group">
           <label class="form-label">Twitter / X Profile URL</label>
@@ -131,7 +131,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
         </div>
 
         <div class="form-group">
-          <label class="form-label">Personal Website</label>
+          <label class="form-label"><!--extb-ui-->Personal Website<!--/extb-ui--></label>
           <input type="url" name="website_url" value="${esc(user.website_url || '')}" maxlength="100" placeholder="https://example.com">
         </div>
 
@@ -146,7 +146,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
           </label>
           <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
             <input type="checkbox" name="allow_dms" value="1" ${(user as any).allow_dms !== 0 ? 'checked' : ''} style="width:20px; height:20px;">
-            <span style="font-size:15px; font-weight:600;">Allow others to start direct messages with me</span>
+            <span style="font-size:15px; font-weight:600;"><!--extb-ui-->Allow others to start direct messages with me<!--/extb-ui--></span>
           </label>
           <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
             <input type="checkbox" name="show_nsfw" value="1" ${user.show_nsfw ? 'checked' : ''} style="width:20px; height:20px;">
@@ -156,22 +156,22 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
       </div>
 
       <div style="display:flex; justify-content:flex-start; align-items:center; margin-top:16px;">
-        <button type="submit" class="btn" style="padding:14px 40px; font-size:16px;">Save Account Changes</button>
+        <button type="submit" class="btn" style="padding:14px 40px; font-size:16px;"><!--extb-ui-->Save Account Changes<!--/extb-ui--></button>
       </div>
     </form>
 
     <div class="card" style="border-radius:24px; margin-top:32px;">
       <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:8px; border-bottom:2px solid #f3f4f6; padding-bottom:12px;">Disability Badges</h2>
-      <p class="form-hint" style="margin-bottom:20px;">Search and add badges. They appear under your profile picture on posts.</p>
+      <p class="form-hint" style="margin-bottom:20px;"><!--extb-ui-->Search and add badges. They appear under your profile picture on posts.<!--/extb-ui--></p>
 
       <div class="form-group">
-        <label class="form-label">Your Badges</label>
+        <label class="form-label"><!--extb-ui-->Your Badges<!--/extb-ui--></label>
         ${renderAssignedBadgeList({ userBadges, csrfToken })}
       </div>
 
 
       <div class="form-group" style="margin-top:20px;">
-        <label class="form-label" for="badge-search-input">Search Badges</label>
+        <label class="form-label" for="badge-search-input"><!--extb-ui-->Search Badges<!--/extb-ui--></label>
         <div style="display:flex; gap:8px; align-items:stretch;">
           <input
             type="search"
@@ -193,7 +193,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
     <form method="POST" action="/settings/profile" hx-post="/settings/profile" hx-swap="none" style="display:flex; flex-direction:column; gap:32px; margin-top:32px;">
       ${csrfField({ csrfToken })}
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
-        <button type="button" class="btn btn-outline-danger" onclick="if(confirm('Permanently delete your account? This cannot be undone.')) document.getElementById('delete-form').requestSubmit()">Delete My Account</button>
+        <button type="button" class="btn btn-outline-danger" onclick="if(confirm('Permanently delete your account? This cannot be undone.')) document.getElementById('delete-form').requestSubmit()"><!--extb-ui-->Delete My Account<!--/extb-ui--></button>
       </div>
     </form>
     
@@ -207,7 +207,7 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
     <div class="admin-layout">
       ${userSidebar('settings', user.display_name || undefined, true)}
       <div class="admin-content">
-        <div class="breadcrumb">My Account &gt; <span>Settings</span></div>
+        <div class="breadcrumb">My Account &gt; <span><!--extb-ui-->Settings<!--/extb-ui--></span></div>
         ${formContent}
       </div>
     </div>
@@ -281,13 +281,13 @@ export function renderWarningsTab(opts: {
         <textarea name="content" rows="3" maxlength="1000" placeholder="Write your reply..." required
           style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); color:var(--text-main); font-size:14px; resize:vertical; box-sizing:border-box;"></textarea>
         <div>
-          <button type="button" class="btn btn-sm" data-warning-reply-confirm style="padding:8px 20px; font-size:13px;">Send Reply</button>
+          <button type="button" class="btn btn-sm" data-warning-reply-confirm style="padding:8px 20px; font-size:13px;"><!--extb-ui-->Send Reply<!--/extb-ui--></button>
         </div>
         <div data-warning-reply-confirm-prompt style="display:none; padding:12px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:8px;">
           <p style="margin:0 0 10px; font-size:14px; color:var(--text-main); font-weight:600;">Is this all you have to say?</p>
           <div style="display:flex; gap:8px;">
-            <button type="submit" class="btn btn-sm" style="padding:8px 20px; font-size:13px;">Confirm</button>
-            <button type="button" class="btn btn-secondary btn-sm" data-warning-reply-cancel style="padding:8px 20px; font-size:13px;">Cancel</button>
+            <button type="submit" class="btn btn-sm" style="padding:8px 20px; font-size:13px;"><!--extb-ui-->Confirm<!--/extb-ui--></button>
+            <button type="button" class="btn btn-secondary btn-sm" data-warning-reply-cancel style="padding:8px 20px; font-size:13px;"><!--extb-ui-->Cancel<!--/extb-ui--></button>
           </div>
         </div>
       </form>
@@ -297,7 +297,7 @@ export function renderWarningsTab(opts: {
   const warningCards = warnings.length === 0
     ? `<div class="card" style="border-radius:20px; padding:48px; text-align:center;">
         <div style="font-size:48px; margin-bottom:16px;">✅</div>
-        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:8px;">No warnings</h2>
+        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:8px;"><!--extb-ui-->No warnings<!--/extb-ui--></h2>
         <p style="color:var(--text-muted);">Your account is in good standing.</p>
       </div>`
     : warnings.map(w => {
@@ -335,7 +335,7 @@ export function renderWarningsTab(opts: {
     <div class="admin-layout">
       ${userSidebar('warnings', user.display_name || undefined, true, unresolvedCount)}
       <div class="admin-content">
-        <div class="breadcrumb">My Account &gt; <span>Warnings</span></div>
+        <div class="breadcrumb">My Account &gt; <span><!--extb-ui-->Warnings<!--/extb-ui--></span></div>
         ${mainContent}
       </div>
     </div>
