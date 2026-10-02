@@ -1,8 +1,8 @@
 # EXTB · EXTra Board
 
-**Your community. Your Cloudflare account. Live in minutes.**
+**Your community. Your Cloudflare account.**
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb)
+**[Create your community with EXTB](https://extb.achiron.fyi)**
 
 A proper forum. Live chat. Private messages. An admin panel. All in one small, open source app you can make your own.
 
@@ -12,16 +12,15 @@ No server to rent. No Docker stack to babysit. No email provider required to get
 
 ## Get your own community
 
-1. Click **Deploy to Cloudflare** above. Sign in to Cloudflare and connect your GitHub account when prompted.
-2. Choose a private **SETUP_PASSPHRASE** of at least 16 characters. Cloudflare creates your repository copy and provisions the app resources.
-3. Open the deployed `workers.dev` URL. Visit `/setup`, enter that passphrase, and choose your admin username, password, and community name.
-4. Open **Admin → Invitations**, create an invite, and send the link to your first member.
+**[Open the EXTB web installer](https://extb.achiron.fyi)** — Continue with Cloudflare, describe your community, preview its starter content, then create your owner account directly on your forum. GitHub is optional. Choose from five presets in English or Hebrew, with public reading and invitation-based participation.
 
-That's your installation. Your accounts, your database, your conversations.
+The installer implementation is available; public launch requires operator OAuth/domain configuration and separate-user validation. See [installer launch status and configuration](docs/WEB_INSTALLER.md). Installation time has not yet been measured with a separate Free-plan user.
 
-The deploy command applies database migrations automatically. Setup starts with empty General, Introductions, Announcements, and Community Chat spaces. No demo members or imported posts.
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb)
 
-Account onboarding and the first build can take extra time. The button flow depends on Cloudflare and GitHub permissions. See [installation](docs/INSTALLATION.md) for manual setup and troubleshooting, and [verification status](docs/VERIFICATION.md) for what has been tested.
+The **Deploy to Cloudflare** button remains a secondary manual path. It requires GitHub and a private `SETUP_PASSPHRASE` of at least 16 characters. After deployment, open `/setup` and create your admin username, password, and community name. Manual setup preserves its four empty starter rooms.
+
+Open **Admin → Invitations** to invite your first members. Each installation owns its accounts, database and conversations. The deploy command applies migrations without reapplying starter content. See [manual installation](docs/INSTALLATION.md) and [verification status](docs/VERIFICATION.md).
 
 ## Small app. Real community tools.
 
@@ -41,7 +40,7 @@ The interface supports full page navigation and HTMX updates, desktop and mobile
 
 ## Own the whole thing
 
-Each deployment belongs to its operator. There is no shared EXTB service account and no central community database. Your Cloudflare account runs the app. Your GitHub copy holds the code. MIT licensing lets you change it, brand it, and build on it.
+Each deployment belongs to its operator. There is no shared EXTB service account and no central community database. Your Cloudflare account runs the app. An optional GitHub copy holds the code. MIT licensing lets you change it, brand it, and build on it.
 
 The stack is straightforward: TypeScript on Workers, SQL in D1, room state and password hashing in SQLite Durable Objects, and server-rendered HTML. WebSocket hibernation lets idle chat rooms sleep.
 
@@ -69,6 +68,7 @@ Then ask it to:
 
 - Create a Projects room and an Announcements room.
 - Update the community name, colors, and rules.
+- Preview starter content and append an explicitly approved draft without overwriting existing discussions.
 - Review reports and issue a moderation warning.
 - Show membership and conversation totals.
 

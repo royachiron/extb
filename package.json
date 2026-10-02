@@ -1,6 +1,6 @@
 {
   "name": "extb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,11 +10,13 @@
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:migrate": "wrangler d1 migrations apply DB --remote",
     "verify": "npm run typecheck && npm test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p installer/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "deploy:uploads": "wrangler d1 migrations apply DB --remote --config wrangler.uploads.toml && wrangler deploy --config wrangler.uploads.toml",
-    "test:smoke": "node scripts/smoke.mjs"
+    "test:smoke": "node scripts/smoke.mjs",
+    "release:bundle": "node scripts/release-bundle.mjs",
+    "test:installer-browser": "node scripts/installer-ui-smoke.mjs && node scripts/installer-smoke.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261001.1",
@@ -43,7 +45,7 @@
   "description": "Your own forum and live chat on Cloudflare",
   "license": "MIT",
   "cloudflare": {
-    "label": "EXTB · EXTra Board",
+    "label": "EXTB \u00b7 EXTra Board",
     "description": "Start your own forum and live chat. No email provider or storage subscription needed.",
     "bindings": {
       "SETUP_PASSPHRASE": {

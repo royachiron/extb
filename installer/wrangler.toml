@@ -1,0 +1,18 @@
+name = "extb-installer"
+main = "src/index.ts"
+compatibility_date = "2026-10-02"
+workers_dev = false
+[[routes]]
+pattern = "extb.achiron.fyi"
+custom_domain = true
+[[durable_objects.bindings]]
+name = "INSTALLATIONS"
+class_name = "Installation"
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Installation"]
+[vars]
+INSTALLER_ORIGIN = "https://extb.achiron.fyi"
+# Register a public, domain-verified OAuth client before deployment.
+# OAUTH_CLIENT_ID, OAUTH_SCOPE, RELEASE_MANIFEST_URL, RELEASE_MANIFEST_SHA256 must be set by the operator.
+# ENCRYPTION_KEY must be a wrangler secret: base64 encoded 32 random bytes.

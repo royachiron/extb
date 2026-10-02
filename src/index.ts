@@ -29,6 +29,13 @@ function canonicalHostRedirect(req: Request, env: Env): Response | null {
 
 export default {
   async fetch(req: Request, env: Env, exeCtx: ExecutionContext): Promise<Response> {
+    if (new URL(req.url).pathname === '/healthz') {
+      if (!['GET', 'HEAD'].includes(req.method)) return new Response('Method not allowed', { status: 405 });
+      try {
+        await env.DB.prepare('SELECT 1 AS ready').first();
+        return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+      } catch { return Response.json({ ok: false }, { status: 503, headers: { 'Cache-Control': 'no-store' } }); }
+    }
     const hostRedirect = canonicalHostRedirect(req, env);
     if (hostRedirect) return hostRedirect;
 
@@ -40,7 +47,7 @@ export default {
     const secret = env.CHAT_DO_SECRET || (await getSetting(env, 'chat_auth_secret'))?.value || '';
     const requestEnv: Env = { ...env, COMMUNITY_ORIGIN: origin, CHAT_DO_SECRET: secret };
     const ctx: AppContext = { env: requestEnv, user: null, cookies: [], branding, origin, locale };
-    if (pathname !== '/setup' && !pathname.startsWith('/css/') && !pathname.startsWith('/icons/') && pathname !== '/favicon.svg' && !(await isSetupComplete(ctx))) {
+    if (pathname !== '/setup' && !pathname.startsWith('/setup/') && !pathname.startsWith('/css/') && !pathname.startsWith('/icons/') && pathname !== '/favicon.svg' && !(await isSetupComplete(ctx))) {
       return Response.redirect(`${origin}/setup`, 302);
     }
     const chosenLanguage = new URL(req.url).searchParams.get('lang');
