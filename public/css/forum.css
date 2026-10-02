@@ -1,0 +1,24 @@
+#forum { width: 90%; margin: 20px auto; border-collapse: collapse; }
+.post-container { display: flex; border: 1px solid #ccc; margin-bottom: 10px; background: #f9f9f9; }
+.user-info { width: 200px; padding: 10px; border-right: 1px solid #ccc; text-align: center; }
+.post-content { flex: 1; padding: 10px; }
+.post-meta { font-size: 0.8em; color: #666; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+
+.poll {
+  margin-right: 8px;
+  font-size: 1.1em;
+  vertical-align: middle;
+}
+
+.poll-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-color);
+  color: var(--text-main);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+}

@@ -1,0 +1,2 @@
+# Enter a long unique private passphrase during deployment.
+SETUP_PASSPHRASE=""
