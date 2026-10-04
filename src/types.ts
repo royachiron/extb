@@ -59,6 +59,10 @@ export interface User {
   last_icon_change: string | null;
   created_at: string;
   threads_read_before?: string | null;
+  intake_status?: 'none' | 'applicant' | 'pending' | 'declined' | 'approved';
+  intake_gate_active?: boolean;
+  intake_application_room_id?: number | null;
+  intake_staff_user_id?: number | null;
   posting_restricted_at?: string | null;
   posting_restriction_reason?: string | null;
   monthly_upload_bytes?: number;

@@ -186,7 +186,7 @@ export function renderResetDone(): string {
 }
 
 export function renderOnboarding(opts?: { note?: string; noteIsUi?: boolean }): string {
-  return `<h1><!--extb-ui-->Welcome<!--/extb-ui--></h1><p>${opts?.note ? (opts.noteIsUi ? '<!--extb-ui-->' + esc(opts.note) + '<!--/extb-ui-->' : esc(opts.note)) : '<!--extb-ui-->Your community is ready. Join a conversation or introduce yourself.<!--/extb-ui-->'}</p><a href="/r/introductions"><!--extb-ui-->Introduce yourself<!--/extb-ui--></a>`;
+  return `<h1><!--extb-ui-->Welcome<!--/extb-ui--></h1><p>${opts?.note ? (opts.noteIsUi ? '<!--extb-ui-->' + esc(opts.note) + '<!--/extb-ui-->' : esc(opts.note)) : '<!--extb-ui-->Your community is ready. Join a conversation or introduce yourself.<!--/extb-ui-->'}</p><a href="/forum"><!--extb-ui-->Explore rooms<!--/extb-ui--></a> · <a href="/membership"><!--extb-ui-->Membership status<!--/extb-ui--></a>`;
 }
 
 export function renderProfileSetup(opts: { error?: string; user: User; csrfToken?: string; userBadges?: any[]; allBadges?: any[] }): string {

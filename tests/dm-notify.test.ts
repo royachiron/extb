@@ -25,11 +25,8 @@ function fakeEnv(rows: unknown[] = []) {
 
 describe('createDm', () => {
   it('returns the inserted row identity ({id, created_at})', async () => {
-    // First SELECT (posting_restricted_at) -> null sender; INSERT RETURNING * -> row.
-    // The fake returns rows[0] for every first(); we only assert the shape here by
-    // feeding a non-suspended sender then the inserted DM row via a two-call fake.
+    // Return current approved accounts for authorization and the inserted DM row.
     const calls: Captured[] = [];
-    let firstCall = 0;
     const DB = {
       prepare(sql: string) {
         const cap: Captured = { sql, binds: [] };
@@ -37,8 +34,8 @@ describe('createDm', () => {
           bind(...args: unknown[]) { cap.binds = args; calls.push(cap); return stmt; },
           async all<T>() { return { results: [] as T[] }; },
           async first<T>() {
-            firstCall++;
-            if (firstCall === 1) return { posting_restricted_at: null } as unknown as T; // sender check
+            if (sql.includes('FROM settings')) return null;
+            if (sql.includes('SELECT * FROM users')) return { id: cap.binds[0], is_banned: 0, is_approved: 1, access_level: 'member', posting_restricted_at: null } as unknown as T;
             return { id: 42, sender_id: 1, recipient_id: 2, content: 'hi', read_at: null, created_at: '2026-06-01 00:00:00' } as unknown as T;
           },
           async run() { return { meta: { last_row_id: 42, changes: 1 } }; },

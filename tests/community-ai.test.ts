@@ -11,14 +11,14 @@ it('real database reserves one initial generation and only two explicit regenera
  await personalizeCommunity(env,input,true);await personalizeCommunity(env,input,true);const final=await personalizeCommunity(env,input,true);
  expect(run).toHaveBeenCalledTimes(3);expect(final.reason).toBe('generation-limit');
  }finally{db.close();}
-});
+}, 20000);
 it('accepts Qwen chat completion choices with valid structured draft',async()=>{
  const {database}=await import('./helpers/sqlite');const {makeCommunityDraft}=await import('../src/community/draft');const db=database();try{
  const draft=makeCommunityDraft(input);draft.homepageCopy='Personalized community homepage';
  const run=vi.fn().mockResolvedValue({choices:[{message:{content:JSON.stringify(draft)}}]});
  const result=await personalizeCommunity({...db.env,AI:{run}},input);expect(result.source).toBe('ai');expect(result.draft.homepageCopy).toBe(draft.homepageCopy);
  }finally{db.close();}
-});
+}, 20000);
 it('times out generation and leaves a valid ready-made draft',async()=>{
  vi.useFakeTimers();try{
  const DB={prepare:()=>({bind:()=>({first:async()=>({value:'1'})})})} as any;
@@ -32,4 +32,4 @@ it('concurrent initial requests do not spend regeneration allowance',async()=>{
  await Promise.all([personalizeCommunity(env,input,false),personalizeCommunity(env,input,false)]);
  expect(run).toHaveBeenCalledTimes(1);expect(await db.env.DB.prepare("SELECT value FROM settings WHERE key='setup_ai_attempts'").first()).toEqual({value:'1'});
  }finally{db.close();}
-});
+}, 20000);

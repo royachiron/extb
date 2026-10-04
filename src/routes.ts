@@ -1,3 +1,6 @@
+import { getMembership, postMembershipApply, postRemoveIntroduction, getIntake, postIntakeDecision, postIntakeNotes, postIntakeReminders } from './api/membership';
+import { getMembershipSettings, postMembershipSettings } from './api/admin/membership-config';
+import { postHelperSettings } from './api/admin/settings';
 import { claimOwnership } from './community/ownership';
 import { showAdminTokens, createAdminToken, revokeAdminToken } from './api/admin-tokens';
 import { getInvitations, createInvitationPage, createResetPage } from './api/invitations';
@@ -250,6 +253,18 @@ export const routes: Route[] = [
   { method: 'POST', pattern: p('/profile-setup'), handler: postProfileSetup },
   { method: 'GET', pattern: p('/appeal'), handler: getAppeal },
   { method: 'POST', pattern: p('/appeal'), handler: postAppeal },
+
+  // Optional membership intake and configuration.
+  { method: 'GET', pattern: p('/membership'), handler: getMembership },
+  { method: 'POST', pattern: p('/membership/apply'), handler: postMembershipApply },
+  { method: 'POST', pattern: p('/membership/introduction/remove'), handler: postRemoveIntroduction },
+  { method: 'GET', pattern: p('/admin/intake'), handler: getIntake },
+  { method: 'POST', pattern: p('/admin/intake/reminders'), handler: postIntakeReminders },
+  { method: 'POST', pattern: p('/admin/intake/:id/decision'), handler: postIntakeDecision },
+  { method: 'POST', pattern: p('/admin/intake/:id/notes'), handler: postIntakeNotes },
+  { method: 'GET', pattern: p('/admin/membership-settings'), handler: getMembershipSettings },
+  { method: 'POST', pattern: p('/admin/membership-settings'), handler: postMembershipSettings },
+  { method: 'POST', pattern: p('/admin/helper-settings'), handler: postHelperSettings },
 
   // Rooms API
   { method: 'GET', pattern: p('/api/rooms'), handler: getRoomsList },

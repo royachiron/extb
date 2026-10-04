@@ -14,7 +14,6 @@ const LEVEL_LABEL: Record<string, string> = {
   anon: 'Guest',
   member: 'Member',
   full: 'Trusted member',
-  club: 'Club member',
   mod: 'Moderator',
   admin: 'Admin',
 };

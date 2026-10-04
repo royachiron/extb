@@ -78,7 +78,8 @@ export function renderAdmin(opts: {
       <a href="/admin?section=safety&tab=warnings" hx-get="/admin?section=safety&tab=warnings" hx-target=".main" hx-push-url="true" ${pillAttrs(section === 'safety', !viewerIsAdmin)}>⚠️ Safety</a>
       <a href="/admin?section=system&tab=activity" hx-get="/admin?section=system&tab=activity" hx-target=".main" hx-push-url="true" ${pillAttrs(section === 'system', !viewerIsAdmin)}>⚙️ System</a>
       <a href="/admin?section=moderation&tab=queue" hx-get="/admin?section=moderation&tab=queue" hx-target=".main" hx-push-url="true" ${pillAttrs(section === 'moderation', false)}>🛡️ Moderation</a>
-      ${viewerIsAdmin ? '<a href="/admin/invitations">Invitations</a><a href="/admin/tokens">MCP tokens</a>' : ''}
+      <a href="/admin/intake" hx-get="/admin/intake" hx-target=".main" hx-push-url="true"><!--extb-ui-->Membership intake<!--/extb-ui--></a>
+      ${viewerIsAdmin ? '<a href="/admin/membership-settings" hx-get="/admin/membership-settings" hx-target=".main" hx-push-url="true">Membership settings</a><a href="/admin/invitations">Invitations</a><a href="/admin/tokens">MCP tokens</a>' : ''}
     </nav>
 
     <style>

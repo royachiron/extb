@@ -1,3 +1,4 @@
+import { newUserIntakeStatus } from '../lib/membership-policy';
 import { roomReadVisibility } from './room-visibility';
 import type { AccessLevel, Env, User } from '../types';
 
@@ -82,9 +83,9 @@ export async function createUser(
   displayName: string | null = null
 ): Promise<User> {
   const row = await env.DB.prepare(
-    `INSERT INTO users (email, password_hash, is_adult, tos_version, password_salt, display_name)
-     VALUES (?, ?, ?, ?, ?, ?) RETURNING *`
-  ).bind(email, passwordHash, isAdult, tosVersion, passwordSalt, displayName).first<User>();
+    `INSERT INTO users (email, password_hash, is_adult, tos_version, password_salt, display_name, intake_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`
+  ).bind(email, passwordHash, isAdult, tosVersion, passwordSalt, displayName, await newUserIntakeStatus(env)).first<User>();
   if (!row) throw new Error('createUser failed');
   return row;
 }
@@ -172,7 +173,7 @@ export async function setUserAccess(
   id: number,
   access: AccessLevel
 ): Promise<void> {
-  await env.DB.prepare('UPDATE users SET access_level = ? WHERE id = ?').bind(access, id).run();
+  await env.DB.prepare("UPDATE users SET access_level = ?, intake_status = CASE WHEN ? IN ('full','mod','admin') THEN 'approved' ELSE intake_status END WHERE id = ?").bind(access, access, id).run();
 }
 
 export async function setUserBanned(
@@ -192,6 +193,10 @@ export async function anonymizeUser(env: Env, id: number, banEmail = true): Prom
   // user, or a non-cascading FK (e.g. topic_follows, audit_logs, room_permissions)
   // aborts the whole batch with "FOREIGN KEY constraint failed".
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM membership_deliveries WHERE user_id = ?').bind(id),
+    env.DB.prepare('DELETE FROM membership_decisions WHERE application_id IN (SELECT id FROM membership_applications WHERE user_id = ?)').bind(id),
+    env.DB.prepare('DELETE FROM membership_applications WHERE user_id = ?').bind(id),
+    env.DB.prepare('UPDATE membership_decisions SET actor_id = NULL WHERE actor_id = ?').bind(id),
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
     env.DB.prepare('DELETE FROM email_tokens WHERE user_id = ?').bind(id),
     env.DB.prepare('DELETE FROM notifications WHERE user_id = ?').bind(id),

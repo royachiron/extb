@@ -1,3 +1,4 @@
+import { decorateMembershipUser, isIntakeRestricted } from '../lib/membership-policy';
 import { createInvitedUser } from '../lib/invites';
 import type { AppContext, User } from '../types';
 import {
@@ -151,7 +152,7 @@ export async function postRegister(
       const sessionToken = generateToken();
       await createSession(ctx.env, sessionToken, user.id, nowPlusMs(SESSION_TTL_MS));
       ctx.cookies.push(sessionCookie(sessionToken, SESSION_TTL_DAYS));
-      return redirect('/');
+      return redirect(isIntakeRestricted(await decorateMembershipUser(ctx.env, user)) ? '/membership' : '/');
     }
     const user = await createUser(ctx.env, email, password_hash, isAdult ? 1 : 0, CURRENT_TOS_VERSION, salt, displayName);
 
@@ -222,7 +223,7 @@ export async function getVerify(
   if (!user) return redirect('/');
 
   if (!user?.display_name) return redirect('/profile-setup');
-  return redirect('/');
+  return redirect(isIntakeRestricted(await decorateMembershipUser(ctx.env, user)) ? '/membership' : '/');
 }
 
 export async function postLogin(
@@ -284,7 +285,7 @@ export async function postLogin(
   if (user.is_banned) return redirect('/appeal');
 
   if (!user.display_name) return redirect('/profile-setup');
-  return redirect('/');
+  return redirect(isIntakeRestricted(await decorateMembershipUser(ctx.env, user)) ? '/membership' : '/');
 }
 
 export async function getAppeal(
@@ -459,7 +460,7 @@ export async function postProfileSetup(
     return html(renderProfileSetup({ error: 'Failed to save profile. Please try again.', user, csrfToken: ctx.csrfToken }), 500);
   }
 
-  return redirect('/');
+  return redirect(isIntakeRestricted(user) ? '/membership' : '/');
 }
 
 export async function getOnboarding(
@@ -467,9 +468,10 @@ export async function getOnboarding(
   ctx: AppContext,
 ): Promise<Response> {
   if (!ctx.user) return redirect('/login');
+  if (isIntakeRestricted(ctx.user)) return redirect('/membership');
   if (ctx.user.access_level !== 'member') return redirect('/');
   
-  const rooms = await listRooms(ctx.env);
+  const rooms = await listRooms(ctx.env, ctx.user.id);
   const body = renderOnboarding();
   if (req.headers.get('hx-request') === 'true') return html(body);
   return html(renderLayout({ branding: ctx.branding, origin: ctx.origin, uploadsEnabled: !!ctx.env.MEDIA, user: ctx.user, rooms, title: 'Welcome', body, csrfToken: ctx.csrfToken }));

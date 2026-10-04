@@ -1,3 +1,4 @@
+import { isIntakeRestricted } from '../lib/membership-policy';
 import type { AppContext } from '../types';
 import {
   getUserByDisplayName,
@@ -267,9 +268,10 @@ export async function getUsers(
   if (!ctx.user) return redirect("/login");
   if (ctx.user.is_banned) return redirect("/appeal");
   if (!ctx.user.is_approved) return redirect("/verify-sent");
+  if (isIntakeRestricted(ctx.user)) return redirect("/membership");
   if (ctx.user.access_level !== "full" && ctx.user.access_level !== "mod" && ctx.user.access_level !== "admin") {
     const rooms = await listRooms(ctx.env);
-    const body = renderOnboarding({ note: 'You clicked Members - that directory opens once your intro is approved.', noteIsUi: true });
+    const body = renderOnboarding({ note: 'Trusted membership is required to view the member directory.', noteIsUi: true });
     if (req.headers.get('hx-request') === 'true') return html(body);
     return html(
       renderLayout({ branding: ctx.branding, origin: ctx.origin, uploadsEnabled: !!ctx.env.MEDIA,

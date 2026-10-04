@@ -155,3 +155,30 @@ describe('backward compat - legacy allow/deny values', () => {
   it('deny acts as blocked for canPost', () =>
     expect(canPost(u(), { ...memRoom, user_permission: 'deny' as any })).toBe(false));
 });
+
+ describe('optional membership review', () => {
+ const applicant = () => u({ intake_status: 'pending', intake_gate_active: true, intake_application_room_id: 2 });
+ it('only the explicit new applicant cohort is restricted', () => {
+ expect(canPost(u({ intake_gate_active: true }), memRoom)).toBe(true);
+ expect(canPost(applicant(), { ...memRoom, id: 9, min_post: 'anon' })).toBe(false);
+ expect(canPost(applicant(), { ...memRoom, id: 9, user_permission: 'full' })).toBe(false);
+ });
+ it('application participation never grants private-room reading', () => {
+ expect(canPost(applicant(), memRoom)).toBe(true);
+ expect(canPost(applicant(), { ...memRoom, is_exclusive: 1 })).toBe(false);
+ expect(canRead(applicant(), fullRoom)).toBe(false);
+ });
+ it('disabled intake resumes ordinary permissions but preserves suspension', () => {
+ expect(canPost(u({ intake_status: 'declined', intake_gate_active: false }), memRoom)).toBe(true);
+ expect(canPost(u({ intake_status: 'approved', posting_restricted_at: 'now' }), memRoom)).toBe(false);
+ });
+ });
+describe('read-only override on anonymous-post rooms', () => {
+ it('keeps ordinary members and intake applicants read-only', () => {
+  const room = { ...memRoom, min_post: 'anon', user_permission: 'read' } as Room;
+  expect(canRead(u(), room)).toBe(true);
+  expect(canPost(u(), room)).toBe(false);
+  expect(canPost(u({ intake_status: 'applicant', intake_gate_active: true, intake_application_room_id: room.id }), room)).toBe(false);
+  expect(canPost(u({ access_level: 'mod' }), room)).toBe(true);
+ });
+});

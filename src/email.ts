@@ -14,3 +14,9 @@ export async function sendVerifyEmail(env: Env, to: string, token: string): Prom
 export async function sendResetEmail(env: Env, to: string, token: string): Promise<void> { const branding = await loadBranding(env); const link = `${origin(env)}/reset/${encodeURIComponent(token)}`; await sendBrevo(env, to, `Reset your ${branding.name} password`, `<p>A password reset was requested for your ${esc(branding.name)} account.</p><p><a href="${esc(link)}">Set a new password</a></p><p>If you did not request this, ignore this email.</p>`); }
 export async function sendBanEmail(env: Env, to: string, reason: string): Promise<void> { const branding = await loadBranding(env); await sendBrevo(env, to, `Account status update - ${branding.name}`, `<p>Your account on ${esc(branding.name)} has been banned.</p><p><strong>Reason:</strong> ${esc(reason)}</p>${branding.contact_email ? `<p>Contact <a href="mailto:${esc(branding.contact_email)}">${esc(branding.contact_email)}</a> with questions.</p>` : '<p>Contact your community administrators with questions.</p>'}`); }
 export async function sendSaltUpgradeEmail(env: Env, to: string): Promise<void> { const branding = await loadBranding(env); await sendBrevo(env, to, `Account security update - ${branding.name}`, `<p>Please <a href="${esc(origin(env))}/login">log in</a> to complete your account security update.</p>`); }
+
+export async function sendIntakeReminderEmail(env: Env, to: string): Promise<void> {
+  const branding=await loadBranding(env);
+  const link=`${origin(env)}/membership`;
+  await sendBrevo(env,to,`Complete your application - ${branding.name}`,`<p>You can introduce yourself or contact staff privately to apply to ${esc(branding.name)}.</p><p><a href="${esc(link)}">View your membership status and next steps</a></p>`);
+}

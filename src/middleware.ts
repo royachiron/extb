@@ -92,7 +92,7 @@ export function requireFull(ctx: AppContext): User {
   if (u.access_level === 'full' || u.access_level === 'mod' || u.access_level === 'admin') {
     return u;
   }
-  throw redirect('/r/introductions');
+  throw redirect('/membership');
 }
 
 export function requireMod(ctx: AppContext): User {

@@ -1,3 +1,5 @@
+import { submitIntroductionApplication } from '../db/membership';
+import { isIntakeRestricted } from '../lib/membership-policy';
 import { DEFAULT_BRANDING } from '../lib/branding';
 import type { AppContext, Room, Topic } from '../types';
 import { isMod, canRead, canPost } from '../access';
@@ -73,7 +75,7 @@ export async function getFeed(
   const url = new URL(req.url);
   const slug = _params?.slug || url.searchParams.get('room');
   const page = Math.max(0, parseInt(url.searchParams.get('page') ?? '0', 10) || 0);
-  const onboardingGate = onboardingRedirect(ctx, slug === 'introductions');
+  const onboardingGate = onboardingRedirect(ctx);
   if (onboardingGate) return onboardingGate;
   const all = await listRooms(ctx.env, ctx.user?.id);
   const rooms = all.filter((r) => !r.is_page);
@@ -282,7 +284,7 @@ async function loadVisibleTopic(
 
   const room = await getRoomById(ctx.env, topic.room_id, ctx.user?.id);
   if (!room) return html('<h1>404</h1>', 404);
-  const onboardingGate = onboardingRedirect(ctx, room.slug === 'introductions');
+  const onboardingGate = onboardingRedirect(ctx);
   if (onboardingGate) return onboardingGate;
   if (!canRead(ctx.user, room)) {
     if (!ctx.user || !ctx.user.is_approved) return redirect('/login');
@@ -445,9 +447,10 @@ export async function postTopic(
     return html('<h1>400 - too long</h1>', 400);
   }
 
-  const room = await getRoomById(ctx.env, roomId);
+  const room = await getRoomById(ctx.env, roomId, ctx.user?.id);
   if (!room) return html('<h1>404</h1>', 404);
   if (room.is_page) return html('<h1>400 - use page route</h1>', 400);
+  if (!canPost(ctx.user, room)) return html('forbidden', 403);
 
   if (room.min_post === 'anon' && !ctx.user) {
     const token = String(form['cf-turnstile-response'] ?? '');
@@ -476,7 +479,7 @@ export async function postTopic(
     status = 'pending';
   }
 
-  const topic = await createTopic(ctx.env, roomId, user.id, null, title, content, tags, status, form.delete_on_approve === '1' ? 1 : 0);
+  const topic = await createTopic(ctx.env, roomId, user.id, null, title, content, tags, status, 0);
 
   const cwTagIds = fd.getAll('cw_tag_ids').map(v => Number(v)).filter(n => Number.isInteger(n) && n > 0);
   if (cwTagIds.length > 0) await setTopicCwTags(ctx.env, topic.id, cwTagIds);
@@ -487,6 +490,11 @@ export async function postTopic(
     const multiSelect = form.poll_multi === '1';
     const endsAt = form.poll_ends_at || null;
     await createPoll(ctx.env, topic.id, pollQuestion, multiSelect, endsAt, pollOptions);
+  }
+
+  if (isIntakeRestricted(user) && room.id === user.intake_application_room_id) {
+    await submitIntroductionApplication(ctx.env, user.id, topic.id);
+    return redirect('/membership');
   }
 
   if (status === 'pending') {
@@ -509,7 +517,7 @@ export async function getNewTopic(
   const postRooms = all.filter(r => !r.is_page && canPost(user, r, ctx.ironGateActive));
   const preselected = slug ? postRooms.find(r => r.slug === slug) : null;
 
-  const showAutoDelete = preselected && preselected.slug === 'introductions';
+  const showAutoDelete = false;
   const isHtmx = req.headers.get('hx-request') === 'true';
   const body = renderNewTopicComposer({ csrfToken: ctx.csrfToken, preselected, postRooms, prefillTitle, prefillBody, showAutoDelete, allCwTags });
 
@@ -542,7 +550,7 @@ export async function getNewTopicForm(
 
   const allCwTags = await listCwTags(ctx.env);
 
-  const showAutoDelete = room.slug === 'introductions';
+  const showAutoDelete = false;
   const isHtmx = req.headers.get('hx-request') === 'true';
   const body = renderRoomTopicComposer({ csrfToken: ctx.csrfToken, room, showAutoDelete, allCwTags });
 
@@ -572,6 +580,8 @@ export async function getEditTopicForm(
   const topic = await getTopicByShortId(ctx.env, shortId);
   if (!topic || topic.deleted_at) return html('<h1>404</h1>', 404);
   if (topic.user_id !== user.id && !isMod(user)) return html('<h1>403</h1>', 403);
+  const editRoom = await getRoomById(ctx.env, topic.room_id, user.id);
+  if (!editRoom || !canPost(user, editRoom)) return html('forbidden', 403);
 
   const [allCwTags, editTagMap] = await Promise.all([
     listCwTags(ctx.env),
@@ -606,6 +616,8 @@ export async function postUpdateTopic(
   const topic = await getTopicByShortId(ctx.env, shortId);
   if (!topic || topic.deleted_at) return html('<h1>404</h1>', 404);
   if (topic.user_id !== user.id && !isMod(user)) return html('<h1>403</h1>', 403);
+  const editRoom = await getRoomById(ctx.env, topic.room_id, user.id);
+  if (!editRoom || !canPost(user, editRoom)) return html('forbidden', 403);
 
   const editFd = await req.formData();
   const form: Record<string, string> = {};
@@ -636,7 +648,9 @@ export async function postFollowTopic(
   const user = requireMember(ctx);
   const shortId = String(params.id || '');
   const topic = await getTopicByShortId(ctx.env, shortId);
-  if (!topic) return html('<h1>404</h1>', 404);
+  if (!topic || topic.deleted_at || topic.removed_at) return html('<h1>404</h1>', 404);
+  const followRoom = await getRoomById(ctx.env, topic.room_id, user.id);
+  if (!followRoom || !canRead(user, followRoom)) return html('forbidden', 403);
   await createTopicFollow(ctx.env, topic.id, user.id);
 
   if (req.headers.get('hx-request') === 'true') {
@@ -654,7 +668,9 @@ export async function postUnfollowTopic(
   const user = requireMember(ctx);
   const shortId = String(params.id || '');
   const topic = await getTopicByShortId(ctx.env, shortId);
-  if (!topic) return html('<h1>404</h1>', 404);
+  if (!topic || topic.deleted_at || topic.removed_at) return html('<h1>404</h1>', 404);
+  const followRoom = await getRoomById(ctx.env, topic.room_id, user.id);
+  if (!followRoom || !canRead(user, followRoom)) return html('forbidden', 403);
   await deleteTopicFollow(ctx.env, topic.id, user.id);
 
   if (req.headers.get('hx-request') === 'true') {
@@ -672,7 +688,9 @@ export async function postPollVote(
   const user = requireMember(ctx);
   const shortId = String(params.id || '');
   const topic = await getTopicByShortId(ctx.env, shortId);
-  if (!topic) return html('<h1>404</h1>', 404);
+  if (!topic || topic.deleted_at || topic.removed_at) return html('<h1>404</h1>', 404);
+  const voteRoom = await getRoomById(ctx.env, topic.room_id, user.id);
+  if (!voteRoom || !canPost(user, voteRoom)) return html('forbidden', 403);
   
   const poll = await getPollByTopicId(ctx.env, topic.id);
   if (!poll) return html('<h1>404 - Poll not found</h1>', 404);

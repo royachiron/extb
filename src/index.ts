@@ -1,3 +1,4 @@
+import { decorateMembershipUser } from './lib/membership-policy';
 import { resolveLocale, localizeResponse } from './lib/localization';
 import { loadBranding } from './lib/branding';
 import { getSetting } from './db/settings';
@@ -53,7 +54,8 @@ export default {
     const chosenLanguage = new URL(req.url).searchParams.get('lang');
     if (chosenLanguage === 'he' || chosenLanguage === 'en') ctx.cookies.push(`extb_locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${new URL(req.url).protocol === 'https:' ? '; Secure' : ''}`);
     const user = await resolveSession(req, env, ctx);
-    ctx.user = user;
+    ctx.user = await decorateMembershipUser(requestEnv, user);
+    ctx.ironGateActive = ctx.user?.intake_gate_active ?? false;
 
     // Serve static assets (css, icons, etc.) before hitting the Worker router
     if (req.method === 'GET' && env.ASSETS) {

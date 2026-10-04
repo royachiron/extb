@@ -17,6 +17,7 @@ function fixture() {
     const statement = {
       bind: (...args: unknown[]) => { binds = args; return statement; },
       first: async () => {
+        if (sql.includes('FROM settings')) return { key: 'membership_config', value: JSON.stringify({ enabled: true, applicationRoomId: 7, staffUserId: 2 }) };
         if (sql.includes('SELECT * FROM users')) return binds[0] === 1 ? user : recipient;
         if (sql.includes('FROM rooms')) return room;
         if (sql.includes('FROM user_blocks')) return blocked ? { x: 1 } : null;
@@ -110,3 +111,19 @@ describe('current WebSocket authorization', () => {
     expect(f.writes).not.toHaveBeenCalled();
   });
 });
+
+ describe('membership review on existing sockets', () => {
+ it('pending applicants cannot send, type or react in chat', async () => {
+ const f = fixture(); f.setUser({ access_level: 'member', intake_status: 'pending' });
+ for (const type of ['send', 'typing', 'react']) await f.chat.webSocketMessage(f.ws, JSON.stringify({ type, content: 'hello', id: 1, emoji: '👍', on: true }));
+ expect(f.writes).not.toHaveBeenCalled(); expect(f.meta().canPost).toBe(false);
+ });
+ it('pending applicants can only write to configured active staff in DMs', async () => {
+ const f = fixture(); f.setDm(); f.setUser({ access_level: 'member', intake_status: 'applicant' });
+ await f.chat.webSocketMessage(f.ws, JSON.stringify({ type: 'typing', on: true }));
+ expect(f.meta().canPost).toBe(false);
+ f.setRecipient({ access_level: 'mod' });
+ await f.chat.webSocketMessage(f.ws, JSON.stringify({ type: 'typing', on: true }));
+ expect(f.meta().canPost).toBe(true);
+ });
+ });

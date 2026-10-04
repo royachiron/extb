@@ -1,3 +1,4 @@
+import { isIntakeRestricted } from './lib/membership-policy';
 import type { User, Room, AccessLevel } from './types';
 
 const RANK = { member: 1, full: 2, mod: 4, admin: 5 } as const;
@@ -40,6 +41,10 @@ export function isHiddenRoom(user: User | null, room: Room): boolean {
 export function canPost(user: User | null, room: Room, ironGateActive?: boolean): boolean {
   if (user?.is_banned) return false;
   if (user?.posting_restricted_at) return false;
+  if (!canRead(user, room)) return false;
+  if (isIntakeRestricted(user) && room.id !== user?.intake_application_room_id) return false;
+  const rp = room.user_permission as string | null | undefined;
+  if (rp === 'read' && rank(user) < RANK.mod) return false;
   if (room.min_post === 'anon') return true;
   if (!user || !user.display_name) return false;
   if (user.is_banned) return false;
@@ -48,7 +53,6 @@ export function canPost(user: User | null, room: Room, ironGateActive?: boolean)
   if (r >= RANK.mod) return true;
 
   // Per-user override
-  const rp = room.user_permission as string | null | undefined;
   if (rp === 'blocked' || rp === 'deny' || rp === 'read') return false;
   if (rp === 'full' || rp === 'allow') return true;
 

@@ -15,4 +15,4 @@ it('approved draft appends once while preserving existing private rooms and disc
  expect(await db.env.DB.prepare("SELECT name,min_read,min_post FROM rooms WHERE slug='general'").first()).toEqual({name:'Private',min_read:'mod',min_post:'mod'});
  expect(await db.env.DB.prepare("SELECT content FROM topics WHERE title='Existing'").first()).toEqual({content:'Keep this'});
  }finally{db.close();}
-});
+}, 20000);

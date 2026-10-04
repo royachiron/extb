@@ -1,3 +1,4 @@
+import { canSendMemberDm } from '../lib/membership-policy';
 import type { AppContext, ChatMessage } from '../types';
 import { listRooms, getRoomBySlug, getChatMessages, listChatMessagesSince, getReplyParent, createChatMessage, deleteChatMessage, getLastChatMessageTime, upsertPresence, getActivePresence, getUserByDisplayName, getUserById, isBlocked, getChatReactionCounts, listBadgesForUser } from '../db';
 import { canRead, canPost, isMod as isModUser } from '../access';
@@ -9,8 +10,8 @@ import { requireMod } from '../middleware';
 import { onboardingRedirect } from '../middleware';
 import { chatReplyExcerpt } from '../lib/chat-format';
 import { chatBubble, chatHeader, chatReactionPill, chatAddBtn, chatReplyBtn, chatNick, chatMeRest, chatActionBody, chatIsMention, chatMarkMention } from '../views/chat-message';
-import { isBotCommand, botCommandBranch } from '../lib/bot-copy';
-import { renderBotPanel } from '../views/bot';
+import { isBotCommand } from '../lib/bot-copy';
+import { getBotPanel } from './bot';
 import { botEnabled, botName } from '../lib/bot';
 import { signChatAuth } from '../lib/chat-auth';
 
@@ -54,7 +55,7 @@ export async function getChat(
   const chatRoom = await getRoomBySlug(ctx.env, activeSlug, ctx.user?.id);
   if (!chatRoom || chatRoom.kind !== 'chat' || !canRead(ctx.user, chatRoom)) {
     if (!ctx.user || !ctx.user.is_approved) return redirect('/login');
-    return redirect('/r/introductions?gate=1');
+    return redirect('/membership');
   }
   // Chat lives in the always-open dock for these users. Rendering it into
   // .main as well would duplicate every chat element id and open a second
@@ -194,21 +195,22 @@ export async function postChatMessageApi(
   // (which calls deriveChatSlug(url) without fd) sees the same room.
   url.searchParams.set('room', slug);
   const chatRoom = await getRoomBySlug(ctx.env, slug, ctx.user?.id);
-  if (!chatRoom || chatRoom.kind !== 'chat' || !canPost(ctx.user, chatRoom, ctx.ironGateActive)) return html('forbidden', 403);
+  if (!chatRoom || chatRoom.kind !== 'chat' || !canRead(ctx.user, chatRoom)) return html('forbidden', 403);
+  const content = (fd.get('content') as string || '').trim().substring(0, 500);
+  if (isBotCommand(content)) {
+    const helperUrl = new URL(req.url);
+    helperUrl.pathname = '/bot/panel';
+    helperUrl.search = '';
+    helperUrl.searchParams.set('cmd', content);
+    return getBotPanel(new Request(helperUrl), ctx, {});
+  }
+  if (!canPost(ctx.user, chatRoom, ctx.ironGateActive)) return html('forbidden', 403);
   const scope = 'room:' + slug;
 
   const ip = req.headers.get('cf-connecting-ip');
   const author_name = ctx.user!.display_name || ctx.user!.email?.split('@')[0] || '';
 
-  const content = (fd.get('content') as string || '').trim().substring(0, 500);
   if (!content) return html('Message required.', 400);
-
-  // /bot is a private helper command, never a room message. The normal client
-  // intercepts it before sending; this guard covers the degraded HTTP path so
-  // the command can never land in the room. Bot disabled -> plain text.
-  if (isBotCommand(content) && await botEnabled(ctx)) {
-    return html(renderBotPanel(botCommandBranch(content), { variant: 'chat', botName: await botName(ctx) }));
-  }
 
   // Cooldown: 2s verified members (gate ensures email_verified=1)
   const lastTime = await getLastChatMessageTime(ctx.env, author_name, ip, scope);
@@ -320,7 +322,7 @@ export async function handleChatWebSocket(req: Request, ctx: AppContext): Promis
       if (!isNaN(fallbackId)) other = await getUserById(ctx.env, fallbackId);
     }
     if (!other) return new Response('Forbidden', { status: 403 });
-    if (other.id === me.id) return new Response('Forbidden', { status: 403 });
+    if (other.id === me.id || !canSendMemberDm(me, other)) return new Response('Forbidden', { status: 403 });
     // Admins bypass recipient DM settings and blocks, mirroring postDm.
     const meIsAdmin = me.access_level === 'admin';
     if (!meIsAdmin && (other as any).allow_dms === 0) return new Response('Forbidden', { status: 403 });

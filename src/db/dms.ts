@@ -1,3 +1,5 @@
+import { canSendMemberDm, decorateMembershipUser } from '../lib/membership-policy';
+import { getUserById } from './users';
 // Direct message persistence. Self-contained domain extracted from db.ts behind
 // the db.ts re-export barrel (zero caller changes).
 import type { Env, DM } from '../types';
@@ -226,19 +228,10 @@ export async function createDm(
   recipientId: number,
   content: string
 ): Promise<DM> {
-  // Check for posting restrictions
-  const sender = await env.DB.prepare(
-    `SELECT sender.posting_restricted_at,
-            recipient.access_level AS recipient_access_level
-       FROM users sender
-       JOIN users recipient ON recipient.id = ?
-      WHERE sender.id = ?`
-  ).bind(recipientId, senderId).first<{
-    posting_restricted_at: string | null;
-    recipient_access_level: string;
-  }>();
-  if (sender?.posting_restricted_at && sender.recipient_access_level !== 'admin') {
-    throw new Error('Your communication privileges are currently suspended.');
+  const [senderRow, recipient] = await Promise.all([getUserById(env, senderId), getUserById(env, recipientId)]);
+  const sender = await decorateMembershipUser(env, senderRow);
+  if (!sender || !recipient || !canSendMemberDm(sender, recipient)) {
+    throw new Error('Your communication privileges are currently restricted.');
   }
 
   const row = await env.DB.prepare(

@@ -109,7 +109,7 @@ ${'    '}
     <ul>
       ${lockedRooms.map(r => `
         <li>
-          <a class="lock" href="${canRead(user, r) ? `/r/${esc(r.slug)}` : user ? '/r/introductions' : '/login'}" hx-get="${canRead(user, r) ? `/r/${esc(r.slug)}` : user ? '/r/introductions' : '/login'}" hx-target=".main" hx-push-url="true">
+          <a class="lock" href="${canRead(user, r) ? `/r/${esc(r.slug)}` : user ? '/membership' : '/login'}" hx-get="${canRead(user, r) ? `/r/${esc(r.slug)}` : user ? '/membership' : '/login'}" hx-target=".main" hx-push-url="true">
             <span class="room-icon">${roomIcon(r)}</span>
             <span class="room-label">${esc(r.name)}</span>
             <span style="font-size:12px; margin-left:auto;">🔒</span>
@@ -239,6 +239,8 @@ export function renderUserMenu(p: {
          <div class="dropdown"><div class="dropdown-inner">
            ${isMod(user) ? '<a href="/admin">cPanel</a>' : ''}
            <a href="/u/${esc(user.display_name || '')}" hx-get="/u/${esc(user.display_name || '')}" hx-target=".main" hx-push-url="true"><!--extb-ui-->Profile<!--/extb-ui--></a>
+           <a href="/membership" hx-get="/membership" hx-target=".main" hx-push-url="true"><!--extb-ui-->Membership status<!--/extb-ui--></a>
+           <a href="/bot" hx-get="/bot" hx-target=".main" hx-push-url="true"><!--extb-ui-->Community helper<!--/extb-ui--></a>
            <a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true"><!--extb-ui-->Settings<!--/extb-ui--></a>
            <a href="/tos" hx-get="/tos" hx-target=".main" hx-push-url="true"><!--extb-ui-->Community Guidelines<!--/extb-ui--></a>
            <form method="post" action="/logout">${csrfField({ csrfToken })}<button type="submit"><!--extb-ui-->Logout<!--/extb-ui--></button></form>

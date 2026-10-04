@@ -40,8 +40,6 @@ import {
   setPostCwTags,
   listCwTags,
   listActivityFeed,
-  grantCapability,
-  revokeCapability,
   listBadgesForUser,
   removeUserBadge,
   listPendingQuestions,
@@ -81,23 +79,6 @@ export async function postSetUserAccess(
   const result = await runAdminOperation(ctx.env, {id:user.id,tokenId:null,scopes:[...SCOPES]}, 'set_member_access', {id:user_id,access:level}) as {changed:number};
   if (!result.changed) return bad('User not found or cannot demote the last active administrator');
   return redirectAdmin(req, 'User access updated.', 'users');
-}
-
-export async function postSetUserClub(
-  req: Request,
-  ctx: AppContext,
-  _params: Record<string, string>,
-): Promise<Response> {
-  const admin = requireAdmin(ctx);
-  const f = await req.formData();
-  const userId = Number(f.get('user_id'));
-  const enabled = String(f.get('club') ?? '') === '1';
-  const note = String(f.get('note') ?? '').trim() || null;
-  if (!Number.isInteger(userId) || userId <= 0) return bad('invalid user_id');
-  if (enabled) await grantCapability(ctx.env, userId, 'club', admin.id, note);
-  else await revokeCapability(ctx.env, userId, 'club');
-  await logAdminAction(ctx.env, admin.id, enabled ? 'grant_club' : 'revoke_club', `user=${userId}`);
-  return redirectAdmin(req, enabled ? 'Club capability granted.' : 'Club capability revoked.', 'users');
 }
 
 export async function postSetUserBanned(

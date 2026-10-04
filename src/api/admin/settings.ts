@@ -1,3 +1,5 @@
+import { HELPER_FIELDS } from '../../lib/bot-copy';
+import { verifyCsrf } from '../../middleware';
 import { BRANDING_KEYS, saveBranding } from '../../lib/branding';
 import type { AccessLevel, AppContext, MinPostGate, MinReadGate, RoomKind } from '../../types';
 import { requireAdmin, requireMod } from '../../middleware';
@@ -89,4 +91,16 @@ export async function postBranding(req: Request, ctx: AppContext, _params: Recor
   await logAdminAction(ctx.env, user.id, 'update_branding', 'Community branding updated');
   if (req.headers.get('HX-Request')) return new Response(null, { status: 204, headers: { 'HX-Refresh': 'true' } });
   return redirectAdmin(req, 'Branding updated.', 'settings');
+}
+
+export async function postHelperSettings(req: Request, ctx: AppContext, _params: Record<string, string>): Promise<Response> {
+  const user = requireAdmin(ctx);
+  await verifyCsrf(req, ctx);
+  const form = await req.formData();
+  const config = Object.fromEntries(['name', ...HELPER_FIELDS].map(key => [key, String(form.get(key) ?? '').trim()]));
+  if (!config.name || config.name.length > 80) return bad('Helper name must be between 1 and 80 characters');
+  if (HELPER_FIELDS.some(key => !config[key] || config[key].length > 4000)) return bad('Each guidance field must be between 1 and 4000 characters');
+  await setSetting(ctx.env, 'helper_config', JSON.stringify(config));
+  await logAdminAction(ctx.env, user.id, 'update_helper_config', 'Community helper guidance updated');
+  return redirectAdmin(req, 'Helper guidance updated.', 'settings');
 }

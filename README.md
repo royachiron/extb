@@ -111,3 +111,5 @@ For manual deployment, authenticate with `npx wrangler login`, configure your D1
 [MIT](LICENSE). Created by Roy Achiron, extracted from his Discamp forum and rebuilt as a neutral community starter. [Source provenance](docs/PROVENANCE.md).
 
 Fork it. Make it yours. Give your people somewhere good to talk.
+
+Optional membership review, intake, welcome messages and editable helper guidance are described in [Community membership](docs/COMMUNITY_MEMBERSHIP.md).

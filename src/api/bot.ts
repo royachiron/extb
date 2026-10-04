@@ -1,9 +1,11 @@
 import type { AppContext } from '../types';
-import { getSetting, listRooms } from '../db';
+import { getSetting, getAllSettings, listRooms } from '../db';
 import { renderLayout } from '../views/layout';
 import { renderBotPanel, renderBotPage } from '../views/bot';
-import { botCommandBranch } from '../lib/bot-copy';
+import { botCommandBranch, helperConfigFromSettings } from '../lib/bot-copy';
 import { checkRateLimit } from '../lib/rate-limit';
+import { canRead, canPost } from '../access';
+import { loadMembershipConfig } from '../lib/membership-config';
 import { html, redirect } from '../lib/http';
 
 /** Missing setting = enabled; only an explicit '0' turns the bot off. */
@@ -13,8 +15,7 @@ export async function botEnabled(ctx: AppContext): Promise<boolean> {
 }
 
 export async function botName(ctx: AppContext): Promise<string> {
-  const s = await getSetting(ctx.env, 'bot_name');
-  return s?.value?.trim() || 'Bridger';
+  return helperConfigFromSettings(await getAllSettings(ctx.env), ctx.locale).name;
 }
 
 /**
@@ -32,9 +33,9 @@ export async function getBotPage(
 
   const url = new URL(req.url);
   const branchId = (url.searchParams.get('branch') || 'menu').trim();
-  const name = await botName(ctx);
+  const options = await helperOptions(ctx);
 
-  const body = renderBotPage({ botName: name, branchId });
+  const body = renderBotPage({ ...options, branchId });
   if (req.headers.get('hx-request') === 'true') return html(body);
   const rooms = await listRooms(ctx.env, ctx.user.id);
   return html(renderLayout({ branding: ctx.branding, origin: ctx.origin, uploadsEnabled: !!ctx.env.MEDIA, user: ctx.user, rooms, title: 'Getting started', body, csrfToken: ctx.csrfToken }));
@@ -63,7 +64,15 @@ export async function getBotPanel(
     ? botCommandBranch(cmd)
     : (url.searchParams.get('branch') || 'menu').trim();
   const variant = url.searchParams.get('v') === 'page' ? 'page' : 'chat';
-  const name = await botName(ctx);
+  const options = await helperOptions(ctx);
 
-  return html(renderBotPanel(branchId, { variant, botName: name }));
+  return html(renderBotPanel(branchId, { ...options, variant }));
+}
+
+async function helperOptions(ctx: AppContext) {
+  const guidance = helperConfigFromSettings(await getAllSettings(ctx.env), ctx.locale);
+  const rooms = (await listRooms(ctx.env, ctx.user?.id)).filter(room => room.kind === 'forum' && !room.is_page && canRead(ctx.user, room));
+  const membership = await loadMembershipConfig(ctx.env);
+  return { botName: guidance.name, guidance, locale: ctx.locale, rooms,
+    applicationRoomSlug: rooms.find(room => room.id === membership.applicationRoomId && canPost(ctx.user, room))?.slug };
 }

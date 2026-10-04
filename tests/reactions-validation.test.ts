@@ -5,6 +5,9 @@ const toggleReaction = vi.fn(async () => {});
 const getReactionsForPost = vi.fn(async () => []);
 
 vi.mock('../src/db', () => ({
+  getPostById: async () => ({ id: 1, topic_id: 2, deleted_at: null, removed_at: null }),
+  getTopicById: async () => ({ id: 2, room_id: 3, user_id: 1, status: 'approved', deleted_at: null, removed_at: null }),
+  getRoomById: async () => ({ id: 3, min_read: 'member', min_post: 'member', is_locked: 0, is_exclusive: 0 }),
   toggleReaction: (...args: unknown[]) => (toggleReaction as any)(...args),
   getReactionsForPost: (...args: unknown[]) => (getReactionsForPost as any)(...args),
 }));

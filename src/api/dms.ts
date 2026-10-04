@@ -1,3 +1,4 @@
+import { canSendMemberDm } from '../lib/membership-policy';
 import type { AppContext, User } from '../types';
 import type { ConversationSummary } from '../db/dms';
 import {
@@ -31,10 +32,6 @@ const DM_RATE_WINDOW_MS = 60_000;
 // TOPIC_PAGE_SIZE 50).
 const DM_INBOX_PAGE_SIZE = 30;
 const DM_THREAD_PAGE_SIZE = 50;
-
-export function canRestrictedMemberDm(recipient: User): boolean {
-  return recipient.access_level === 'admin';
-}
 
 import { html, redirect } from '../lib/http';
 
@@ -264,7 +261,7 @@ export async function postDm(
 
   if (!other) return html('Recipient not found', 404);
   if (other.id === user.id) return html('Cannot DM yourself', 400);
-  if (ctx.ironGateActive && user.posting_restricted_at && !canRestrictedMemberDm(other)) {
+  if (!canSendMemberDm(user, other)) {
     return html('Your account is read-only until approved.', 403);
   }
 

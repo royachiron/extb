@@ -184,7 +184,6 @@ export function renderUsers(opts: {
           : '<span style="color:var(--text-muted);font-style:italic;">Anonymous (unfinished setup)</span>'}</div>
         <div class="user-meta-role">
           ${u.is_banned ? '<span class="badge badge-danger">BANNED</span>' : `<span class="badge-role">${esc(u.access_level)}</span>`}
-          ${u.has_club ? ' &middot; <span style="color:var(--primary);font-size:10px;font-weight:700;">CLUB</span>' : ''}
           ${u.is_approved ? '' : ' &middot; <span style="color:var(--danger);font-size:10px;font-weight:700;">PENDING</span>'}
           ${u.require_review ? ' &middot; <span style="color:var(--primary);font-size:10px;font-weight:700;">REVIEW-FIRST</span>' : ''}
         </div>
@@ -211,12 +210,7 @@ export function renderUsers(opts: {
                 ${['member', 'full', 'mod', 'admin'].map(v => `<option value="${v}"${u.access_level === v ? ' selected' : ''}>${v === 'full' ? 'Trusted member' : v}</option>`).join('')}
               </select>
             </form>
-            <form method="POST" action="/admin/user/club" hx-post="/admin/user/club" hx-swap="none">
-              ${csrfField(opts)}
-              <input type="hidden" name="user_id" value="${u.id}">
-              <input type="hidden" name="club" value="${u.has_club ? '0' : '1'}">
-              <button type="submit">${u.has_club ? 'Remove Club' : 'Mark Club'}</button>
-            </form>
+
             <div class="dropdown-sep"></div>
             <form method="POST" action="/admin/user/review" style="margin:0;">
               ${csrfField(opts)}

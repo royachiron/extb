@@ -1,3 +1,4 @@
+import { canSendMemberDm, decorateMembershipUser } from '../lib/membership-policy';
 import { canRead, canPost, isMod } from '../access';
 import { getUserById } from '../db/users';
 import { getRoomBySlug } from '../db/rooms';
@@ -148,7 +149,7 @@ export class ChatRoom {
 
   /** Socket attachments survive hibernation. Recheck mutable authorization before each write. */
   private async refreshAuthorization(ws: WebSocket, meta: SocketMeta, scope: string): Promise<boolean> {
-    const user = meta.authorId == null ? null : await getUserById(this.env, meta.authorId);
+    const user = meta.authorId == null ? null : await decorateMembershipUser(this.env, await getUserById(this.env, meta.authorId));
     meta.isMod = false;
     meta.canPost = false;
     ws.serializeAttachment(meta);
@@ -168,7 +169,7 @@ export class ChatRoom {
       if (!recipient) return false;
       const admin = user.access_level === 'admin';
       if (!admin && (recipient.allow_dms === 0 || await isBlocked(this.env, recipientId, user.id))) return false;
-      meta.canPost = !user.posting_restricted_at || recipient.access_level === 'admin';
+      meta.canPost = canSendMemberDm(user, recipient);
       meta.name = user.display_name!;
       ws.serializeAttachment(meta);
       return true;

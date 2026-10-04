@@ -75,6 +75,13 @@ async function readForm(req: Request): Promise<Record<string, string>> {
   return out;
 }
 
+async function mayParticipateInTopic(ctx: AppContext, topicId: number): Promise<boolean> {
+  const topic = await getTopicById(ctx.env, topicId);
+  if (!topic || topic.deleted_at || topic.removed_at || (topic.status !== 'approved' && topic.user_id !== ctx.user?.id && !isMod(ctx.user))) return false;
+  const room = await getRoomById(ctx.env, topic.room_id, ctx.user?.id);
+  return !!room && canPost(ctx.user, room);
+}
+
 export const ALLOWED_REACTIONS = ['❤️', '🫂', '👍', '🔥', '🔬', '💡'] as const;
 
 // Intentionally distinct from views/post.ts renderReactions: this API-fragment
@@ -134,6 +141,8 @@ export async function postReact(
     return html('<h1>400 - invalid reaction</h1>', 400);
   }
 
+  const reactionPost = isTopic ? null : await getPostById(ctx.env, id);
+  if ((!isTopic && (!reactionPost || reactionPost.deleted_at || reactionPost.removed_at)) || !await mayParticipateInTopic(ctx, isTopic ? id : reactionPost!.topic_id)) return html('forbidden', 403);
   await toggleReaction(ctx.env, id, user.id, emoji, isTopic);
   const reactions = await getReactionsForPost(ctx.env, id, isTopic);
 
@@ -155,6 +164,8 @@ export async function postReactApi(
     return new Response('bad req', { status: 400 });
   }
 
+  const reactionPost = isTopic ? null : await getPostById(ctx.env, id);
+  if ((!isTopic && (!reactionPost || reactionPost.deleted_at || reactionPost.removed_at)) || !await mayParticipateInTopic(ctx, isTopic ? id : reactionPost!.topic_id)) return html('forbidden', 403);
   await toggleReaction(ctx.env, id, user.id, emoji, isTopic);
   const reactions = await getReactionsForPost(ctx.env, id, isTopic);
   return html(renderReactions(id, reactions, isTopic));
@@ -223,8 +234,9 @@ export async function postPost(
   const topic = await getTopicById(ctx.env, topicId);
   if (!topic || topic.deleted_at) return html('<h1>404</h1>', 404);
 
-  const room = await getRoomById(ctx.env, topic.room_id);
+  const room = await getRoomById(ctx.env, topic.room_id, ctx.user?.id);
   if (!room) return html('<h1>404</h1>', 404);
+  if (!canPost(ctx.user, room)) return html('forbidden', 403);
 
   if (room.min_post === 'anon' && !ctx.user) {
     if (topic.is_locked) return html('<h1>403 - thread locked</h1>', 403);
@@ -396,6 +408,7 @@ export async function getEditPostForm(
   const post = await getPostById(ctx.env, id);
   if (!post || post.deleted_at) return html('<h1>404</h1>', 404);
   if (post.user_id !== user.id && !isMod(user)) return html('<h1>403</h1>', 403);
+  if (!await mayParticipateInTopic(ctx, post.topic_id)) return html('<h1>403</h1>', 403);
 
   const isHtmx = req.headers.get('hx-request') === 'true';
 
@@ -427,6 +440,7 @@ export async function getReplyPostForm(
 
   const topic = await getTopicById(ctx.env, post.topic_id);
   if (!topic || topic.deleted_at || topic.is_locked && !isMod(user)) return html('<h1>403</h1>', 403);
+  if (!await mayParticipateInTopic(ctx, post.topic_id)) return html('<h1>403</h1>', 403);
 
   const allCwTags = await listCwTags(ctx.env);
 
@@ -446,6 +460,7 @@ export async function postUpdatePost(
   const post = await getPostById(ctx.env, id);
   if (!post || post.deleted_at) return html('<h1>404</h1>', 404);
   if (post.user_id !== user.id && !isMod(user)) return html('<h1>403</h1>', 403);
+  if (!await mayParticipateInTopic(ctx, post.topic_id)) return html('<h1>403</h1>', 403);
 
   const fd = await req.formData();
   const form: Record<string, string> = {};

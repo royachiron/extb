@@ -10,7 +10,7 @@ import {
   listFeedTopics,
   listFeedTopicsForMod,
 } from '../db';
-import { isMod } from '../access';
+import { isMod, canRead, canPost } from '../access';
 import { renderQuestionsIndex } from '../views/questions';
 import { renderLayout } from '../views/layout';
 
@@ -18,8 +18,8 @@ import { verifyTurnstile } from '../lib/turnstile';
 
 // ---- Helpers ------------------------------------------------------------
 
-async function loadQuestionsRoom(env: Env): Promise<Room> {
-  const room = await getRoomBySlug(env, 'questions');
+async function loadQuestionsRoom(env: Env, userId?: number): Promise<Room> {
+  const room = await getRoomBySlug(env, 'questions', userId);
   if (!room) throw new Error('questions room not seeded');
   return room;
 }
@@ -35,8 +35,9 @@ export async function getQuestionsIndex(
 ): Promise<Response> {
   const url = new URL(req.url);
   const submitted = url.searchParams.get('submitted') === '1';
-  const room = await loadQuestionsRoom(ctx.env);
-  const rooms = await listRooms(ctx.env);
+  const room = await loadQuestionsRoom(ctx.env, ctx.user?.id);
+  if (!canRead(ctx.user, room)) return html('forbidden', 403);
+  const rooms = await listRooms(ctx.env, ctx.user?.id);
   const mod = isMod(ctx.user);
   const topics = mod
     ? await listFeedTopicsForMod(ctx.env, room.id, 100, 0)
@@ -76,7 +77,8 @@ export async function getQuestionThread(
   ctx: AppContext,
   params: Record<string, string>
 ): Promise<Response> {
-  const room = await loadQuestionsRoom(ctx.env);
+  const room = await loadQuestionsRoom(ctx.env, ctx.user?.id);
+  if (!canRead(ctx.user, room)) return html('forbidden', 403);
   const topicId = Number(params.id);
   if (!Number.isFinite(topicId)) return new Response('not found', { status: 404 });
   const topic = await getTopicById(ctx.env, topicId);
@@ -110,7 +112,8 @@ export async function postQuestion(
     return new Response('turnstile failed', { status: 403 });
   }
 
-  const room = await loadQuestionsRoom(ctx.env);
+  const room = await loadQuestionsRoom(ctx.env, ctx.user?.id);
+  if (!canPost(ctx.user, room)) return html('forbidden', 403);
   await createTopic(
     ctx.env,
     room.id,
@@ -132,7 +135,8 @@ export async function postQuestionReply(
   ctx: AppContext,
   params: Record<string, string>
 ): Promise<Response> {
-  const room = await loadQuestionsRoom(ctx.env);
+  const room = await loadQuestionsRoom(ctx.env, ctx.user?.id);
+  if (!canRead(ctx.user, room)) return html('forbidden', 403);
   const topicId = Number(params.id);
   if (!Number.isFinite(topicId)) return new Response('not found', { status: 404 });
   const topic = await getTopicById(ctx.env, topicId);
@@ -157,6 +161,7 @@ export async function postQuestionReply(
     return new Response('turnstile failed', { status: 403 });
   }
 
+  if (!canPost(ctx.user, room)) return html('forbidden', 403);
   await createPost(
     ctx.env,
     topicId,

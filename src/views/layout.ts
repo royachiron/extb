@@ -57,6 +57,9 @@ export function renderLayout(opts: LayoutOpts): string {
   const dockRooms = chatDockRooms(user, rooms);
   const verifyBanner = renderVerifyBanner({ user, verified, csrfToken });
   const flashBanner = renderFlash({ flash });
+  const membershipBanner = user?.intake_gate_active && ['applicant', 'pending', 'declined'].includes(user.intake_status ?? '')
+    ? '<div class="flash flash-warn" role="status"><a href="/membership" hx-get="/membership" hx-target=".main" hx-push-url="true"><!--extb-ui-->Review your membership status and next steps.<!--/extb-ui--></a></div>'
+    : '';
   const cPanelLink = user && isMod(user)
     ? '<a href="/admin" hx-get="/admin" hx-target=".main" hx-push-url="true" class="cpanel" style="position:relative;">cPanel <span class="js-mod-badge" style="position:absolute; top:-2px; right:-10px;"></span></a>'
     : '';
@@ -971,6 +974,7 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
 <div class="drawer-overlay" id="drawer-overlay"></div>
 ${verifyBanner}
 ${flashBanner}
+${membershipBanner}
 <div class="layout">
   ${renderSidebar({ user, verified, rooms, memberRooms, lockedRooms, csrfToken })}
   <main class="main" id="main-content" tabindex="-1">${
