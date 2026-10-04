@@ -1,6 +1,6 @@
 {
   "name": "extb",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -45,7 +45,7 @@
   "description": "Your own forum and live chat on Cloudflare",
   "license": "MIT",
   "cloudflare": {
-    "label": "EXTB \u00b7 EXTra Board",
+    "label": "EXTB · EXTra Board",
     "description": "Start your own forum and live chat. No email provider or storage subscription needed.",
     "bindings": {
       "SETUP_PASSPHRASE": {
