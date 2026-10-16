@@ -152,7 +152,18 @@ export interface Topic {
   pronouns?: string | null;
   access_level?: AccessLevel;
   require_review: number; delete_on_approve: number;
+  view_count?: number;
   cw_tags?: CwTag[];
+  extras?: FeedCardExtras;
+}
+
+export interface FeedCardExtras {
+  replies: number;
+  replies24h: number;
+  newReplies: number;
+  reactions: number;
+  lastReply: { name: string; at: string } | null;
+  people: { name: string; avatar_url: string | null; avatar_color: string | null }[];
 }
 export interface Post {
   id: number;
@@ -342,6 +353,7 @@ export interface AppContext {
   cookies: string[];
   csrfToken?: string;
   ironGateActive?: boolean;
+  readOnly?: boolean;
   branding?: import('./lib/branding').Branding;
   origin?: string;
 }

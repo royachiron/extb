@@ -275,10 +275,14 @@ export function renderLoadMorePosts(shortId: string, nextCursor: string | null):
   });
 }
 
-export function renderPoll(poll: any, user: any, userVotes: number[], topic: any): string {
+// peek = member asked to see results before voting; they can go back to the form.
+export function renderPoll(poll: any, user: any, userVotes: number[], topic: any, peek = false): string {
   const hasVoted = userVotes.length > 0;
   const isEnded = poll.ends_at && new Date(poll.ends_at.replace(' ', 'T') + 'Z') < new Date();
-  const showResults = hasVoted || isEnded || !user;
+  const showResults = hasVoted || isEnded || !user || peek;
+  const canAct = user && !isEnded;
+  const pollUrl = `/t/${esc(topic.short_id)}/poll`;
+  const swap = `hx-target="#poll-box" hx-swap="outerHTML"`;
 
   const totalVotes = poll.options.reduce((sum: number, o: any) => sum + o.votes, 0);
 
@@ -304,6 +308,8 @@ export function renderPoll(poll: any, user: any, userVotes: number[], topic: any
           Total votes: ${totalVotes} ${isEnded ? '• Poll ended' : ''}
         </div>
         ${!user && !isEnded ? '<p style="font-size:13px; color:var(--text-muted); margin:0;"><a href="/login" style="color:var(--primary);text-decoration:none;"><!--extb-ui-->Log in<!--/extb-ui--></a> to vote.</p>' : ''}
+        ${canAct && hasVoted ? `<div><button type="button" class="btn btn-secondary btn-sm poll-undo" hx-post="${pollUrl}/unvote" ${swap}>Undo vote</button></div>` : ''}
+        ${canAct && !hasVoted ? `<div><button type="button" class="btn btn-secondary btn-sm poll-back" hx-get="${pollUrl}" ${swap}>Back to vote</button></div>` : ''}
       </div>`;
   } else {
     body = `
@@ -317,11 +323,12 @@ export function renderPoll(poll: any, user: any, userVotes: number[], topic: any
           `).join('')}
         </div>
         <button type="submit" class="btn" style="margin-top:20px; width:100%; justify-content:center;"><!--extb-ui-->Cast Vote<!--/extb-ui--></button>
+        <button type="button" class="btn btn-secondary btn-sm poll-peek" hx-get="${pollUrl}?view=results" ${swap} style="margin-top:10px; width:100%; justify-content:center;">View results</button>
       </form>`;
   }
 
   return `
-    <div class="poll-container" style="background:var(--bg-color); border:1px solid var(--border-color); border-radius:12px; padding:24px; margin-bottom:40px;">
+    <div class="poll-container" id="poll-box" style="background:var(--bg-color); border:1px solid var(--border-color); border-radius:12px; padding:24px; margin-bottom:40px;">
       <h2 style="margin:0 0 20px; font-size:18px; font-weight:700; display:flex; align-items:center; gap:8px;">
         <span style="font-size:24px;">📊</span> ${esc(poll.question)}
       </h2>

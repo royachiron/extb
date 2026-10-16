@@ -40,11 +40,14 @@ import {
   createPoll,
   getPollByTopicId,
   voteInPoll,
+  clearPollVote,
   getPollVotesByUser,
   getReactionsForPost,
   getReactionsForPosts,
   upsertLastVisit,
   upsertTopicRead,
+  bumpTopicView,
+  isCountableTopicView,
   markAllThreadsRead,
   upsertPresence,
   createWarning,
@@ -53,11 +56,14 @@ import {
   listCwTags,
   setTopicCwTags,
   getCwTagsForTopics,
+  listFeedCardExtras,
+  findRecentDuplicateTopic,
   getCwTagsForPosts,
   logForumView,
+  getFeedStamp,
 } from '../db';
-import { renderFeed, renderTopicCards, renderForumIndex, renderNeedsYou, renderFeedMore, FEED_PAGE_SIZE } from '../views/feed';
-import { renderTopic, renderPostList, renderLoadMorePosts, renderEditTopicForm, renderFollowButton, renderFollowingButton } from '../views/topic';
+import { renderFeed, renderTopicCards, renderForumIndex, renderNeedsYou, renderFeedMore, renderFeedStamp, FEED_PAGE_SIZE } from '../views/feed';
+import { renderTopic, renderPoll, renderPostList, renderLoadMorePosts, renderEditTopicForm, renderFollowButton, renderFollowingButton } from '../views/topic';
 import { renderNewTopicComposer, renderRoomTopicComposer } from '../views/post';
 import { renderLayout, esc, csrfField, markdownToolbar } from '../views/layout';
 import { tagPicker } from '../views/tags';
@@ -77,7 +83,25 @@ export async function getFeed(
   const page = Math.max(0, parseInt(url.searchParams.get('page') ?? '0', 10) || 0);
   const onboardingGate = onboardingRedirect(ctx);
   if (onboardingGate) return onboardingGate;
-  const all = await listRooms(ctx.env, ctx.user?.id);
+
+  const isPoll = url.searchParams.get('list') === '1' && req.headers.get('hx-request') === 'true' && url.searchParams.get('append') !== '1';
+  const clientStamp = isPoll ? url.searchParams.get('v') : null;
+  if (clientStamp) {
+    let pollOk = true;
+    if (slug) {
+      const room = await getRoomBySlug(ctx.env, slug, ctx.user?.id);
+      pollOk = !!room && !room.is_page && canRead(ctx.user, room);
+      if (pollOk && room) {
+        const pName = ctx.user?.display_name || ctx.user?.email?.split('@')[0] || 'guest';
+        await upsertPresence(ctx.env, pName, Date.now(), room.id);
+      }
+    }
+    if (pollOk && (await getFeedStamp(ctx.env)) === clientStamp) {
+      return new Response(null, { status: 204 });
+    }
+  }
+
+  const [all, feedStamp] = await Promise.all([listRooms(ctx.env, ctx.user?.id), getFeedStamp(ctx.env)]);
   const rooms = all.filter((r) => !r.is_page);
   const mod = isMod(ctx.user);
 
@@ -88,8 +112,6 @@ export async function getFeed(
     if (!activeRoom || activeRoom.is_page) return html('<h1>404</h1>', 404);
     if ((activeRoom as any).kind === 'chat') return redirect(`/chat?room=${encodeURIComponent(activeRoom.slug)}`);
     if (!canRead(ctx.user, activeRoom)) {
-      // Anons / unverified users bounce to FAQ. ?verify=1 makes the page show a
-      // register-or-verify warning so the user knows why they were redirected.
       if (!ctx.user || !ctx.user.is_approved) return redirect('/login', 302);
       if (ctx.user.access_level === 'member' && !activeRoom.is_page && activeRoom.min_read === 'full') {
         return html('<h1><!--extb-ui-->Trusted membership is required for this room.<!--/extb-ui--></h1>', 403);
@@ -116,8 +138,14 @@ export async function getFeed(
   if (hasMore) topics = topics.slice(0, FEED_PAGE_SIZE);
 
   if (topics.length > 0) {
-    const tagMap = await getCwTagsForTopics(ctx.env, topics.map((t: any) => t.id));
-    for (const t of topics as any[]) t.cw_tags = tagMap.get(t.id) ?? [];
+    const [tagMap, extras] = await Promise.all([
+      getCwTagsForTopics(ctx.env, topics.map((t: any) => t.id)),
+      listFeedCardExtras(ctx.env, topics, ctx.user?.id ?? null).catch(() => new Map()),
+    ]);
+    for (const t of topics as any[]) {
+      t.cw_tags = tagMap.get(t.id) ?? [];
+      t.extras = extras.get(t.id);
+    }
   }
 
   const baseUrl = activeRoom ? `/r/${activeRoom.slug}` : '/';
@@ -125,18 +153,16 @@ export async function getFeed(
 
   if (url.searchParams.get('list') === '1' && req.headers.get('hx-request') === 'true') {
     if (url.searchParams.get('append') === '1') {
-      // Load-more: replace #feed-more (the request target) and OOB-append the
-      // next page of cards inside #topic-list.
       return html(
         `${renderFeedMore(baseUrl, hasMore ? page + 1 : null)}` +
-        `<div hx-swap-oob="beforeend:#topic-list">${renderTopicCards(topics, ctx.user, rooms)}</div>`
+        `<div hx-swap-oob="beforeend:#topic-list">${renderTopicCards(topics, ctx.user, rooms, ctx.ironGateActive)}</div>`
       );
     }
-    return html(renderTopicCards(topics, ctx.user, rooms));
+    return html(renderTopicCards(topics, ctx.user, rooms, ctx.ironGateActive) + renderFeedStamp(feedStamp, true));
   }
 
   const gate = false;
-  const body = (!ctx.user ? `<div class="community-welcome"><h1>${esc((ctx.branding || DEFAULT_BRANDING).name)}</h1><p>${esc((ctx.branding || DEFAULT_BRANDING).homepage_copy)}</p></div>` : '') + renderFeed({ user: ctx.user, rooms, activeRoom, topics, pollUrl, siteKey: ctx.env.TURNSTILE_SITE_KEY, csrfToken: ctx.csrfToken, gate, ironGateActive: ctx.ironGateActive, hasMore, baseUrl, page });
+  const body = (!ctx.user ? `<div class="community-welcome"><h1>${esc((ctx.branding || DEFAULT_BRANDING).name)}</h1><p>${esc((ctx.branding || DEFAULT_BRANDING).homepage_copy)}</p></div>` : '') + renderFeed({ user: ctx.user, rooms, activeRoom, topics, pollUrl, siteKey: ctx.env.TURNSTILE_SITE_KEY, csrfToken: ctx.csrfToken, gate, ironGateActive: ctx.ironGateActive, hasMore, baseUrl, page, feedStamp });
 
   if (req.headers.get('hx-request') === 'true') {
     return html(body);
@@ -346,6 +372,9 @@ export async function getTopic(
   if (loaded instanceof Response) return loaded;
   const { topic, room, mod } = loaded;
 
+  if (isCountableTopicView(_req, ctx.user?.id ?? null, topic.user_id)) {
+    await bumpTopicView(ctx.env, topic.id);
+  }
   if (ctx.user) {
     await upsertLastVisit(ctx.env, ctx.user.id, room.id);
     await upsertTopicRead(ctx.env, ctx.user.id, topic.id);
@@ -468,6 +497,11 @@ export async function postTopic(
 
   if (await hasUnresolvedWarning(ctx.env, user.id) && await hasRecentUserContent(ctx.env, user.id)) {
     return html('<h1>429 - You have an active moderator warning. You may post once per hour until it is resolved.</h1>', 429);
+  }
+
+  if (!(isIntakeRestricted(user) && room.id === user.intake_application_room_id)) {
+    const dup = await findRecentDuplicateTopic(ctx.env, user.id, roomId, title);
+    if (dup) return redirect(dup.status === 'pending' ? `/r/${room.slug}?submitted=1` : `/t/${dup.short_id}`);
   }
 
   let status: 'approved' | 'pending' = 'approved';
@@ -712,6 +746,49 @@ export async function postPollVote(
     return getTopic(req, ctx, params);
   }
 
+  return redirect(`/t/${topic.short_id}`);
+}
+
+export async function getPollFragment(
+  req: Request,
+  ctx: AppContext,
+  params: Record<string, string>
+): Promise<Response> {
+  const loaded = await loadVisibleTopic(ctx, String(params.id || ''));
+  if (loaded instanceof Response) return loaded;
+  const { topic } = loaded;
+  if (req.headers.get('hx-request') !== 'true') return redirect(`/t/${topic.short_id}`);
+
+  const poll = await getPollByTopicId(ctx.env, topic.id);
+  if (!poll) return html('', 404);
+  const userVotes = ctx.user ? await getPollVotesByUser(ctx.env, poll.id, ctx.user.id) : [];
+  const peek = new URL(req.url).searchParams.get('view') === 'results';
+  return html(renderPoll(poll, ctx.user, userVotes, topic, peek));
+}
+
+export async function postPollUnvote(
+  req: Request,
+  ctx: AppContext,
+  params: Record<string, string>
+): Promise<Response> {
+  const user = requireMember(ctx);
+  const loaded = await loadVisibleTopic(ctx, String(params.id || ''));
+  if (loaded instanceof Response) return loaded;
+  const { topic, room } = loaded;
+  if (!canPost(user, room)) return html('forbidden', 403);
+
+  const poll = await getPollByTopicId(ctx.env, topic.id);
+  if (!poll) return html('<h1>404 - Poll not found</h1>', 404);
+  if (poll.ends_at && new Date(poll.ends_at.replace(' ', 'T') + 'Z') < new Date()) {
+    return html('<h1>400 - Poll has ended</h1>', 400);
+  }
+
+  await clearPollVote(ctx.env, poll.id, user.id);
+
+  if (req.headers.get('hx-request') === 'true') {
+    const fresh = await getPollByTopicId(ctx.env, topic.id);
+    return html(renderPoll(fresh ?? poll, user, [], topic));
+  }
   return redirect(`/t/${topic.short_id}`);
 }
 

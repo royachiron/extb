@@ -331,7 +331,7 @@ export function renderNewTopicComposer(opts: {
         </label>`;
   return `
     <div class="post-wrap">
-      <form method="POST" action="/topics">
+      <form method="POST" action="/topics" data-submit-once>
         ${csrfField(opts)}
         <div class="post-hd"><h1><!--extb-ui-->New Topic<!--/extb-ui--></h1></div>
         ${renderComposerFields({ roomFieldHtml, prefillTitle, prefillBody, showAutoDelete, allCwTags })}
@@ -351,7 +351,7 @@ export function renderRoomTopicComposer(opts: {
         <div class="post-room-label"><!--extb-ui-->Posting in <!--/extb-ui--><strong>${esc(room.name)}</strong></div>`;
   return `
     <div class="post-wrap">
-      <form method="POST" action="/topics">
+      <form method="POST" action="/topics" data-submit-once>
         ${csrfField(opts)}
         <div class="post-hd"><h1><!--extb-ui-->New Topic<!--/extb-ui--></h1></div>
         ${renderComposerFields({ roomFieldHtml, prefillTitle: '', prefillBody: '', showAutoDelete, allCwTags })}

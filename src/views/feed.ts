@@ -16,7 +16,54 @@ function authorLabel(t: Topic): string {
   return `<a href="/u/${esc(name)}" hx-get="/u/${esc(name)}" hx-target=".main" hx-push-url="true" class="author-link">${esc(name)}</a>`;
 }
 
-function renderTopicCard(t: Topic, user: User | null, rooms: Room[]): string {
+function toUtcMs(iso: string): number {
+  if (!iso) return NaN;
+  return Date.parse(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z');
+}
+
+/** "just now" / "5m ago" / "3h ago" / "2d ago" / "Oct 3" / "Oct 3, 2025". Mirrored client-side in ui.ts agoText. */
+export function agoText(ms: number, nowMs: number): string {
+  const s = Math.max(0, Math.round((nowMs - ms) / 1000));
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  if (s < 7 * 86400) return Math.floor(s / 86400) + 'd ago';
+  const d = new Date(ms), n = new Date(nowMs);
+  const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];
+  return mon + ' ' + d.getUTCDate() + (d.getUTCFullYear() === n.getUTCFullYear() ? '' : ', ' + d.getUTCFullYear());
+}
+
+/** Compact relative time; the client refreshes it and adds a local-time tooltip (.ago-time in ui.ts). */
+function agoTime(iso: string): string {
+  const ms = toUtcMs(iso);
+  if (!Number.isFinite(ms)) return esc(iso);
+  return `<time class="ago-time" data-utc="${new Date(ms).toISOString()}">${agoText(ms, Date.now())}</time>`;
+}
+
+/** First ~140 chars of the opening post as plain text. Never called for CW-tagged topics. */
+export function topicExcerpt(content: string, max = 140): string {
+  const text = (content || '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')        // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')      // links -> label
+    .replace(/https?:\/\/\S+/g, ' ')              // bare urls
+    .replace(/[`*_~#>|]+/g, ' ')                  // markdown punctuation
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= max) return text;
+  return text.slice(0, max).replace(/\s+\S*$/, '') + '…';
+}
+
+function personAvatar(p: { name: string; avatar_url: string | null; avatar_color: string | null }): string {
+  if (p.avatar_url) return `<img class="tc-av" src="${esc(p.avatar_url)}" alt="" title="${esc(p.name)}" loading="lazy">`;
+  // Only a hex colour may reach the style attribute - esc() does not stop CSS injection.
+  const bg = p.avatar_color && /^#[0-9a-f]{3,8}$/i.test(p.avatar_color) ? p.avatar_color : 'var(--primary)';
+  return `<span class="tc-av" style="background:${bg};" title="${esc(p.name)}">${esc((p.name || '?')[0]!.toUpperCase())}</span>`;
+}
+
+/** Threads with this many replies in 24h get the "active" label. */
+export const HOT_REPLIES_24H = 2;
+
+function renderTopicCard(t: Topic, user: User | null, rooms: Room[], ironGateActive = false): string {
   const mod = isMod(user);
   const room = rooms.find((r) => r.id === t.room_id);
   const roomName = room?.name ?? '';
@@ -36,29 +83,73 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[]): string {
     ? t.tags.split(',').map((tag: string) => `<a href="/search?q=${esc(tag.trim())}" hx-get="/search?q=${esc(tag.trim())}" hx-target=".main" hx-push-url="true" class="tag-chip">#${esc(tag.trim())}</a>`).join('')
     : '';
 
+  const x = t.extras;
+  const replies = t.active_reply_count ?? t.reply_count;
+  const isNew = Date.now() - toUtcMs(t.created_at) < 24 * 3600 * 1000;
+  const labels =
+    (x && x.replies24h >= HOT_REPLIES_24H ? '<span class="tc-label-hot" title="Several replies in the last 24 hours">🔥 Active</span>' : '') +
+    (isNew ? '<span class="tc-label-new">New</span>' : '');
+  const newPill = x && x.newReplies > 0 ? `<span class="tc-new-pill">${x.newReplies} new</span>` : '';
+
+  // CW-tagged threads never preview their content in the feed - the pills say
+  // what it is, opening the thread is the consent step.
+  const hasCw = ((t as any).cw_tags ?? []).length > 0;
+  const excerptRaw = hasCw ? '' : topicExcerpt(t.content);
+  const excerptText = excerptRaw.toLowerCase() === (t.title || '').trim().toLowerCase() ? '' : excerptRaw;
+  const excerpt = excerptText ? `<p class="tc-excerpt">${esc(excerptText)}</p>` : '';
+
+  const people = x && x.people.length
+    ? `<span class="tc-people">${x.people.map(personAvatar).join('')}</span>`
+    : '';
+  const views = t.view_count ? `<span class="tc-views" title="${t.view_count} view${t.view_count === 1 ? '' : 's'}">👁 ${t.view_count}</span><span>·</span>` : '';
+  const lastLine = x?.lastReply
+    ? `<span class="tc-last">↩ <span class="tc-last-name">${esc(x.lastReply.name)}</span> ${agoTime(x.lastReply.at)}</span>`
+    : `<span class="tc-last">posted ${agoTime(t.created_at)}</span>`;
+  const reactions = x && x.reactions > 0 ? `<span>·</span><span class="tc-rx" title="Reactions">❤ ${x.reactions}</span>` : '';
+
+  // Nudge a reply on unanswered threads - only for people who can actually post there.
+  const nudge = replies === 0 && user && room && !t.is_locked && t.user_id !== user.id && canPost(user, room, ironGateActive)
+    ? `<a class="tc-nudge" href="/t/${t.short_id}#reply-content">Be the first to reply →</a>`
+    : '';
+
   return `
     <article class="topic-card${unread ? ' topic-card--unread' : ''}">
       <div class="tc-main" style="flex:1;min-width:0;">
-        <h3 class="tc-title" style="margin:0 0 2px;font-size:15px;line-height:1.25;">${unreadDot}${pin}${lock}${poll}${deletedTag}<a href="/t/${t.short_id}" hx-get="/t/${t.short_id}" hx-target=".main" hx-push-url="true" class="topic-title-link">${esc(t.title)}</a></h3>
+        <h3 class="tc-title" style="margin:0 0 2px;font-size:15px;line-height:1.25;">${unreadDot}${pin}${lock}${poll}${deletedTag}<a href="/t/${t.short_id}" hx-get="/t/${t.short_id}" hx-target=".main" hx-push-url="true" class="topic-title-link">${esc(t.title)}</a>${labels}${newPill}</h3>
         ${cwTagPills((t as any).cw_tags)}
         <p class="tc-meta" style="margin:0;font-size:12px;color:var(--text-muted);">
           <span style="font-weight:600;">${authorLabel(t)}</span> ·
           <a href="/r/${esc(roomSlug)}" hx-get="/r/${esc(roomSlug)}" hx-target=".main" hx-push-url="true" class="badge badge-primary" style="text-decoration:none;">${esc(roomName)}</a>
         </p>
+        ${excerpt}
         ${tagChips ? `<div class="tc-tags" style="margin-top:3px;">${tagChips}</div>` : ''}
       </div>
       <div class="tc-aside" style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-muted);margin-top:3px;flex-shrink:0;">
-        <span class="tc-count" style="font-weight:700;color:var(--text-main);">${t.active_reply_count ?? t.reply_count}</span>
-        <span class="tc-label">${(t.active_reply_count ?? t.reply_count) === 1 ? '<!--extb-ui-->reply<!--/extb-ui-->' : '<!--extb-ui-->replies<!--/extb-ui-->'}</span>${mod && t.reply_count > (t.active_reply_count ?? t.reply_count) ? `<span style="font-size:11px;color:var(--text-muted);margin-left:2px;">(${t.reply_count - (t.active_reply_count ?? t.reply_count)} del)</span>` : ''}
+        ${people}
+        <span class="tc-count" style="font-weight:700;color:var(--text-main);">${replies}</span>
+        <span class="tc-label">${replies === 1 ? '<!--extb-ui-->reply<!--/extb-ui-->' : '<!--extb-ui-->replies<!--/extb-ui-->'}</span>${mod && t.reply_count > replies ? `<span style="font-size:11px;color:var(--text-muted);margin-left:2px;">(${t.reply_count - replies} del)</span>` : ''}
         <span>·</span>
-        ${relTime(t.last_reply_at)}
+        ${views}
+        ${lastLine}
+        ${reactions}
+        ${nudge}
       </div>
     </article>`;
 }
 
-export function renderTopicCards(topics: Topic[], user: User | null, rooms: Room[]): string {
+/**
+ * Hidden marker carrying the feed change stamp (db/feed-stamp.ts), kept
+ * OUTSIDE #topic-list so it never becomes a card's :first/:last-child. The 60s
+ * auto-refresh sends it back as ?v=; an unchanged feed answers 204 without
+ * running the feed queries. Refresh responses update it out-of-band (oob).
+ */
+export function renderFeedStamp(stamp: string, oob = false): string {
+  return stamp ? `<span id="feed-stamp" data-v="${esc(stamp)}" hidden${oob ? ' hx-swap-oob="true"' : ''}></span>` : '';
+}
+
+export function renderTopicCards(topics: Topic[], user: User | null, rooms: Room[], ironGateActive = false): string {
   if (topics.length === 0) return '<p style="color:var(--text-muted);padding:16px 0;"><!--extb-ui-->No topics yet.<!--/extb-ui--></p>';
-  return topics.map((t) => renderTopicCard(t, user, rooms)).join('');
+  return topics.map((t) => renderTopicCard(t, user, rooms, ironGateActive)).join('');
 }
 
 export function renderForumIndex(opts: {
@@ -295,8 +386,9 @@ export function renderFeed(opts: {
   hasMore?: boolean;
   baseUrl?: string;
   page?: number;
+  feedStamp?: string;
 }): string {
-  const { user, rooms, activeRoom, topics, pollUrl, siteKey, csrfToken, gate = false, ironGateActive = false, hasMore = false, baseUrl = '/', page = 0 } = opts;
+  const { user, rooms, activeRoom, topics, pollUrl, siteKey, csrfToken, gate = false, ironGateActive = false, hasMore = false, baseUrl = '/', page = 0, feedStamp = '' } = opts;
   const canCompose = !!activeRoom && canPost(user, activeRoom, ironGateActive);
 
   const anonComposer = activeRoom?.min_post === 'anon' && !user
@@ -336,7 +428,7 @@ export function renderFeed(opts: {
     ? `<p style="margin:8px 0 0;color:var(--text-muted);font-size:14px;" title="${esc(rawDesc)}">${esc(truncatedDesc)}</p>`
     : '';
 
-  const cards = renderTopicCards(topics, user, rooms);
+  const cards = renderTopicCards(topics, user, rooms, ironGateActive);
 
   return `
 <header class="feed-head" style="margin-bottom:20px;">
@@ -358,10 +450,12 @@ ${anonComposer}
 ${composer}
 <div id="topic-list"
   hx-get="${pollUrl}"
-  hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged]"
+  hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed:wake [!document.getElementById('topic-list').dataset.paged]"
+  hx-vals='js:{v: (document.getElementById("feed-stamp") || {dataset: {}}).dataset.v || ""}'
   hx-target="#topic-list"
   hx-swap="innerHTML">
   ${cards}
 </div>
+${renderFeedStamp(feedStamp)}
 ${renderFeedMore(baseUrl, hasMore ? page + 1 : null)}`;
 }

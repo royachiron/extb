@@ -69,6 +69,17 @@ export async function listUnansweredTopics(
   return res.results ?? [];
 }
 
+function unreadExpr(viewerId: number | undefined): { sql: string; params: number[] } {
+  if (!viewerId) return { sql: '0', params: [] };
+  return {
+    sql: `CASE WHEN COALESCE(t.last_reply_at, t.created_at) > max(
+           COALESCE((SELECT last_read_at FROM user_topic_read WHERE user_id = ? AND topic_id = t.id), '0'),
+           COALESCE((SELECT COALESCE(threads_read_before, created_at) FROM users WHERE id = ?), '0')
+         ) THEN 1 ELSE 0 END`,
+    params: [viewerId, viewerId],
+  };
+}
+
 export async function listFeedTopics(
   env: Env,
   roomId: number | null,
@@ -78,15 +89,7 @@ export async function listFeedTopics(
 ): Promise<Topic[]> {
   const blockedIds = viewerId ? await getBlockedIds(env, viewerId) : [];
   const vis = topicVisibility(viewerId, blockedIds);
-  const uid = viewerId ?? 0;
-  // Unread = newer than both the per-thread read stamp and the user's "mark all read" watermark.
-  const unreadSelect = viewerId
-    ? `CASE WHEN COALESCE(t.last_reply_at, t.created_at) > max(
-           COALESCE((SELECT last_read_at FROM user_topic_read WHERE user_id = ? AND topic_id = t.id), '0'),
-           COALESCE((SELECT COALESCE(threads_read_before, created_at) FROM users WHERE id = ?), '0')
-         ) THEN 1 ELSE 0 END`
-    : '0';
-  const unreadParams = viewerId ? [uid, uid] : [];
+  const { sql: unreadSelect, params: unreadParams } = unreadExpr(viewerId);
 
   const sql = roomId === null
     ? `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review,
@@ -236,6 +239,7 @@ export async function listFeedTopicsForMod(
 ): Promise<Topic[]> {
   const blockedIds = viewerId ? await getBlockedIds(env, viewerId) : [];
   const blockFilter = blockedIds.length > 0 ? `AND t.user_id NOT IN (${blockedIds.map(() => '?').join(',')})` : '';
+  const { sql: unreadSelect, params: unreadParams } = unreadExpr(viewerId);
 
   const sql = roomId === null
     ? `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review,
@@ -243,7 +247,7 @@ export async function listFeedTopicsForMod(
          (SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.status = 'approved' AND p.deleted_at IS NULL) as active_reply_count,
          (SELECT json_group_array(json_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color, 'text_color', b.text_color, 'shape', b.shape, 'status', ub.status))
           FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = t.user_id) AS badges_json,
-         0 AS is_unread
+         (${unreadSelect}) AS is_unread
          FROM topics t LEFT JOIN users u ON u.id = t.user_id
          WHERE t.deleted_at IS NULL ${blockFilter}
          ORDER BY t.is_pinned DESC, t.last_reply_at DESC LIMIT ? OFFSET ?`
@@ -252,14 +256,14 @@ export async function listFeedTopicsForMod(
          (SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.status = 'approved' AND p.deleted_at IS NULL) as active_reply_count,
          (SELECT json_group_array(json_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color, 'text_color', b.text_color, 'shape', b.shape, 'status', ub.status))
           FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = t.user_id) AS badges_json,
-         0 AS is_unread
+         (${unreadSelect}) AS is_unread
          FROM topics t LEFT JOIN users u ON u.id = t.user_id
          WHERE t.room_id = ? AND t.deleted_at IS NULL ${blockFilter}
          ORDER BY t.is_pinned DESC, t.last_reply_at DESC LIMIT ? OFFSET ?`;
 
   const stmt = roomId === null
-    ? env.DB.prepare(sql).bind(...blockedIds, limit, offset)
-    : env.DB.prepare(sql).bind(roomId, ...blockedIds, limit, offset);
+    ? env.DB.prepare(sql).bind(...unreadParams, ...blockedIds, limit, offset)
+    : env.DB.prepare(sql).bind(...unreadParams, roomId, ...blockedIds, limit, offset);
   const res = await stmt.all<Topic>();
   return res.results ?? [];
 }
@@ -310,6 +314,17 @@ export async function listDeleteOnApproveIntros(env: Env, userId: number): Promi
     "SELECT id FROM topics WHERE user_id = ? AND room_id = (SELECT id FROM rooms WHERE slug = 'introductions') AND delete_on_approve = 1 AND removed_at IS NULL"
   ).bind(userId).all<{ id: number }>();
   return intros.results ?? [];
+}
+
+export async function findRecentDuplicateTopic(
+  env: Env, userId: number, roomId: number, title: string, withinMinutes = 5,
+): Promise<{ short_id: string; status: string } | null> {
+  return await env.DB.prepare(
+    `SELECT short_id, status FROM topics
+      WHERE user_id = ? AND room_id = ? AND title = ? AND deleted_at IS NULL
+        AND created_at > datetime('now', ?)
+      ORDER BY id DESC LIMIT 1`
+  ).bind(userId, roomId, title, `-${withinMinutes} minutes`).first<{ short_id: string; status: string }>() ?? null;
 }
 
 export async function moveTopicToRoom(env: Env, topicId: number, roomId: number): Promise<void> {

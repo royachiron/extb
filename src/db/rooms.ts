@@ -8,6 +8,21 @@ export async function upsertLastVisit(env: Env, userId: number, roomId: number):
   ).bind(userId, roomId).run();
 }
 
+export async function bumpTopicView(env: Env, topicId: number): Promise<void> {
+  try {
+    await env.DB.prepare('UPDATE topics SET view_count = view_count + 1 WHERE id = ?').bind(topicId).run();
+  } catch (_) {}
+}
+
+const NON_HUMAN_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|curl|wget|python|httpclient|headless|lighthouse/i;
+
+export function isCountableTopicView(req: Request, viewerId: number | null, authorId: number | null): boolean {
+  if (req.method !== 'GET') return false;
+  if (viewerId != null && authorId != null && viewerId === authorId) return false;
+  const ua = req.headers.get('user-agent') || '';
+  return ua !== '' && !NON_HUMAN_UA.test(ua);
+}
+
 export async function upsertTopicRead(env: Env, userId: number, topicId: number): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO user_topic_read (user_id, topic_id, last_read_at) VALUES (?, ?, datetime('now'))

@@ -10,11 +10,18 @@ const baseOpts = {
 };
 
 describe('feed pagination', () => {
-  it('poll trigger is gated on visibility AND unpaged list', () => {
+  it('poll trigger is gated on visibility AND unpaged list AND not idle, and wakes on return', () => {
     const html = renderFeed({ ...baseOpts });
     expect(html).toContain(
-      `hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged]"`
+      `hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed:wake [!document.getElementById('topic-list').dataset.paged]"`
     );
+  });
+
+  it('poll sends the change stamp; the stamp lives outside #topic-list', () => {
+    const html = renderFeed({ ...baseOpts, feedStamp: '12.345' });
+    expect(html).toContain(`hx-vals='js:{v: (document.getElementById("feed-stamp") || {dataset: {}}).dataset.v || ""}'`);
+    const listEnd = html.indexOf('</div>', html.indexOf('id="topic-list"'));
+    expect(html.indexOf('id="feed-stamp" data-v="12.345"')).toBeGreaterThan(listEnd);
   });
 
   it('renders load-more only when hasMore, pointing at the next page', () => {

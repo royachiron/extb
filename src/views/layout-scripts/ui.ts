@@ -145,6 +145,25 @@ export const SCRIPT_UI = `
           el.textContent = date.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
           el.dataset.localized = '1';
         });
+        // Feed-card compact times ("3h ago"). Re-computed on every call so they
+        // stay current; server renders the same text (views/feed.ts agoText).
+        var nowMs = Date.now();
+        document.querySelectorAll('.ago-time[data-utc]').forEach(function(el) {
+          var date = new Date(el.getAttribute('data-utc') || '');
+          if (isNaN(date.getTime())) return;
+          el.textContent = agoText(date, nowMs);
+          if (!el.title) el.title = date.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        });
+      }
+
+      function agoText(date, nowMs) {
+        var s = Math.max(0, Math.round((nowMs - date.getTime()) / 1000));
+        if (s < 60) return 'just now';
+        if (s < 3600) return Math.floor(s / 60) + 'm ago';
+        if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+        if (s < 7 * 86400) return Math.floor(s / 86400) + 'd ago';
+        var sameYear = date.getFullYear() === new Date(nowMs).getFullYear();
+        return date.toLocaleDateString(undefined, sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
       }
 
       function handleSmoothScroll(targetId) {
@@ -155,6 +174,30 @@ export const SCRIPT_UI = `
           setTimeout(() => el.classList.remove('highlight-pulse'), 3000);
         }
       }
+
+      // Submit-once forms (new topic): a slow submit invited a second tap and a
+      // duplicate thread. Lock the form on the first valid submit; unlock when
+      // the page is restored from the back/forward cache.
+      document.addEventListener('submit', function(e) {
+        var f = e.target;
+        if (!(f instanceof HTMLFormElement) || !f.hasAttribute('data-submit-once') || e.defaultPrevented) return;
+        if (f.dataset.submitting) { e.preventDefault(); return; }
+        f.dataset.submitting = '1';
+        f.querySelectorAll('button[type="submit"]').forEach(function(b) {
+          b.dataset.label = b.textContent;
+          b.textContent = 'Posting…';
+          b.disabled = true;
+        });
+      });
+      window.addEventListener('pageshow', function() {
+        document.querySelectorAll('form[data-submit-once][data-submitting]').forEach(function(f) {
+          delete f.dataset.submitting;
+          f.querySelectorAll('button[type="submit"]').forEach(function(b) {
+            b.disabled = false;
+            if (b.dataset.label) b.textContent = b.dataset.label;
+          });
+        });
+      });
 
       document.body.addEventListener('toast', function(evt) {
         const container = document.getElementById('toast-container');

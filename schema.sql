@@ -495,3 +495,10 @@ CREATE TABLE membership_deliveries (
 );
 ALTER TABLE dms ADD COLUMN membership_delivery_key TEXT;
 CREATE UNIQUE INDEX dms_membership_delivery ON dms(membership_delivery_key) WHERE membership_delivery_key IS NOT NULL;
+
+ALTER TABLE topics ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_topics_live_pinned_lastreply
+  ON topics(is_pinned DESC, last_reply_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_topics_room_live_pinned_lastreply
+  ON topics(room_id, is_pinned DESC, last_reply_at DESC) WHERE deleted_at IS NULL;
+

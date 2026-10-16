@@ -36,6 +36,10 @@ export async function voteInPoll(env: Env, pollId: number, optionIds: number[], 
   }
 }
 
+export async function clearPollVote(env: Env, pollId: number, userId: number): Promise<void> {
+  await env.DB.prepare('DELETE FROM poll_votes WHERE poll_id = ? AND user_id = ?').bind(pollId, userId).run();
+}
+
 export async function getPollVotesByUser(env: Env, poll_id: number, user_id: number): Promise<number[]> {
   const res = await env.DB.prepare('SELECT option_id FROM poll_votes WHERE poll_id = ? AND user_id = ?').bind(poll_id, user_id).all<{ option_id: number }>();
   return (res.results ?? []).map(r => r.option_id);

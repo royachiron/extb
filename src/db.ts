@@ -64,3 +64,6 @@ export * from './db/cw-tags';
 export * from './db/reports';
 
 export * from './db/post-pages';
+export * from './db/feed-stamp';
+export * from './db/feed-extras';
+

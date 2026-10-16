@@ -20,3 +20,12 @@ export async function getAllSettings(env: Env): Promise<Setting[]> {
   const res = await env.DB.prepare('SELECT * FROM settings ORDER BY key ASC').all<Setting>();
   return res.results ?? [];
 }
+
+export async function isReadOnly(env: Env): Promise<boolean> {
+  try {
+    return (await getSetting(env, 'read_only'))?.value === '1';
+  } catch {
+    return false;
+  }
+}
+

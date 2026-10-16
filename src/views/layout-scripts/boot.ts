@@ -19,7 +19,16 @@ export const SCRIPT_BOOT = `
       document.body.addEventListener('htmx:afterSwap', function(evt) {
         updateRelativeTimes();
         updateActiveStates();
-        if (window.location.hash) handleSmoothScroll(window.location.hash.substring(1));
+        // Only when THIS swap brought the hash target in, once per element.
+        // afterSwap also fires for hx-swap="none" (the 60s heartbeat), which
+        // used to yank the page back to #post-N while someone was typing.
+        if (window.location.hash) {
+          var hashEl = document.getElementById(window.location.hash.substring(1));
+          if (hashEl && !hashEl.dataset.hashScrolled && evt.target.contains(hashEl)) {
+            hashEl.dataset.hashScrolled = '1';
+            handleSmoothScroll(hashEl.id);
+          }
+        }
         syncDmUnread();
         initRegisterForm(evt.target);
         initTurnstile(evt.target);
@@ -38,11 +47,18 @@ export const SCRIPT_BOOT = `
       // The heartbeat updates badges via out-of-band swaps - those fire
       // htmx:oobAfterSwap, not htmx:afterSwap - so sync the DM button here too.
       document.body.addEventListener('htmx:oobAfterSwap', syncDmUnread);
+      // Load-more appends feed cards out-of-band, which never fires afterSwap -
+      // localize/refresh their times here (also keeps "3h ago" fresh each heartbeat).
+      document.body.addEventListener('htmx:oobAfterSwap', updateRelativeTimes);
       
       window.addEventListener('load', function() {
         initRegisterForm(document);
         initTurnstile(document);
-        if (window.location.hash) setTimeout(() => handleSmoothScroll(window.location.hash.substring(1)), 300);
+        if (window.location.hash) setTimeout(() => {
+          var hashEl = document.getElementById(window.location.hash.substring(1));
+          if (hashEl) hashEl.dataset.hashScrolled = '1';
+          handleSmoothScroll(window.location.hash.substring(1));
+        }, 300);
 
         // Visibility-gated heartbeat: one poll drives every nav badge + presence.
         // It fires only while the tab is visible - hidden, minimized and

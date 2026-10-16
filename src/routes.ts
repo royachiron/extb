@@ -90,6 +90,8 @@ import {
   postFollowTopic,
   postUnfollowTopic,
   postPollVote,
+  postPollUnvote,
+  getPollFragment,
   markRead,
 } from './api/topics';
 import {
@@ -296,6 +298,8 @@ export const routes: Route[] = [
   { method: 'POST', pattern: p('/t/:id/follow'), handler: postFollowTopic },
   { method: 'POST', pattern: p('/t/:id/unfollow'), handler: postUnfollowTopic },
   { method: 'POST', pattern: p('/t/:id/poll/vote'), handler: postPollVote },
+  { method: 'POST', pattern: p('/t/:id/poll/unvote'), handler: postPollUnvote },
+  { method: 'GET', pattern: p('/t/:id/poll'), handler: getPollFragment },
   { method: 'POST', pattern: p('/t/:id/warn'), handler: postWarnTopic },
   { method: 'POST', pattern: p('/threads/mark-read'), handler: markRead },
   { method: 'POST', pattern: p('/posts'), handler: postPost },

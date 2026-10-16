@@ -97,6 +97,26 @@ const manifest: Feature[] = [
     sentinels: ['<details class="poll-builder"', 'name="poll_question"', 'name="poll_options"', 'name="poll_multi"', 'name="poll_ends_at"'],
   },
   {
+    name: 'topnav fits 769-942px: flexible gaps + shrinkable search (docs/LAYOUT.md)',
+    file: 'src/views/layout.ts',
+    sentinels: ['.topnav form { margin: 0; position: relative; flex: 0 1 240px; min-width: 96px;', '.topnav nav { display: flex; align-items: center; gap: clamp(8px, 1.6vw, 20px);'],
+  },
+  {
+    name: 'feed card: excerpt, last replier, views, reactions, people, labels, nudge',
+    file: 'src/views/feed.ts',
+    sentinels: ['class="tc-excerpt"', 'class="tc-last"', 'class="tc-views"', 'class="tc-rx"', 'class="tc-people"', 'tc-label-hot', 'tc-label-new', 'tc-new-pill', 'Be the first to reply', 'hasCw ?'],
+  },
+  {
+    name: 'feed card extras loaded once for every feed render path',
+    file: 'src/api/topics.ts',
+    sentinels: ['listFeedCardExtras(ctx.env, topics', 't.extras = extras.get(t.id)'],
+  },
+  {
+    name: 'topic poll: undo vote + view results before voting',
+    file: 'src/views/topic.ts',
+    sentinels: ['id="poll-box"', '/unvote" ${swap}>Undo vote', '?view=results" ${swap}', '>Back to vote</button>'],
+  },
+  {
     name: 'compose form: markdown toolbar + CW tag picker',
     file: 'src/views/post.ts',
     sentinels: ["markdownToolbar('topic-content'", 'tagPicker(allCwTags'],

@@ -73,7 +73,8 @@ export function renderProfileEdit(opts: { user: User; error?: string; csrfToken?
             </div>
             <div>
               <button type="button" class="btn btn-secondary btn-sm profile-upload" onclick="triggerAvatarUpload()"><!--extb-ui-->Change Photo<!--/extb-ui--></button>
-              ${avatarUrl ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('avatar_url_input').value='';document.getElementById('avatar-preview-wrap').innerHTML='${avatarHtml(user.display_name ?? '?', user.avatar_color ?? '#6366f1', 80, null).replace(/'/g, "\\'")}';"><!--extb-ui-->Remove<!--/extb-ui--></button>` : ''}
+              ${avatarUrl ? `<template id="avatar-fallback">${avatarHtml(user.display_name ?? '?', user.avatar_color ?? '#6366f1', 80, null)}</template>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('avatar_url_input').value='';document.getElementById('avatar-preview-wrap').innerHTML=document.getElementById('avatar-fallback').innerHTML;this.remove();"><!--extb-ui-->Remove<!--/extb-ui--></button>` : ''}
               <p class="form-hint" style="margin-top:8px;">Max 3MB. Resized to 256x256.</p>
               <input type="hidden" name="avatar_url" id="avatar_url_input" value="${esc(avatarUrl || '')}">
             </div>

@@ -14,6 +14,7 @@ import { SCRIPT_UNFURL } from './unfurl';
 import { SCRIPT_PUSH } from './push';
 import { SCRIPT_DM_MOD } from './dm-mod';
 import { SCRIPT_CROPPER } from './cropper';
+import { SCRIPT_ACTIVITY } from './activity';
 
 export const LAYOUT_SCRIPT =
   SCRIPT_UPLOADS +
@@ -24,4 +25,5 @@ export const LAYOUT_SCRIPT =
   SCRIPT_UNFURL +
   SCRIPT_PUSH +
   SCRIPT_DM_MOD +
-  SCRIPT_CROPPER;
+  SCRIPT_CROPPER +
+  SCRIPT_ACTIVITY;

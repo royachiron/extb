@@ -112,9 +112,20 @@ Check that exactly one complementary breakpoint matches, bubbles stay within the
 
 The original project's standalone width scripts are not included in EXTB. Do not use production databases or member data as fixtures. Keep test screenshots and local data outside the committed source. The curated README image is a neutral documentation fixture.
 
+## Fixed: topnav overflow at 769-942px (2026-10-16)
+
+The topnav's min-content width was ~922px (admin) because its gaps were fixed
+20px and the search box a fixed 240px, so every page scrolled sideways by up
+to 151px between the 769px desktop switch and ~942px. Now - with no new
+breakpoint - the gaps are `clamp(8px, 1.6vw, 20px)` (`.right`:
+`clamp(6px, 1vw, 12px)`), the search form is `flex: 0 1 240px; min-width:
+96px` (grows to 280px on focus), and nav links are `nowrap` ("Needs you" used
+to break onto two lines). Measured with a rendered admin and member shell:
+overflow 0 at 768.5 / 769 / 800 / 850 / 900 / 942 / 1200px; at 1200px every
+topnav item sits within 1px of where it was before.
+
 ## Areas to review when changing layout
 
-- Navigation between mobile and wide desktop widths, especially near 769 pixels.
 - Chat surfaces that still use literal percentage widths instead of shared tokens.
 - Duplicate `.card` declarations in the main layout stylesheet.
 - Legacy colors and sizing in `public/css/forum.css`.

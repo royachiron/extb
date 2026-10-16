@@ -298,14 +298,20 @@ export function renderThread(opts: {
       
       .dm-when { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
       
-      .dm-bubble { 
-        padding: 12px 20px; border-radius: 20px; 
-        font-size: 14.5px; line-height: 1.5;
+      /* Hug the text. pre-wrap lives on the paragraphs (keeps the sender's single
+         line breaks, which markdown leaves as plain newlines) - on the bubble it
+         also rendered the HTML's own newlines as blank lines above and below. */
+      .dm-bubble {
+        padding: 7px 13px; border-radius: 16px;
+        font-size: 14.5px; line-height: 1.45;
         overflow-wrap: anywhere;
-        white-space: pre-wrap;
         word-break: break-word;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       }
+      .dm-bubble p, .dm-bubble li { white-space: pre-wrap; }
+      .dm-bubble p { margin: 0 0 0.5em; }
+      .dm-bubble p:last-child { margin-bottom: 0; }
+      .dm-bubble ul, .dm-bubble ol { margin: 0.2em 0; padding-left: 1.2em; }
       .dm-bubble a { color: inherit; text-decoration: underline; font-weight: 600; }
       .dm-msg.mine .dm-bubble a { color: #fff; }
       .dm-msg.theirs .dm-bubble a { color: var(--primary); }

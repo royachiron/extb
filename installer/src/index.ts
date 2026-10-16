@@ -21,10 +21,10 @@ async function handle(request:Request,env:Env):Promise<Response>{
  if(!env.OAUTH_CLIENT_ID || !env.OAUTH_SCOPE || !env.ENCRYPTION_KEY)return json({error:'Installer registration is not configured'},503);
  if(url.pathname==='/oauth/start'){
   const id=url.searchParams.get('new')==='1'?randomToken():cookie(request)||randomToken();const stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
-  const response=await stub.fetch(new Request(env.INSTALLER_ORIGIN+'/start'));const headers=new Headers(response.headers);headers.set('Set-Cookie',sessionCookie(id));return new Response(response.body,{status:response.status,headers});
+  const response=await stub.fetch(new Request(env.INSTALLER_ORIGIN+'/start',{redirect:'manual'}));const headers=new Headers(response.headers);headers.set('Set-Cookie',sessionCookie(id));return new Response(response.body,{status:response.status,headers});
  }
  const id=cookie(request);if(!id)return json({error:'Session expired; continue with Cloudflare again'},401);
- return env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id)).fetch(request);
+ return env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id)).fetch(new Request(request,{redirect:'manual'}));
 }
 export default {async fetch(request:Request,env:Env):Promise<Response>{const response=await handle(request,env);const headers=new Headers(response.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','no-referrer');headers.set('X-Frame-Options','DENY');headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");return new Response(response.body,{status:response.status,headers});}};
 export class Installation implements DurableObject {

@@ -3,7 +3,7 @@ import { canRead, canPost, isMod } from '../access';
 import { getUserById } from '../db/users';
 import { getRoomBySlug } from '../db/rooms';
 import { isBlocked } from '../db/blocks';
-import { getSetting } from '../db/settings';
+import { getSetting, isReadOnly } from '../db/settings';
 import type { Env, User, Room } from '../types';
 import { createDm, toggleChatReaction, getChatReactionCounts, countChatReaction } from '../db';
 import { chatReplyExcerpt } from '../lib/chat-format';
@@ -16,6 +16,7 @@ import {
   type ChatRow,
 } from '../db/chat-messages';
 import { pushToUser } from '../lib/notify';
+import { READ_ONLY_MESSAGE } from '../lib/read-only';
 import { isBotCommand } from '../lib/bot-copy';
 import { verifyChatAuth } from '../lib/chat-auth';
 
@@ -201,6 +202,11 @@ export class ChatRoom {
     try {
       msg = JSON.parse(raw) as ClientMsg;
     } catch {
+      return;
+    }
+
+    if ((msg.type === 'send' || msg.type === 'delete' || msg.type === 'react') && await isReadOnly(this.env)) {
+      ws.send(JSON.stringify({ type: 'error', message: READ_ONLY_MESSAGE }));
       return;
     }
 

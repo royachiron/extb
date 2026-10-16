@@ -1,7 +1,7 @@
 import { decorateMembershipUser } from './lib/membership-policy';
 import { resolveLocale, localizeResponse } from './lib/localization';
 import { loadBranding } from './lib/branding';
-import { getSetting } from './db/settings';
+import { getSetting, isReadOnly } from './db/settings';
 import { handleMcp } from './mcp/index';
 import { isSetupComplete } from './api/setup';
 import type { AppContext, Env } from './types';
@@ -10,6 +10,7 @@ import { dispatch } from './router';
 import { routes } from './routes';
 import { isCacheableGuestRequest, guestCacheTtl } from './cache';
 import { applySecurityHeaders } from './lib/security-headers';
+import { isWriteRequest, readOnlyResponse } from './lib/read-only';
 export { ChatRoom } from './durable/chat-room';
 
 // Per-isolate single-flight dedup. When a popular cacheable URL expires from
@@ -56,6 +57,10 @@ export default {
     const user = await resolveSession(req, env, ctx);
     ctx.user = await decorateMembershipUser(requestEnv, user);
     ctx.ironGateActive = ctx.user?.intake_gate_active ?? false;
+    if (isWriteRequest(req) && await isReadOnly(requestEnv)) {
+      ctx.readOnly = true;
+      return applySecurityHeaders(readOnlyResponse(req));
+    }
 
     // Serve static assets (css, icons, etc.) before hitting the Worker router
     if (req.method === 'GET' && env.ASSETS) {

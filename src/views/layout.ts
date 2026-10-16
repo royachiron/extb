@@ -233,14 +233,16 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   .btn:focus-visible, .btn-secondary:focus-visible, .btn-danger:focus-visible, .btn-outline-danger:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.35); }
   
   /* Top Nav */
-  .topnav { display: flex; align-items: center; gap: 20px; padding: 0 20px 0 8px; height: 64px; background: var(--card-bg); border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08); }
+  /* Gaps and the search box flex down between the 769px desktop switch and ~1250px
+     instead of overflowing (docs/LAYOUT.md: topnav min-content was ~922px). */
+  .topnav { display: flex; align-items: center; gap: clamp(8px, 1.6vw, 20px); padding: 0 20px 0 8px; height: 64px; background: var(--card-bg); border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08); }
   .hamburger { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: none; border: none; cursor: pointer; color: var(--text-main); padding: 0; margin-right: 4px; transition: opacity 0.2s; }
   .hamburger:active { opacity: 0.6; }
   .hamburger svg { width: 24px; height: 24px; }
   .brand { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 24px; letter-spacing: -0.75px; line-height: 1; align-self: center; background: linear-gradient(to right, #e40303, #ff8c00, #ffed00, #008026, #004dff, #732982); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
   .brand:has(img) { background:none; color:var(--primary); -webkit-text-fill-color:currentColor; filter:none; }
-  .topnav nav { display: flex; align-items: center; gap: 20px; margin-right: auto; }
-  .topnav nav a { display: flex; align-items: center; height: 64px; color: var(--text-main); font-weight: 600; font-size: 14px; transition: color 0.2s; }
+  .topnav nav { display: flex; align-items: center; gap: clamp(8px, 1.6vw, 20px); margin-right: auto; }
+  .topnav nav a { display: flex; align-items: center; height: 64px; color: var(--text-main); font-weight: 600; font-size: 14px; transition: color 0.2s; white-space: nowrap; }
   .topnav nav a:hover { color: var(--primary); text-decoration: none; }
   .topnav nav a.active { color: var(--primary); box-shadow: inset 0 -2px 0 var(--primary); }
   .dm-nav-btn { position: relative; display: inline-flex !important; align-items: center; justify-content: center; width: 36px; height: 36px !important; border-radius: 8px; color: var(--text-muted); transition: color 0.2s, background 0.2s; flex-shrink: 0; border-bottom: none !important; box-shadow: none !important; }
@@ -250,11 +252,12 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   #dm-nav-badge-container { position: absolute; top: 0; right: 0; width: 0; height: 0; overflow: visible; pointer-events: none; }
   .dm-nav-badge { position: absolute; top: 0; right: 0; background: var(--primary); color: #fff; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid var(--card-bg); transform: translate(25%, -25%); }
   
-  .topnav form { margin: 0; position: relative; }
-  .topnav input { padding: 8px 16px; border: 2px solid var(--border-color); border-radius: 9999px; background: var(--bg-color); font-size: 14px; width: 240px; transition: all 0.2s; color: var(--text-main); font-weight: 500; }
-  .topnav input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15); background: var(--card-bg); width: 280px; }
+  .topnav form { margin: 0; position: relative; flex: 0 1 240px; min-width: 96px; transition: flex-basis 0.2s; }
+  .topnav form:focus-within { flex-basis: 280px; }
+  .topnav input { padding: 8px 16px; border: 2px solid var(--border-color); border-radius: 9999px; background: var(--bg-color); font-size: 14px; width: 100%; box-sizing: border-box; transition: all 0.2s; color: var(--text-main); font-weight: 500; }
+  .topnav input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15); background: var(--card-bg); }
   
-  .topnav .right { display: flex; align-items: center; gap: 12px; }
+  .topnav .right { display: flex; align-items: center; gap: clamp(6px, 1vw, 12px); }
   .staff-nav { display: flex; align-items: center; gap: 8px; }
   .staff-nav a {
     display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
@@ -579,6 +582,23 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   .tc-title { font-weight: 600; }
   .topic-card--unread .tc-title { font-weight: 800; }
   .tc-unread-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+  /* Feed card extras: labels, excerpt, participants, last reply, nudge */
+  .tc-label-hot, .tc-label-new, .tc-new-pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; vertical-align: middle; white-space: nowrap; }
+  .tc-label-hot { background: var(--warn-bg); color: var(--warn-text); }
+  .tc-label-new { border: 1px solid var(--primary); color: var(--primary); }
+  .tc-new-pill { background: var(--primary); color: var(--card-bg); }
+  .tc-excerpt { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--text-muted); font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .topic-card .tc-aside { flex-wrap: wrap; row-gap: 4px; }
+  .tc-people { display: inline-flex; align-items: center; margin-right: 2px; }
+  .tc-av { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--card-bg); margin-left: -6px; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--card-bg); box-sizing: border-box; }
+  .tc-people .tc-av:first-child { margin-left: 0; }
+  .tc-last-name { font-weight: 600; color: var(--text-main); }
+  .topic-card .tc-nudge { position: relative; z-index: 2; margin-left: 4px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+  /* Classic rows: the stats column drops under the title when the row can't fit both (no breakpoint needed). */
+  #topic-list.classic .topic-card { flex-wrap: wrap; row-gap: 4px; }
+  #topic-list.classic .tc-main { flex: 1 1 260px; }
+  #topic-list.classic .tc-aside { flex-shrink: 1; min-width: 0; }
 
   /* Forum Index (classic view) - desktop grid + mobile card stack */
   .fi-layout { display:flex; gap:24px; align-items:flex-start; }
