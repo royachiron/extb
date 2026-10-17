@@ -113,13 +113,13 @@ export class Installation implements DurableObject {
  if(url.pathname==='/api/handoff' && request.method==='POST'){
   if(session.job?.stage!=='complete' || !session.job.url)return json({error:'Forum is not ready'},409);
   const job=session.job;
-  if(!session.encryptedToken && job.ownership && (job.ownershipExpires||0)>Date.now())return json({url:job.url+'/setup#ownership='+await unseal<string>(job.ownership,this.env.ENCRYPTION_KEY)});
+  // The forum consumes an ownership link on first claim, so hand the provisioning link out once only.
+  if(!session.encryptedToken && job.ownership && (job.ownershipExpires||0)>Date.now()){const ownership=await unseal<string>(job.ownership,this.env.ENCRYPTION_KEY);delete job.ownership;delete job.ownershipExpires;await this.save(session);return json({url:job.url+'/setup#ownership='+ownership});}
   if(!session.encryptedToken)return json({error:'Fresh Cloudflare authorization required to reopen owner setup',authorize:this.env.INSTALLER_ORIGIN+'/oauth/start'},409);
   const token=await unseal<string>(session.encryptedToken,this.env.ENCRYPTION_KEY),path=`/accounts/${job.account}/d1/database/${job.database}/query`;
   const complete=async()=>{const rows=await cf<{success:boolean;results:{complete:number}[]}[]>(token,path,{method:'POST',body:JSON.stringify({sql:"SELECT (EXISTS (SELECT 1 FROM settings WHERE key='setup_complete') OR EXISTS (SELECT 1 FROM users WHERE access_level='admin')) AS complete"})});if(rows.some(r=>!r.success))throw new Error('Cloudflare request failed (setup readiness)');return !!rows[0]?.results[0]?.complete;};
   try{
    if(await complete()){delete job.ownership;delete job.ownershipExpires;return json({url:job.url+'/'});}
-   if(job.ownership && (job.ownershipExpires||0)>Date.now())return json({url:job.url+'/setup#ownership='+await unseal<string>(job.ownership,this.env.ENCRYPTION_KEY)});
    const ownership=await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer),expires=session.expires;
    try{
     const rows=await cf<{success:boolean}[]>(token,path,{method:'POST',body:JSON.stringify({batch:[
@@ -128,7 +128,7 @@ export class Installation implements DurableObject {
      {sql:"DELETE FROM settings WHERE key IN ('setup_session_hash','setup_session_expires_at')"}
     ]})});if(rows.some(r=>!r.success))throw new Error('Cloudflare request failed (setup renewal)');
    }catch(error){if(await complete()){delete job.ownership;delete job.ownershipExpires;return json({url:job.url+'/'});}throw error;}
-   job.ownership=await seal(ownership,this.env.ENCRYPTION_KEY);job.ownershipExpires=expires;return json({url:job.url+'/setup#ownership='+ownership});
+   delete job.ownership;delete job.ownershipExpires;return json({url:job.url+'/setup#ownership='+ownership});
   }finally{await this.revoke(session);await this.save(session);}
 
  }
