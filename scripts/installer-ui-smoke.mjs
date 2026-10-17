@@ -10,7 +10,7 @@ try {
     const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
     await context.route('https://extb.achiron.fyi/**', async route => {
       const request = route.request(); const path = new URL(request.url()).pathname;
-      if (path === '/wizard') return route.fulfill({ contentType: 'text/html', body: '<html><body><main id="app"></main><script type="module" src="/wizard.js"></script></body></html>' });
+      if (path === '/wizard') return route.fulfill({ contentType: 'text/html', body: (locale.startsWith('he') ? '<html lang="he" dir="rtl">' : '<html lang="en" dir="ltr">') + '<body><main id="app"></main><script type="module" src="/wizard.js"></script></body></html>' });
       if (path === '/wizard.js') return route.fulfill({ contentType: 'application/javascript', body: wizardScript });
       if (path === '/api/session') return route.fulfill({ json: { csrf: 'csrf', accounts: [{ id: 'a'.repeat(32), name: 'Account' }] } });
       if (path === '/api/preview') {
