@@ -1,6 +1,7 @@
 import { randomToken, digest, hexDigest, equal, seal, unseal } from './security';
 import { githubAuthorizeUrl, exchangeGithubCode, createPrivateForumRepository, connectWorkerBuilds, getWorkerBuildStatus, startWorkerBuild, GithubConnectionError, type GithubProgress, type InstalledForum, type BuildConnection } from './github';
 import { wizardScript } from './wizard';
+import { renderLandingPage, renderWizardPage, resolvePortalLang, resolveWizardLang, langCookie, landingStyles } from './landing';
 import { communityDraftSchema, makeCommunityDraft, renderCommunityPreview } from '../../src/community/draft';
 import { cf, loadRelease, upload, checkedFile, type Release } from './cloudflare';
 interface Env { INSTALLATIONS: DurableObjectNamespace; ENCRYPTION_KEY:string; INSTALLER_ORIGIN:string; OAUTH_CLIENT_ID:string; OAUTH_SCOPE:string; RELEASE_MANIFEST_URL:string; RELEASE_MANIFEST_SHA256:string; GITHUB_CLIENT_ID?:string; GITHUB_CLIENT_SECRET?:string; GITHUB_CF_SCOPE?:string }
@@ -14,10 +15,10 @@ function sessionCookie(id:string):string{return `__Host-extb_install=${id}; Path
 async function handle(request:Request,env:Env):Promise<Response>{
  const url=new URL(request.url); if(url.origin!==env.INSTALLER_ORIGIN)return json({error:'Wrong installer origin'},400);
  if(url.pathname==='/start')return json({error:'Not found'},404);
- if(url.pathname==='/wizard.css')return new Response(styles,{headers:{'Content-Type':'text/css','Cache-Control':'no-store'}});
+ if(url.pathname==='/wizard.css')return new Response(styles+'\n'+landingStyles,{headers:{'Content-Type':'text/css','Cache-Control':'no-store'}});
  if(url.pathname==='/healthz')return json({ok:true});
  if(url.pathname==='/wizard.js')return new Response(wizardScript,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}});
- if(url.pathname==='/')return new Response('<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/wizard.css"><title>EXTB setup</title><body><h1>Create your community / יצירת קהילה</h1><p>Your forum runs in your Cloudflare account.</p><a href="/oauth/start">Continue with Cloudflare / המשך עם Cloudflare</a></body></html>',{headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'}});
+ if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang),{headers});}
  if(!env.OAUTH_CLIENT_ID || !env.OAUTH_SCOPE || !env.ENCRYPTION_KEY)return json({error:'Installer registration is not configured'},503);
  if(url.pathname==='/oauth/start'){
   const id=url.searchParams.get('new')==='1'?randomToken():cookie(request)||randomToken();const stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
@@ -69,7 +70,7 @@ export class Installation implements DurableObject {
  if(!session.subject || !session.encryptedToken && session.job?.stage!=='complete')return json({error:'Cloudflare authorization required'},401);
  if(request.method!=='GET' && (request.headers.get('Origin')!==this.env.INSTALLER_ORIGIN || !equal(request.headers.get('x-csrf-token')||'',session.csrf)))return json({error:'Invalid CSRF authorization'},403);
  if(url.pathname==='/api/session')return json({csrf:session.csrf,accounts:session.accounts,githubConfigured:!!(this.env.GITHUB_CLIENT_ID&&this.env.GITHUB_CLIENT_SECRET&&this.env.GITHUB_CF_SCOPE),cloudflareAuthorized:!!session.encryptedToken,github:session.github?{authorized:!!session.github.encryptedToken,progress:session.github.progress,connection:session.github.connection,lastBuild:session.github.lastBuild}:undefined,job:session.job?this.publicJob(session.job):undefined});
- if(url.pathname==='/wizard')return wizard();
+ if(url.pathname==='/wizard')return wizard(request);
  if(url.pathname==='/api/preview' && request.method==='POST'){const body=await request.json() as {draft?:unknown;input?:Parameters<typeof makeCommunityDraft>[0]};const draft=body.draft ? communityDraftSchema.parse(body.draft) : makeCommunityDraft(body.input!);return json({draft,html:renderCommunityPreview(draft)});}
  if(url.pathname==='/api/install' && request.method==='POST'){
   if(session.job)return json({error:'Installation already started; use retry'},409);
@@ -166,6 +167,6 @@ export class Installation implements DurableObject {
   }catch(error){if(error===advance){await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));return;}job.error=error instanceof Error && /^(Cloudflare request failed|Invalid |Release |Untrusted )/.test(error.message)?error.message:'Provisioning failed at this stage; retry. Existing resources are preserved.';await this.save(session);}
  }
 }
-function wizard():Response {return new Response(`<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/wizard.css"><title>EXTB setup</title><body><h1>Community setup / הקמת קהילה</h1><main id="app">Loading…</main><script type="module" src="/wizard.js"></script></body></html>`,{headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});}
+function wizard(request:Request):Response {return new Response(renderWizardPage(resolveWizardLang(request)),{headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});}
 
 const styles=String.raw`:root{--bg-color:#f9fafb;--card-bg:#ffffff;--text-main:#111827;--text-muted:#4b5563;--border-color:#d1d5db;--primary:#6366f1}*{box-sizing:border-box}body{margin:0 auto;padding:2rem 1rem;max-width:58rem;background:var(--bg-color);color:var(--text-main);font:1rem/1.6 system-ui,sans-serif}main,section,details{padding:1rem;margin-block:1rem;border:1px solid var(--border-color);border-radius:1rem;background:var(--card-bg)}form{display:grid;gap:.75rem}input,select,textarea,button{font:inherit;padding:.7rem;border:1px solid var(--border-color);border-radius:.5rem;max-width:100%;color:var(--text-main);background:var(--card-bg)}textarea{width:100%;direction:ltr}button{cursor:pointer;min-height:44px;margin:.5rem;background:var(--primary);color:var(--card-bg)}button:disabled{opacity:.5;cursor:default}a{color:var(--primary)}:focus-visible{outline:3px solid var(--primary);outline-offset:3px}label{display:block}.community-preview p{white-space:pre-wrap}pre{white-space:pre-wrap;overflow-wrap:anywhere}`;

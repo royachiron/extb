@@ -20,3 +20,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/release-bundle/* --verify-tag --generate-notes
+      # The installer installs only the release pinned by URL and digest. Re-pin it to the
+      # bundle just published, so new communities always get the latest verified release.
+      - name: Pin the web installer to this release
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN secret or CLOUDFLARE_ACCOUNT_ID variable missing; installer still pinned to its previous release."
+            exit 0
+          fi
+          digest=$(cut -d' ' -f1 dist/release-bundle/extb-manifest.sha256)
+          npx wrangler deploy --config installer/wrangler.toml --keep-vars \
+            --var "RELEASE_MANIFEST_URL:https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/extb-manifest.json" \
+            --var "RELEASE_MANIFEST_SHA256:$digest"

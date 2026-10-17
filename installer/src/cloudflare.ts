@@ -4,8 +4,12 @@ export async function cf<T>(token: string,path: string,init: RequestInit = {}): 
  const headers=new Headers(init.headers); headers.set('Authorization',`Bearer ${token}`);
  if(init.body && !(init.body instanceof FormData)) headers.set('Content-Type','application/json');
  const response=await fetch(API+path,{...init,headers,signal:AbortSignal.timeout(45000)});
- const body=await response.json() as {success?:boolean;result:T;errors?:{code:number}[]};
- if(!response.ok || body.success === false) throw new Error(`Cloudflare request failed (${response.status}; codes ${(body.errors||[]).map(e=>e.code).join(',')})`);
+ const body=await response.json().catch(()=>({})) as {success?:boolean;result:T;errors?:{code:number}[]};
+ if(!response.ok || body.success === false){
+  // Name the refused endpoint with ids redacted; Cloudflare's message text can echo credentials, so it is never surfaced.
+  const where=`${init.method||'GET'} ${path.replace(/\?.*$/,'').replace(/\/accounts\/[^/]+/,'/accounts/:account').replace(/\/scripts\/[^/]+/,'/scripts/:worker').replace(/\/database\/[^/]+/,'/database/:database')}`;
+  throw new Error(`Cloudflare request failed (${response.status}; codes ${(body.errors||[]).map(e=>e.code).join(',')}; ${where})`);
+ }
  return body.result;
 }
 export interface File {name:string;url:string;sha256:string;type?:string}

@@ -1,6 +1,6 @@
 export const wizardScript = String.raw`
 const app=document.getElementById('app');app.setAttribute('aria-live','polite');
-const he=navigator.language.toLowerCase().startsWith('he');document.documentElement.dir=he?'rtl':'ltr';
+const he=document.documentElement.lang==='he';
 const labels=he?{name:'שם הקהילה',purpose:'מטרת הקהילה במשפט אחד',preview:'תצוגה מקדימה',install:'אישור ויצירת הקהילה',edit:'עריכת התוכן',retry:'ניסיון חוזר',open:'יצירת חשבון בעלים',account:'חשבון Cloudflare'}:{name:'Community name',purpose:'Purpose in one sentence',preview:'Preview',install:'Approve and create community',edit:'Edit content',retry:'Retry',open:'Create owner account',account:'Cloudflare account'};
 let session=await (await fetch('/api/session')).json(),draft;
 async function api(path,body){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','x-csrf-token':session.csrf},body:JSON.stringify(body)});const value=await response.json();if(!response.ok)throw Error(value.error||'Request failed');return value;}

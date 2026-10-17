@@ -2,6 +2,9 @@ name = "extb-installer"
 main = "src/index.ts"
 compatibility_date = "2026-10-02"
 workers_dev = false
+# Landing page screenshots; matching paths are served before the Worker runs.
+[assets]
+directory = "./public"
 [[routes]]
 pattern = "extb.achiron.fyi"
 custom_domain = true
