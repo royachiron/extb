@@ -51,5 +51,7 @@ export async function createForumAdmin(url: string, ownership: string, password:
     headers: { Cookie: cookies, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ csrf, username: ADMIN_USERNAME, password, approve_draft: '1', approved_draft: unescapeHtml(draft), community_name: unescapeHtml(name) }),
   });
-  if (done.status !== 302) throw new Error(`Forum setup failed (owner creation ${done.status})`);
+  // Success redirects to the admin panel; validation errors re-render the form with 4xx.
+  const location = done.headers.get('Location') || '';
+  if (done.status < 300 || done.status > 399 || !/\/admin$/.test(location)) throw new Error(`Forum setup failed (owner creation ${done.status})`);
 }

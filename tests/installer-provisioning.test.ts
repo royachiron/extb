@@ -9,7 +9,7 @@ async function harness(failedStage:string, lostWorker=false, options:{collision?
  const checksum=await hexDigest(new TextEncoder().encode(migration).buffer as ArrayBuffer);
  const release={version,mainModule:'index.js',modules:[{name:'index.js',url:base+'index.js',sha256:await hexDigest(new TextEncoder().encode('export default {}').buffer as ArrayBuffer)}],migrations:[{name:'0001.sql',url:base+'0001.sql',sha256:checksum}],assets:{manifest:{},files:[]}};
  const releaseBytes=JSON.stringify(release),releaseHash=await hexDigest(new TextEncoder().encode(releaseBytes).buffer as ArrayBuffer);
- const sessions=new Map<string,unknown>();let failed=false,database=false,worker=!!options.collision,migrated=false,creates=0,deploys=0;
+ const sessions=new Map<string,unknown>();let failed=false,database=false,worker=!!options.collision,migrated=false,creates=0,deploys=0,admins=0;
  sessions.set('session',{expires:Date.now()+60000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),accounts:[{id:account,name:'Account'}],job:{account,worker:'extb-stage',databaseName:'extb-stage',stage:'account checks',done:[],draft:makeCommunityDraft({name:'Example',purpose:'Help each other',preset:'general',language:'en'})}});
  const storage={get:async(k:string)=>structuredClone(sessions.get(k)),put:async(k:string,v:unknown)=>{sessions.set(k,structuredClone(v));},setAlarm:async()=>{},delete:async(k:string)=>sessions.delete(k)};
  const env={INSTALLER_ORIGIN:origin,ENCRYPTION_KEY:secret,OAUTH_CLIENT_ID:'client',INSTALLATIONS:{} as DurableObjectNamespace,OAUTH_SCOPE:'openid',RELEASE_MANIFEST_URL:base+'manifest.json',RELEASE_MANIFEST_SHA256:releaseHash};
@@ -38,14 +38,20 @@ async function harness(failedStage:string, lostWorker=false, options:{collision?
  if(path.endsWith('/workers/scripts/extb-stage')&&init?.method==='PUT'){worker=true;deploys++;if(lostWorker&&deploys===1)throw Error('lost deployment response');return success({});}
  if(path.endsWith('/subdomain'))return success({});
  if(path.endsWith('/healthz'))return reject('readiness')||Response.json({ok:true});
+ if(path.endsWith('/setup/claim'))return reject('owner account')||Response.json({ok:true},{headers:{'Set-Cookie':'extb_setup='+'c'.repeat(64)+'; Path=/setup; HttpOnly'}});
+ if(path.endsWith('/setup')&&init?.method==='POST'){admins++;return new Response(null,{status:303,headers:{Location:'/admin'}});}
+ if(path.endsWith('/setup'))return new Response('<input type="hidden" name="community_name" value="Example"><input type="hidden" name="approved_draft" value="{}">');
  throw Error('Unexpected test API '+path);
  });
  vi.stubGlobal('fetch',fetcher);
- return {retry:async()=>{const response=await installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));expect(response.status).toBe(202);for(let stage=0;stage<7;stage++){await installation.alarm();const current=sessions.get('session') as any;if(current.job.error||current.job.stage==='complete')return current;}throw new Error('Provisioning did not reach failure or completion within seven alarms');},counts:()=>({creates,deploys}),fetcher};
+ return {retry:async()=>{const response=await installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));expect(response.status).toBe(202);for(let stage=0;stage<10;stage++){await installation.alarm();const current=sessions.get('session') as any;if(current.job.error||current.job.stage==='complete')return current;}throw new Error('Provisioning did not reach failure or completion within ten alarms');},counts:()=>({creates,deploys,admins}),fetcher};
 }
 describe('resumable provisioning',()=>{
- for(const stage of ['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'])it(`recovers failure at ${stage} without duplicate resources`,async()=>{
- const h=await harness(stage);let session=await h.retry();expect(session.job.stage).toBe(stage);expect(session.job.error).toBeTruthy();session=await h.retry();expect(session.job.stage).toBe('complete');expect(session.encryptedToken).toBeUndefined();expect(h.counts().creates).toBe(1);expect(h.counts().deploys).toBe(1);
+ for(const stage of ['account checks','database creation','migrations','ownership authorization','Worker deployment','owner account'])it(`recovers failure at ${stage} without duplicate resources`,async()=>{
+ const h=await harness(stage);let session=await h.retry();expect(session.job.stage).toBe(stage);expect(session.job.error).toBeTruthy();session=await h.retry();expect(session.job.stage).toBe('complete');expect(session.encryptedToken).toBeUndefined();expect(h.counts()).toEqual({creates:1,deploys:1,admins:1});
+ });
+ it('waits out a forum that is not published yet and finishes without an error',async()=>{
+ const h=await harness('readiness');const session=await h.retry();expect(session.job.error).toBeUndefined();expect(session.job.stage).toBe('complete');expect(h.counts()).toEqual({creates:1,deploys:1,admins:1});
  });
  it('lost Worker upload response retries using the existing Durable Object migration',async()=>{
  const h=await harness('none',true);let session=await h.retry();expect(session.job.stage).toBe('Worker deployment');session=await h.retry();expect(session.job.stage).toBe('complete');expect(h.counts().creates).toBe(1);
@@ -56,8 +62,8 @@ describe('resumable provisioning',()=>{
 });
 
 it('Worker name collision refuses to replace a live Worker or create a database',async()=>{
- const h=await harness('none',false,{collision:true});const session=await h.retry();expect(session.job.stage).toBe('account checks');expect(session.job.error).toContain('collision');expect(h.counts()).toEqual({creates:0,deploys:0});
+ const h=await harness('none',false,{collision:true});const session=await h.retry();expect(session.job.stage).toBe('account checks');expect(session.job.error).toContain('collision');expect(h.counts()).toEqual({creates:0,deploys:0,admins:0});
 });
 it('release checksum mismatch fails before creating resources',async()=>{
- const h=await harness('none',false,{badChecksum:true});const session=await h.retry();expect(session.job.stage).toBe('account checks');expect(session.job.error).toContain('checksum');expect(h.counts()).toEqual({creates:0,deploys:0});
+ const h=await harness('none',false,{badChecksum:true});const session=await h.retry();expect(session.job.stage).toBe('account checks');expect(session.job.error).toContain('checksum');expect(h.counts()).toEqual({creates:0,deploys:0,admins:0});
 });

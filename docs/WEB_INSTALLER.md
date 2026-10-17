@@ -21,7 +21,9 @@ Provisioning records stage completion and resource identifiers in a Durable Obje
 
 The generated ownership credential is delivered only to the authenticated installer session in `/setup#ownership=…`. The forum immediately clears the fragment and exchanges it for a secure HttpOnly setup cookie with CSRF protection. Final setup verifies the exact approved draft and atomically creates the owner, six public-reading spaces, five owner-authored topics, branding and setup lock. No additional members or activity are invented. Invitations are required to participate; announcements require staff posting. Upgrades do not reapply starter content.
 
-The forum's `/healthz` returns readiness without credentials or community content and works before setup redirects. Provisioning errors expose sanitized stage information and a relevant Cloudflare dashboard link.
+The installer finishes setup itself in a final "owner account" stage. It mints a fresh single-use ownership token, then calls the forum's own `/setup/claim` and `/setup` endpoints server-side. Those calls create the user `admin` with a random password such as `EXTB2026-k7Qm-x3Lp-9fRw`, using the approved draft. The password is encrypted in the installer session and shown once on the finished screen. It is deleted when the owner hides it or when the session expires. The owner should change it after the first login. A shared default password is never used, because anyone who found a new forum's address before its owner could take it over.
+
+The forum's `/healthz` returns readiness without credentials or community content and works before setup redirects. After deployment, Cloudflare can take a few minutes to publish a new `workers.dev` address. The installer polls `/healthz` every 5 seconds for up to 10 minutes before reporting a failure. Cloudflare 5xx/429 responses, timeouts and dropped connections are retried automatically up to 6 times with backoff. Meanwhile, the wizard shows a calm "publishing" or "retrying" note, not an error. Provisioning errors that remain expose sanitized stage information and a relevant Cloudflare dashboard link.
 
 ## Optional personalization
 
