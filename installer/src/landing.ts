@@ -1154,6 +1154,29 @@ const wizardStyles = String.raw`
 .portal-body .portal-wizard button:disabled { opacity: .55; cursor: default; text-decoration: none; }
 .portal-body .portal-wizard a.wizard-new { text-decoration: none; line-height: 22px; }
 .portal-body .portal-wizard a.wizard-new:hover { text-decoration: underline; }
+.portal-body .portal-wizard .wizard-headline { margin: 0 0 10px; font-size: 20px; font-weight: 700; color: var(--pt-navy); }
+.portal-body .portal-wizard .wizard-bar { height: 18px; margin: 0 0 14px; background: var(--pt-paper); border: 2px inset var(--pt-gold-edge); }
+.portal-body .portal-wizard .wizard-bar span { display: block; height: 100%; background: repeating-linear-gradient(45deg, var(--pt-gold-hi) 0 10px, var(--pt-gold) 10px 20px); background-size: 28px 28px; transition: width .6s ease; animation: wizard-stripes 1s linear infinite; }
+@keyframes wizard-stripes { to { background-position: 28px 0; } }
+.portal-body .portal-wizard .wizard-steps { margin: 0 0 12px; padding: 0; list-style: none; }
+.portal-body .portal-wizard .wizard-steps li { position: relative; padding: 5px 0; padding-inline-start: 28px; }
+.portal-body .portal-wizard .wizard-steps li::before { position: absolute; inset-inline-start: 4px; font-weight: 700; }
+.portal-body .portal-wizard .wizard-steps li.done::before { content: "\2713"; color: var(--pt-navy); }
+.portal-body .portal-wizard .wizard-steps li.current { font-weight: 700; }
+.portal-body .portal-wizard .wizard-steps li.current::before { content: ""; top: 9px; width: 10px; height: 10px; border: 2px solid var(--pt-navy); border-top-color: transparent; border-radius: 50%; animation: wizard-spin .8s linear infinite; }
+.portal-body .portal-wizard .wizard-steps li.todo { opacity: .5; }
+.portal-body .portal-wizard .wizard-steps li.todo::before { content: "\2022"; }
+.portal-body .portal-wizard .wizard-steps li.failed::before { content: "!"; color: var(--pt-ink); }
+@keyframes wizard-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .portal-body .portal-wizard .wizard-bar span, .portal-body .portal-wizard .wizard-steps li.current::before { animation: none; } }
+.portal-body .portal-wizard .wizard-note { margin: 8px 0 0; font-style: italic; }
+.portal-body .portal-wizard .wizard-url { display: block; margin: 4px 0 12px; font-size: 16px; overflow-wrap: anywhere; }
+.portal-body .portal-wizard .wizard-creds { margin: 0 0 8px; padding: 12px 14px; background: linear-gradient(180deg, var(--pt-gold-hi) 0%, var(--pt-gold) 100%); border: 2px outset var(--pt-gold-edge); }
+.portal-body .portal-wizard .wizard-creds-title { margin: 0 0 8px; font-weight: 700; }
+.portal-body .portal-wizard .wizard-creds dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0 0 8px; }
+.portal-body .portal-wizard .wizard-creds dt { font-weight: 700; }
+.portal-body .portal-wizard .wizard-creds dd { margin: 0; }
+.portal-body .portal-wizard .wizard-creds code { padding: 2px 6px; font-size: 15px; background: var(--pt-paper); border: 1px inset var(--pt-gold-edge); user-select: all; overflow-wrap: anywhere; }
 .portal-body .portal-wizard .wizard-new-row { margin-top: 18px; padding-top: 12px; border-top: 1px dotted var(--pt-navy); }
 .portal-body .portal-wizard a { display: inline-block; margin: 8px 0 0; margin-inline-end: 8px; font-weight: 700; color: var(--pt-navy); }
 .portal-body .portal-wizard section,

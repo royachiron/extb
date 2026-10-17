@@ -18,7 +18,7 @@ try {
         return route.fulfill({ json: { draft, html: renderCommunityPreview(draft) } });
       }
       if (path === '/api/install') { installed = request.postDataJSON().draft; return route.fulfill({ status: 202, json: { stage: 'account checks', completed: [] } }); }
-      if (path === '/api/status') return route.fulfill({ json: { stage: 'complete', completed: ['account checks', 'database creation', 'migrations', 'Worker deployment', 'readiness'], dashboard: 'https://dash.cloudflare.com', url: 'https://example.workers.dev' } });
+      if (path === '/api/status') return route.fulfill({ json: { stage: 'complete', completed: ['account checks', 'database creation', 'migrations', 'ownership authorization', 'Worker deployment', 'readiness', 'owner account'], dashboard: 'https://dash.cloudflare.com', url: 'https://example.workers.dev', admin: { username: 'admin', password: 'EXTB2026-abcd-efgh-jkmn' } } });
       return route.fulfill({ status: 404, body: 'Not found' });
     });
     await page.goto('https://extb.achiron.fyi/wizard'); await page.waitForLoadState('networkidle');
@@ -37,7 +37,9 @@ try {
     await page.locator('details button').click();
     await page.getByText('Owner edited starter copy', { exact: true }).waitFor();
     assert.equal(await approve.isEnabled(), true);
-    await approve.click(); await page.getByText('complete', { exact: true }).waitFor();
+    await approve.click(); await page.getByText(locale.startsWith('he') ? 'הפורום שלך באוויר!' : 'Your forum is live!', { exact: true }).waitFor();
+    assert.equal(await page.locator('.wizard-creds code').nth(1).textContent(), 'EXTB2026-abcd-efgh-jkmn');
+    assert.equal(await page.locator('.wizard-creds a').getAttribute('href'), 'https://example.workers.dev/login');
     assert.equal(installed.homepageCopy, 'Owner edited starter copy');
     assert.deepEqual(errors, []);
     await context.close();

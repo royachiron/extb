@@ -4,7 +4,7 @@ import {releaseURL,checkedFile,upload} from '../installer/src/cloudflare';
 import {Installation} from '../installer/src/index';
 import {makeCommunityDraft} from '../src/community/draft';
 const origin='https://extb.achiron.fyi';
-const stages=['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'];
+const stages=['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness','owner account'];
 const secret='a'.repeat(43);
 function harness(session:unknown){let stored=session;const records=new Map<string,unknown>();const storage={get:vi.fn(async(key:string)=>structuredClone(key==='session'?stored:records.get(key))),put:vi.fn(async(key:string,v:unknown)=>{if(key==='session')stored=structuredClone(v);else records.set(key,structuredClone(v));}),setAlarm:vi.fn(async()=>{}),deleteAll:vi.fn(async()=>{}),delete:vi.fn(async()=>{stored=undefined;return true;})};const pending:Promise<unknown>[]=[];const state={storage,waitUntil:(promise:Promise<unknown>)=>pending.push(promise)} as unknown as DurableObjectState;const env={INSTALLER_ORIGIN:origin,ENCRYPTION_KEY:secret,OAUTH_CLIENT_ID:'client',INSTALLATIONS:{} as DurableObjectNamespace,OAUTH_SCOPE:'openid',RELEASE_MANIFEST_URL:'',RELEASE_MANIFEST_SHA256:''};const installation=new Installation(state,env);return {installation,storage,finish:async()=>{for(let i=0;i<10;i++){await installation.alarm();const s=stored as {job?:{stage:string;error?:string}};if(!s?.job || s.job.error || s.job.stage==='complete')break;}},session:()=>stored};}
 afterEach(()=>vi.unstubAllGlobals());
@@ -58,12 +58,53 @@ describe('installer credential security',()=>{
  });
  it('does not disclose ownership authorization through status',async()=>{const h=harness({expires:Date.now()+60000,csrf:'csrf',subject:'owner',job:{stage:'complete',done:[],ownership:'SECRET',account:'a',worker:'extb-a'}});const response=await h.installation.fetch(new Request(origin+'/api/status'));expect(await response.text()).not.toContain('SECRET');});
  it('rejects an account outside authenticated authorization',async()=>{const h=harness({expires:Date.now()+60000,csrf:'csrf',subject:'owner',encryptedToken:'encrypted',accounts:[{id:'a'.repeat(32),name:'Authorized'}]});const response=await h.installation.fetch(new Request(origin+'/api/install',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:JSON.stringify({account:'b'.repeat(32),draft:{}})}));expect(response.status).toBe(403);});
- it.each(stages)('retains checkpoint and sanitizes failure at %s',async(stage)=>{
+ it.each(stages.filter(s=>s!=='readiness'))('retains checkpoint and sanitizes failure at %s',async(stage)=>{
   const index=stages.indexOf(stage),job={account:'a'.repeat(32),worker:'extb-stage',databaseName:'extb-stage',database:'database-id',url:'https://extb-stage.example.workers.dev',stage,done:stages.slice(0,index),draft:{},release:{version:'v1.2.3',mainModule:'index.js',modules:[],migrations:[],assets:{manifest:{},files:[]}}};
   const h=harness({expires:Date.now()+60000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),job});
   vi.stubGlobal('fetch',vi.fn(async()=>Response.json({success:false,errors:[{code:1001,message:'SECRET_CREDENTIAL_DO_NOT_EXPOSE'}]},{status:503})));
   const response=await h.installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));expect(response.status).toBe(202);await h.finish();
   const stored=h.session() as {job:{stage:string;done:string[];error:string}};expect(stored.job.stage).toBe(stage);expect(stored.job.done).toEqual(stages.slice(0,index));expect(stored.job.error).not.toContain('SECRET_CREDENTIAL');expect(stored.job.error).toBeTruthy();
+ });
+ it('keeps waiting calmly while Cloudflare publishes the forum',async()=>{
+  const job={account:'a'.repeat(32),worker:'extb-wait',databaseName:'extb-wait',database:'database-id',url:'https://extb-wait.example.workers.dev',stage:'readiness',done:stages.slice(0,5),draft:{}};
+  const h=harness({expires:Date.now()+3600000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),job});
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response('not yet',{status:404})));
+  await h.installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));await h.finish();
+  const stored=h.session() as {job:{stage:string;error?:string;notice?:string}};expect(stored.job.error).toBeUndefined();expect(stored.job.stage).toBe('readiness');expect(stored.job.notice).toBe('publishing');
+  const status=await (await h.installation.fetch(new Request(origin+'/api/status'))).json() as {notice:string;error?:string};expect(status.notice).toBe('publishing');expect(status.error).toBeUndefined();
+ });
+ it('reports readiness only after the forum stays offline for the whole window',async()=>{
+  const job={account:'a'.repeat(32),worker:'extb-late',databaseName:'extb-late',database:'database-id',url:'https://extb-late.example.workers.dev',stage:'readiness',done:stages.slice(0,5),draft:{},readyDeadline:1};
+  const h=harness({expires:Date.now()+3600000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),job});
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response('not yet',{status:404})));await h.finish();
+  const stored=h.session() as {job:{stage:string;error?:string;notice?:string}};expect(stored.job.stage).toBe('readiness');expect(stored.job.error).toContain('not online after 10 minutes');expect(stored.job.notice).toBeUndefined();
+ });
+ it('retries a transient Cloudflare failure without showing an error',async()=>{
+  const job={account:'a'.repeat(32),worker:'extb-busy',databaseName:'extb-busy',stage:'account checks',done:[],draft:{}};
+  const h=harness({expires:Date.now()+3600000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),job});
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({success:false,errors:[{code:10013,message:'busy'}]},{status:503})));
+  await h.installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));await h.installation.alarm();
+  const stored=h.session() as {job:{error?:string;notice?:string;transient:number}};expect(stored.job.error).toBeUndefined();expect(stored.job.notice).toBe('retrying');expect(stored.job.transient).toBe(1);
+ });
+ it('creates the admin account through the forum setup flow and shows its password until hidden',async()=>{
+  const draft={name:'Spaces & "Friends"'};const url='https://extb-owner.example.workers.dev';const posted:URLSearchParams[]=[];let claimed='';
+  const job={account:'a'.repeat(32),worker:'extb-owner',databaseName:'extb-owner',database:'database-id',url,stage:'owner account',done:stages.slice(0,6),draft,release:{version:'v1.2.3'}};
+  const h=harness({expires:Date.now()+3600000,csrf:'csrf',subject:'owner',encryptedToken:await seal('token',secret),job});
+  vi.stubGlobal('fetch',vi.fn(async(input:string,init?:RequestInit)=>{
+   if(input.endsWith('/revoke'))return new Response(null,{status:200});
+   if(input.includes('/d1/database/')){const body=JSON.parse(init!.body as string);if(body.batch){claimed=body.batch[0].params[0];return Response.json({success:true,result:[{success:true},{success:true},{success:true}]});}return Response.json({success:true,result:[{success:true,results:[{owner:0}]}]});}
+   if(input===url+'/setup/claim'){const token=JSON.parse(init!.body as string).token;expect(await hexDigest(new TextEncoder().encode(token).buffer as ArrayBuffer)).toBe(claimed);return Response.json({ok:true},{headers:{'Set-Cookie':'extb_setup='+'c'.repeat(64)+'; Path=/setup; HttpOnly'}});}
+   if(input===url+'/setup' && init?.method==='POST'){posted.push(new URLSearchParams(init.body as URLSearchParams));return new Response(null,{status:302,headers:{Location:'/admin'}});}
+   if(input===url+'/setup')return new Response('<input type="hidden" name="community_name" value="Spaces &amp; &quot;Friends&quot;"><input type="hidden" name="approved_draft" value="{&quot;name&quot;:&quot;Spaces &amp; \\&quot;Friends\\&quot;&quot;}">');
+   throw new Error('unexpected '+input);
+  }));
+  await h.installation.fetch(new Request(origin+'/api/retry',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));await h.finish();
+  const stored=h.session() as {job:{stage:string;error?:string;adminPassword:string};encryptedToken?:string};expect(stored.job.error).toBeUndefined();expect(stored.job.stage).toBe('complete');expect(stored.encryptedToken).toBeUndefined();
+  expect(posted).toHaveLength(1);expect(posted[0]!.get('username')).toBe('admin');expect(posted[0]!.get('approve_draft')).toBe('1');expect(posted[0]!.get('community_name')).toBe('Spaces & "Friends"');expect(JSON.parse(posted[0]!.get('approved_draft')!)).toEqual(draft);
+  const password=posted[0]!.get('password')!;expect(password).toMatch(/^EXTB\d{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);expect(stored.job.adminPassword).not.toContain(password);
+  const status=await (await h.installation.fetch(new Request(origin+'/api/status'))).json() as {admin?:{username:string;password:string}};expect(status.admin).toEqual({username:'admin',password});
+  await h.installation.fetch(new Request(origin+'/api/admin-saved',{method:'POST',headers:{Origin:origin,'x-csrf-token':'csrf'},body:'{}'}));
+  expect((await (await h.installation.fetch(new Request(origin+'/api/status'))).json() as {admin?:unknown}).admin).toBeUndefined();
  });
  it('revokes minted OAuth tokens after identity mismatch',async()=>{
   const h=harness({expires:Date.now()+60000,csrf:'csrf',state:await digest('state'),verifier:'verifier',subject:'expected'});const requests:string[]=[];

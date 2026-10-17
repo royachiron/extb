@@ -4,11 +4,18 @@ import { wizardScript } from './wizard';
 import { renderLandingPage, renderWizardPage, releaseVersion, resolvePortalLang, resolveWizardLang, langCookie, landingStyles } from './landing';
 import { communityDraftSchema, makeCommunityDraft, renderCommunityPreview } from '../../src/community/draft';
 import { cf, loadRelease, upload, checkedFile, type Release } from './cloudflare';
+import { ADMIN_USERNAME, adminPassword, createForumAdmin } from './owner';
 interface Env { INSTALLATIONS: DurableObjectNamespace; ENCRYPTION_KEY:string; INSTALLER_ORIGIN:string; OAUTH_CLIENT_ID:string; OAUTH_SCOPE:string; RELEASE_MANIFEST_URL:string; RELEASE_MANIFEST_SHA256:string; GITHUB_CLIENT_ID?:string; GITHUB_CLIENT_SECRET?:string; GITHUB_CF_SCOPE?:string }
 interface Session { expires:number; csrf:string; state?:string; verifier?:string; subject?:string; encryptedToken?:string; accounts?:{id:string;name:string}[]; job?:Job; github?:{state?:string;verifier?:string;encryptedToken?:string;progress:GithubProgress;connection?:BuildConnection;lastBuild?:{id:string;startedAt:number}} }
-interface Job { account:string; worker:string; databaseName:string; database?:string; databaseCreationAttempted?:boolean; release?:Release; stage:string; done:string[]; ownership?:string; ownershipExpires?:number; url?:string; draft:unknown; error?:string }
-const stages=['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'];
+interface Job { account:string; worker:string; databaseName:string; database?:string; databaseCreationAttempted?:boolean; release?:Release; stage:string; done:string[]; ownership?:string; ownershipExpires?:number; url?:string; draft:unknown; error?:string; notice?:'publishing'|'retrying'; transient?:number; readyDeadline?:number; adminPassword?:string; adminAttempted?:boolean }
+const stages=['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness','owner account'];
 const advance=Symbol('next provisioning stage');
+// The forum is deployed but Cloudflare has not published it yet: poll again without failing.
+const wait=Symbol('waiting for Cloudflare');
+const READINESS_WINDOW=10*60000;
+const TRANSIENT_RETRIES=6;
+// Cloudflare 5xx/429 responses, timeouts and dropped connections usually pass on their own.
+function transient(error:unknown):boolean{return error instanceof Error && (/\((5\d\d|429)\b/.test(error.message) || error.name==='TimeoutError' || error.name==='AbortError' || error instanceof TypeError);}
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 function cookie(req:Request):string|undefined {return req.headers.get('Cookie')?.match(/(?:^|; )__Host-extb_install=([A-Za-z0-9_-]{43})(?:;|$)/)?.[1];}
 function sessionCookie(id:string):string{return `__Host-extb_install=${id}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=31536000`;}
@@ -81,9 +88,15 @@ export class Installation implements DurableObject {
   const suffix=(await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer)).slice(0,24);session.job={account:body.account,worker:'extb-'+suffix,databaseName:'extb-'+suffix,stage:'account checks',done:[],draft};await this.save(session);
  }
  if((url.pathname==='/api/install'||url.pathname==='/api/retry') && request.method==='POST'){
-  if(!session.job)return json({error:'No installation'},404);if(!this.provisioning && session.job.stage!=='complete'){delete session.job.error;await this.save(session);await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));}return json(this.publicJob(session.job),202);
+  if(!session.job)return json({error:'No installation'},404);if(!this.provisioning && session.job.stage!=='complete'){delete session.job.error;delete session.job.readyDeadline;delete session.job.transient;await this.save(session);await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));}return json(this.publicJob(session.job),202);
  }
- if(url.pathname==='/api/status')return json(session.job?this.publicJob(session.job):null);
+ if(url.pathname==='/api/status'){
+  if(!session.job)return json(null);
+  // The generated admin password is shown on the finished screen until the owner hides it or the session ends.
+  const admin=session.job.stage==='complete' && session.job.adminPassword?{username:ADMIN_USERNAME,password:await unseal<string>(session.job.adminPassword,this.env.ENCRYPTION_KEY)}:undefined;
+  return json({...this.publicJob(session.job),admin});
+ }
+ if(url.pathname==='/api/admin-saved' && request.method==='POST'){if(session.job){delete session.job.adminPassword;await this.save(session);}return json({ok:true});}
  if(url.pathname==='/api/github/start' && request.method==='POST'){
   if(session.job?.stage!=='complete' || !session.encryptedToken)return json({error:'Fresh Cloudflare authorization is required to connect GitHub',authorize:this.env.INSTALLER_ORIGIN+'/oauth/start'},409);
   const state=randomToken(),verifier=randomToken();session.github={...session.github,progress:session.github?.progress||{},state:await digest(state),verifier};await this.save(session);return json({url:await githubAuthorizeUrl(this.githubConfig(),state,verifier)});
@@ -135,11 +148,11 @@ export class Installation implements DurableObject {
  }
  return json({error:'Not found'},404);
  }
- private publicJob(job:Job){return {stage:job.stage,completed:job.done,error:job.error,url:job.url,worker:job.worker,database:job.database,dashboard:`https://dash.cloudflare.com/${job.account}/workers/services/view/${job.worker}/production`};}
+ private publicJob(job:Job){return {stage:job.stage,completed:job.done,stages,notice:job.notice,error:job.error,url:job.url,worker:job.worker,database:job.database,dashboard:`https://dash.cloudflare.com/${job.account}/workers/services/view/${job.worker}/production`};}
  private async run(session:Session){
   const job=session.job!;if(job.stage==='complete')return;
   const token=await unseal<string>(session.encryptedToken!,this.env.ENCRYPTION_KEY);
-  const checkpoint=async(stage:string,fn:()=>Promise<void>)=>{if(session.expires<=Date.now())throw new Error('Invalid expired installation authorization');if(job.done.includes(stage))return;job.stage=stage;delete job.error;await this.save(session);await fn();job.done.push(stage);job.stage=stages[stages.indexOf(stage)+1]||stage;await this.save(session);if(stage!=='readiness')throw advance;};
+  const checkpoint=async(stage:string,fn:()=>Promise<void>)=>{if(session.expires<=Date.now())throw new Error('Invalid expired installation authorization');if(job.done.includes(stage))return;job.stage=stage;delete job.error;await this.save(session);await fn();job.done.push(stage);job.stage=stages[stages.indexOf(stage)+1]||stage;delete job.notice;delete job.transient;await this.save(session);if(stage!==stages[stages.length-1])throw advance;};
   try{
    await checkpoint('account checks',async()=>{
     const workers=await cf<{id:string}[]>(token,`/accounts/${job.account}/workers/scripts`);if(workers.some(w=>w.id===job.worker))throw new Error('Invalid Worker name collision; start a new installation');await cf(token,`/accounts/${job.account}/d1/database?per_page=1`);
@@ -163,9 +176,32 @@ export class Installation implements DurableObject {
    });
    await checkpoint('ownership authorization',async()=>{const ownership=await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer);job.ownership=await seal(ownership,this.env.ENCRYPTION_KEY);job.ownershipExpires=session.expires;await this.save(session);await query("INSERT INTO settings(key,value) VALUES ('setup_ownership_hash',?),('setup_ownership_expires_at',?),('setup_draft',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[await hexDigest(new TextEncoder().encode(ownership).buffer as ArrayBuffer),String(session.expires),JSON.stringify(job.draft)]);});
    await checkpoint('Worker deployment',async()=>{await upload(token,job.account,job.worker,job.database!,job.release!);});
-   await checkpoint('readiness',async()=>{const response=await fetch(job.url+'/healthz',{signal:AbortSignal.timeout(10000)});if(!response.ok || (await response.json() as {ok?:boolean}).ok!==true)throw new Error('Cloudflare request failed (forum readiness; retry shortly)');});
+   await checkpoint('readiness',async()=>{
+    job.readyDeadline??=Date.now()+READINESS_WINDOW;let ready=false;
+    try{const response=await fetch(job.url+'/healthz',{signal:AbortSignal.timeout(10000)});ready=response.ok && (await response.json() as {ok?:boolean}).ok===true;}catch{}
+    if(!ready){if(Date.now()<job.readyDeadline)throw wait;throw new Error('Cloudflare request failed (forum readiness; not online after 10 minutes)');}
+   });
+   await checkpoint('owner account',async()=>{
+    const password=job.adminPassword?await unseal<string>(job.adminPassword,this.env.ENCRYPTION_KEY):adminPassword();
+    if(!job.adminPassword){job.adminPassword=await seal(password,this.env.ENCRYPTION_KEY);await this.save(session);}
+    const owner=await query("SELECT EXISTS (SELECT 1 FROM users WHERE access_level='admin') AS owner");
+    if(owner[0]?.results[0]?.owner){if(!job.adminAttempted)delete job.adminPassword;return;}
+    // A fresh single-use ownership token; earlier ones may already be consumed.
+    const ownership=await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer);
+    const rows=await cf<{success:boolean}[]>(token,`/accounts/${job.account}/d1/database/${job.database}/query`,{method:'POST',body:JSON.stringify({batch:[
+     {sql:"INSERT INTO settings(key,value) VALUES ('setup_ownership_hash',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",params:[await hexDigest(new TextEncoder().encode(ownership).buffer as ArrayBuffer)]},
+     {sql:"INSERT INTO settings(key,value) VALUES ('setup_ownership_expires_at',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",params:[String(Date.now()+600000)]},
+     {sql:"DELETE FROM settings WHERE key IN ('setup_session_hash','setup_session_expires_at')"}
+    ]})});if(rows.some(r=>!r.success))throw new Error('Cloudflare request failed (owner authorization)');
+    job.adminAttempted=true;await this.save(session);
+    await createForumAdmin(job.url!,ownership,password);
+    delete job.ownership;delete job.ownershipExpires;
+   });
    job.stage='complete';await this.state.storage.put('installation',{subject:session.subject,account:job.account,worker:job.worker,database:job.database,databaseName:job.databaseName,url:job.url,release:job.release!.version});await this.revoke(session);await this.save(session);
-  }catch(error){if(error===advance){await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));return;}job.error=error instanceof Error && /^(Cloudflare request failed|Invalid |Release |Untrusted )/.test(error.message)?error.message:'Provisioning failed at this stage; retry. Existing resources are preserved.';await this.save(session);}
+  }catch(error){if(error===advance){await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));return;}
+   if(error===wait){job.notice='publishing';await this.save(session);await this.state.storage.setAlarm(Math.min(Date.now()+5000,session.expires));return;}
+   if(transient(error) && (job.transient||0)<TRANSIENT_RETRIES){job.transient=(job.transient||0)+1;job.notice='retrying';await this.save(session);await this.state.storage.setAlarm(Math.min(Date.now()+3000*job.transient,session.expires));return;}
+   delete job.notice;delete job.transient;job.error=error instanceof Error && /^(Cloudflare request failed|Forum setup failed|Invalid |Release |Untrusted )/.test(error.message)?error.message:'Provisioning failed at this stage; retry. Existing resources are preserved.';await this.save(session);}
  }
 }
 function wizard(request:Request):Response {return new Response(renderWizardPage(resolveWizardLang(request)),{headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});}
