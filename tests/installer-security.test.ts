@@ -27,6 +27,15 @@ describe('installer credential security',()=>{
   const h=harness({expires:1,csrf:'old',subject:'owner',encryptedToken:await seal('token',secret),job:{stage:'complete',done:[],account:'a'.repeat(32),worker:'extb-old'}});let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});const fetcher=vi.fn(async()=>{await gate;return new Response(null,{status:200});});vi.stubGlobal('fetch',fetcher);
   const alarm=h.installation.alarm();await vi.waitFor(()=>expect(fetcher).toHaveBeenCalled());const start=h.installation.fetch(new Request(origin+'/start'));release();await alarm;expect((await start).status).toBe(302);expect((h.session() as {state:string;expires:number}).state).toBeTruthy();expect((h.session() as {expires:number}).expires).toBeGreaterThan(Date.now());
  });
+ it('lets a failed installation reauthorize but blocks a running one',async()=>{
+  const job={account:'a'.repeat(32),worker:'extb-stage',databaseName:'extb-stage',stage:'migrations',done:['account checks','database creation'],draft:{}};
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response(null,{status:200})));
+  const failed=harness({expires:Date.now()+60000,csrf:'csrf',subject:'owner',job:{...job,error:'Cloudflare request failed (503)'}});
+  expect((await failed.installation.fetch(new Request(origin+'/start'))).status).toBe(302);
+  expect((failed.session() as {job:{stage:string;done:string[]}}).job).toMatchObject({stage:'migrations',done:['account checks','database creation']});
+  const running=harness({expires:Date.now()+60000,csrf:'csrf',subject:'owner',job});
+  expect((await running.installation.fetch(new Request(origin+'/start'))).status).toBe(409);
+ });
  it('restores installation and GitHub identifiers after expiry without restoring credentials',async()=>{
   const h=harness(undefined);await h.storage.put('installation',{subject:'owner',account:'a'.repeat(32),worker:'extb-existing',database:'database-id',databaseName:'extb-existing',url:'https://extb-existing.example.workers.dev',release:'v1.2.3'});await h.storage.put('github_connection',{progress:{repositoryId:123,repositoryName:'forum',configured:true},connection:{triggerId:'trigger',workerTag:'worker-tag'}});
   const response=await h.installation.fetch(new Request(origin+'/start'));expect(response.status).toBe(302);const session=h.session() as {subject:string;job:{worker:string};encryptedToken?:string;github:{progress:{repositoryId:number};encryptedToken?:string;state?:string}};expect(session.subject).toBe('owner');expect(session.job.worker).toBe('extb-existing');expect(session.github.progress.repositoryId).toBe(123);expect(session.encryptedToken).toBeUndefined();expect(session.github.encryptedToken).toBeUndefined();expect(session.github.state).toBeUndefined();

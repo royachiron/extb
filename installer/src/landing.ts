@@ -19,8 +19,16 @@ function releaseUrl(version: string): string {
   return version ? `${REPO}/releases/tag/${version}` : `${REPO}/releases/latest`;
 }
 
-export function renderLandingPage(lang: PortalLang = 'en', version = ''): string {
-  return lang === 'he' ? landingPageHe(version) : landingPageEn(version);
+// Start buttons always begin a new forum, so a browser with an earlier install gets a way back to it.
+function resumeNotice(lang: PortalLang): string {
+  return lang === 'he'
+    ? '<p class="portal-resume">כבר התחלתם להקים פורום בדפדפן הזה? <a href="/wizard">חזרה להתקנה הקודמת &raquo;</a></p>'
+    : '<p class="portal-resume">Already started a forum in this browser? <a href="/wizard">Return to your previous install &raquo;</a></p>';
+}
+
+export function renderLandingPage(lang: PortalLang = 'en', version = '', resume = false): string {
+  const page = lang === 'he' ? landingPageHe(version) : landingPageEn(version);
+  return resume ? page.replace('<div class="portal-ticker"', resumeNotice(lang) + '\n  <div class="portal-ticker"') : page;
 }
 
 // The landing page remembers an explicit language choice so the setup wizard can follow it.
@@ -39,7 +47,7 @@ const landingPageEn = (version: string) => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/wizard.css">
-<title>EXTB · EXTra Board Portal — Free Community Forum on Your Own Edge</title>
+<title>EXTB · EXTra Board Portal - Free Community Forum on Your Own Edge</title>
 </head>
 <body class="portal-body">
 <div class="portal-shell">
@@ -57,7 +65,7 @@ const landingPageEn = (version: string) => `<!doctype html>
         <a class="portal-lang-pill portal-lang-active" href="/?lang=en">EN</a>
         <a class="portal-lang-pill" href="/?lang=he" dir="rtl" lang="he">עברית (HE)</a>
       </span> &middot;
-      <a href="/oauth/start">Start Your Forum &raquo;</a>
+      <a href="/oauth/start?new=1">Start Your Forum &raquo;</a>
     </div>
   </div>
 
@@ -76,7 +84,7 @@ const landingPageEn = (version: string) => `<!doctype html>
     <div class="portal-cta-box">
       <div class="portal-cta-header">INSTANT PROVISIONING WIZARD</div>
       <div class="portal-cta-body">
-        <a class="portal-btn-primary" href="/oauth/start">Create Your Community &raquo;</a>
+        <a class="portal-btn-primary" href="/oauth/start?new=1">Create Your Community &raquo;</a>
         <div class="portal-cta-meta">$0/mo on Cloudflare&#39;s free plan &middot; No server to rent</div>
       </div>
     </div>
@@ -116,7 +124,7 @@ const landingPageEn = (version: string) => `<!doctype html>
             <li><strong>Claim Ownership:</strong> Your Worker + D1 database deploy automatically. Create your admin account directly on your forum.</li>
           </ol>
           <div class="portal-mini-cta">
-            <a class="portal-btn-bevel" href="/oauth/start">Launch Installer &raquo;</a>
+            <a class="portal-btn-bevel" href="/oauth/start?new=1">Launch Installer &raquo;</a>
           </div>
         </div>
       </div>
@@ -166,7 +174,7 @@ const landingPageEn = (version: string) => `<!doctype html>
             Your band, your guild, your street, your favorite show &mdash; every great forum started with one topic someone cared about. <strong>EXTB (EXTra Board)</strong> gives you yours, free: real rooms and threads, a live chat room, polls and private messages, with the clarity and permanence of classic forums, running on edge computing that costs nothing to run and needs no server.
           </p>
           <div class="portal-hero-actions">
-            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">Click Here to Get Your Free Forum &raquo;</a>
+            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start?new=1">Click Here to Get Your Free Forum &raquo;</a>
             <a class="portal-btn-secondary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb" target="_blank" rel="noopener">Manual GitHub Deploy</a>
           </div>
         </div>
@@ -181,15 +189,15 @@ const landingPageEn = (version: string) => `<!doctype html>
         </div>
         <div class="portal-box-body">
           <ul class="portal-topic-grid">
-            <li><a href="/oauth/start">Games &amp; Guilds</a><span>D&amp;D nights, Minecraft servers, speedrunners</span></li>
-            <li><a href="/oauth/start">Music &amp; Bands</a><span>Your band, fan clubs, gear talk</span></li>
-            <li><a href="/oauth/start">Fandoms</a><span>Anime, sci-fi, that one show</span></li>
-            <li><a href="/oauth/start">Neighborhood</a><span>Your building, your street, local events</span></li>
-            <li><a href="/oauth/start">School &amp; Study</a><span>Classes, study groups, alumni</span></li>
-            <li><a href="/oauth/start">Clubs &amp; Hobbies</a><span>Photography, cars, gardening</span></li>
-            <li><a href="/oauth/start">Creators</a><span>Your audience, behind the scenes</span></li>
-            <li><a href="/oauth/start">Projects</a><span>Open source, makers, side projects</span></li>
-            <li><a href="/oauth/start">Support Circles</a><span>Parents, recovery, peer help</span></li>
+            <li><a href="/oauth/start?new=1">Games &amp; Guilds</a><span>D&amp;D nights, Minecraft servers, speedrunners</span></li>
+            <li><a href="/oauth/start?new=1">Music &amp; Bands</a><span>Your band, fan clubs, gear talk</span></li>
+            <li><a href="/oauth/start?new=1">Fandoms</a><span>Anime, sci-fi, that one show</span></li>
+            <li><a href="/oauth/start?new=1">Neighborhood</a><span>Your building, your street, local events</span></li>
+            <li><a href="/oauth/start?new=1">School &amp; Study</a><span>Classes, study groups, alumni</span></li>
+            <li><a href="/oauth/start?new=1">Clubs &amp; Hobbies</a><span>Photography, cars, gardening</span></li>
+            <li><a href="/oauth/start?new=1">Creators</a><span>Your audience, behind the scenes</span></li>
+            <li><a href="/oauth/start?new=1">Projects</a><span>Open source, makers, side projects</span></li>
+            <li><a href="/oauth/start?new=1">Support Circles</a><span>Parents, recovery, peer help</span></li>
           </ul>
           <p class="portal-small-copy portal-topic-note">Choose a starter style (community, club, creator, project or support) and EXTB writes your first rooms, rules and welcome threads. You approve all of it before anything is created.</p>
         </div>
@@ -411,7 +419,7 @@ const landingPageEn = (version: string) => `<!doctype html>
                 <strong>Run your community with or without AI:</strong> Connect Claude Code, Cursor, or any MCP client using a scoped admin token from <em>Admin &rarr; MCP</em>.
               </p>
               <p class="portal-small-copy">
-                Create rooms, customize colors, review moderation reports, or draft starter topics from your terminal—while every action is logged in the board's audit trail.
+                Create rooms, customize colors, review moderation reports, or draft starter topics from your terminal-while every action is logged in the board's audit trail.
               </p>
             </div>
             <pre class="portal-code-box" dir="ltr">claude mcp add --transport http my-forum \\
@@ -475,7 +483,7 @@ const landingPageEn = (version: string) => `<!doctype html>
         <div class="portal-box-header">Quick Links &amp; Docs</div>
         <div class="portal-box-body">
           <ul class="portal-links-list">
-            <li>&raquo; <a href="/oauth/start"><strong>Start Web Installer</strong></a></li>
+            <li>&raquo; <a href="/oauth/start?new=1"><strong>Start Web Installer</strong></a></li>
             <li>&raquo; <a href="https://github.com/royachiron/extb" target="_blank" rel="noopener">EXTB GitHub Repository</a></li>
             <li>&raquo; <a href="${releaseUrl(version)}" target="_blank" rel="noopener">Release Notes (${version || 'latest'})</a></li>
             <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/WEB_INSTALLER.md" target="_blank" rel="noopener">Installer Architecture</a></li>
@@ -495,7 +503,7 @@ const landingPageEn = (version: string) => `<!doctype html>
       <p>Launch a real forum, live chat, and private community space in your own Cloudflare account right now.</p>
     </div>
     <div class="portal-bottom-cta-buttons">
-      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">Continue with Cloudflare &raquo;</a>
+      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start?new=1">Continue with Cloudflare &raquo;</a>
     </div>
   </section>
 
@@ -523,7 +531,7 @@ const landingPageHe = (version: string) => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/wizard.css">
-<title>EXTB · פורטל EXTra Board — מערכת פורומים וקהילה בחינם בחשבון ה-Edge שלך</title>
+<title>EXTB · פורטל EXTra Board - מערכת פורומים וקהילה בחינם בחשבון ה-Edge שלך</title>
 </head>
 <body class="portal-body portal-rtl">
 <div class="portal-shell">
@@ -541,7 +549,7 @@ const landingPageHe = (version: string) => `<!doctype html>
         <a class="portal-lang-pill" href="/?lang=en" dir="ltr" lang="en">English (EN)</a>
         <a class="portal-lang-pill portal-lang-active" href="/?lang=he">עברית</a>
       </span> &middot;
-      <a href="/oauth/start">הקמת פורום &raquo;</a>
+      <a href="/oauth/start?new=1">הקמת פורום &raquo;</a>
     </div>
   </div>
 
@@ -560,7 +568,7 @@ const landingPageHe = (version: string) => `<!doctype html>
     <div class="portal-cta-box">
       <div class="portal-cta-header">אשף הקמה אוטומטי בלחיצה אחת</div>
       <div class="portal-cta-body">
-        <a class="portal-btn-primary" href="/oauth/start">יצירת הקהילה שלך עכשיו &raquo;</a>
+        <a class="portal-btn-primary" href="/oauth/start?new=1">יצירת הקהילה שלך עכשיו &raquo;</a>
         <div class="portal-cta-meta">0 ₪ לחודש במסלול החינמי של Cloudflare &middot; בלי לשכור שרת</div>
       </div>
     </div>
@@ -600,7 +608,7 @@ const landingPageHe = (version: string) => `<!doctype html>
             <li><strong>קבלת בעלות מלאה:</strong> ה-Worker ומסד הנתונים (D1) עולים אוטומטית. יצירת חשבון המנהל מתבצעת ישירות בפורום שלך.</li>
           </ol>
           <div class="portal-mini-cta">
-            <a class="portal-btn-bevel" href="/oauth/start">הפעלת אשף ההתקנה &raquo;</a>
+            <a class="portal-btn-bevel" href="/oauth/start?new=1">הפעלת אשף ההתקנה &raquo;</a>
           </div>
         </div>
       </div>
@@ -650,7 +658,7 @@ const landingPageHe = (version: string) => `<!doctype html>
             ללהקה, לגילדה, לשכונה, לסדרה האהובה &mdash; כל פורום גדול התחיל מנושא אחד שמישהו אהב. <strong>EXTB (EXTra Board)</strong> נותן לכם את שלכם, בחינם: חדרים ושרשורים אמיתיים, חדר צ׳אט חי, סקרים והודעות פרטיות, עם הסדר והקביעות של פורומי תור הזהב, על תשתית Edge שלא עולה שקל לתפעול ולא דורשת שרת.
           </p>
           <div class="portal-hero-actions">
-            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">לחצו כאן להקמת הפורום החינמי שלכם &raquo;</a>
+            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start?new=1">לחצו כאן להקמת הפורום החינמי שלכם &raquo;</a>
             <a class="portal-btn-secondary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb" target="_blank" rel="noopener">התקנה ידנית דרך GitHub</a>
           </div>
         </div>
@@ -665,15 +673,15 @@ const landingPageHe = (version: string) => `<!doctype html>
         </div>
         <div class="portal-box-body">
           <ul class="portal-topic-grid">
-            <li><a href="/oauth/start">משחקים וגילדות</a><span>ערבי D&amp;D, שרתי מיינקראפט, ספידראנרים</span></li>
-            <li><a href="/oauth/start">מוזיקה ולהקות</a><span>הלהקה שלכם, מועדוני מעריצים, ציוד</span></li>
-            <li><a href="/oauth/start">פאנדומים</a><span>אנימה, מדע בדיוני, הסדרה ההיא</span></li>
-            <li><a href="/oauth/start">שכונה</a><span>הבניין, הרחוב, אירועים מקומיים</span></li>
-            <li><a href="/oauth/start">לימודים</a><span>כיתות, קבוצות למידה, בוגרים</span></li>
-            <li><a href="/oauth/start">מועדונים ותחביבים</a><span>צילום, רכבים, גינון</span></li>
-            <li><a href="/oauth/start">יוצרים</a><span>הקהל שלכם, מאחורי הקלעים</span></li>
-            <li><a href="/oauth/start">פרויקטים</a><span>קוד פתוח, מייקרים, פרויקטים צדדיים</span></li>
-            <li><a href="/oauth/start">מעגלי תמיכה</a><span>הורים, החלמה, עזרה הדדית</span></li>
+            <li><a href="/oauth/start?new=1">משחקים וגילדות</a><span>ערבי D&amp;D, שרתי מיינקראפט, ספידראנרים</span></li>
+            <li><a href="/oauth/start?new=1">מוזיקה ולהקות</a><span>הלהקה שלכם, מועדוני מעריצים, ציוד</span></li>
+            <li><a href="/oauth/start?new=1">פאנדומים</a><span>אנימה, מדע בדיוני, הסדרה ההיא</span></li>
+            <li><a href="/oauth/start?new=1">שכונה</a><span>הבניין, הרחוב, אירועים מקומיים</span></li>
+            <li><a href="/oauth/start?new=1">לימודים</a><span>כיתות, קבוצות למידה, בוגרים</span></li>
+            <li><a href="/oauth/start?new=1">מועדונים ותחביבים</a><span>צילום, רכבים, גינון</span></li>
+            <li><a href="/oauth/start?new=1">יוצרים</a><span>הקהל שלכם, מאחורי הקלעים</span></li>
+            <li><a href="/oauth/start?new=1">פרויקטים</a><span>קוד פתוח, מייקרים, פרויקטים צדדיים</span></li>
+            <li><a href="/oauth/start?new=1">מעגלי תמיכה</a><span>הורים, החלמה, עזרה הדדית</span></li>
           </ul>
           <p class="portal-small-copy portal-topic-note">בחרו סגנון פתיחה (קהילה, מועדון, יוצרים, פרויקט או תמיכה) ו-EXTB יכתוב בשבילכם את החדרים, הכללים ושרשורי הפתיחה. אתם מאשרים הכול לפני שמשהו נוצר.</p>
         </div>
@@ -895,7 +903,7 @@ const landingPageHe = (version: string) => `<!doctype html>
                 <strong>ניהול קהילה עם או בלי AI:</strong> חברו את Claude Code, Cursor או כל לקוח MCP באמצעות אסימון הרשאה מתוך <em>ניהול &larr; MCP</em>.
               </p>
               <p class="portal-small-copy">
-                צרו חדרים, עדכנו צבעים, בדקו דיווחי תוכן או נסחו אשכולות פתיחה ישירות מהטרמינל — כשכל פעולה מתועדת ביומן הביקורת של הפורום.
+                צרו חדרים, עדכנו צבעים, בדקו דיווחי תוכן או נסחו אשכולות פתיחה ישירות מהטרמינל - כשכל פעולה מתועדת ביומן הביקורת של הפורום.
               </p>
             </div>
             <pre class="portal-code-box" dir="ltr">claude mcp add --transport http my-forum \\
@@ -959,7 +967,7 @@ const landingPageHe = (version: string) => `<!doctype html>
         <div class="portal-box-header">קישורים מהירים ותיעוד</div>
         <div class="portal-box-body">
           <ul class="portal-links-list">
-            <li>&raquo; <a href="/oauth/start"><strong>התחלת התקנה אוטומטית</strong></a></li>
+            <li>&raquo; <a href="/oauth/start?new=1"><strong>התחלת התקנה אוטומטית</strong></a></li>
             <li>&raquo; <a href="https://github.com/royachiron/extb" target="_blank" rel="noopener">מאגר הקוד ב-GitHub</a></li>
             <li>&raquo; <a href="${releaseUrl(version)}" target="_blank" rel="noopener">הערות שחרור (${version || 'latest'})</a></li>
             <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/WEB_INSTALLER.md" target="_blank" rel="noopener">ארכיטקטורת המתקין</a></li>
@@ -979,7 +987,7 @@ const landingPageHe = (version: string) => `<!doctype html>
       <p>הקימו פורום אמיתי, צ׳אט חי ומרחב קהילתי פרטי בחשבון ה-Cloudflare שלכם כבר עכשיו.</p>
     </div>
     <div class="portal-bottom-cta-buttons">
-      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">המשך עם Cloudflare &raquo;</a>
+      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start?new=1">המשך עם Cloudflare &raquo;</a>
     </div>
   </section>
 
@@ -1126,7 +1134,9 @@ const wizardStyles = String.raw`
 .portal-body .portal-wizard input:focus,
 .portal-body .portal-wizard select:focus,
 .portal-body .portal-wizard textarea:focus { outline: 2px solid var(--pt-gold); outline-offset: 0; }
-.portal-body .portal-wizard button {
+.portal-body .portal-wizard button,
+.portal-body .portal-wizard a.wizard-new {
+  display: inline-block;
   min-height: 40px;
   margin: 8px 0 0;
   margin-inline-end: 8px;
@@ -1142,6 +1152,9 @@ const wizardStyles = String.raw`
 .portal-body .portal-wizard button:hover { text-decoration: underline; }
 .portal-body .portal-wizard button:active { border-style: inset; }
 .portal-body .portal-wizard button:disabled { opacity: .55; cursor: default; text-decoration: none; }
+.portal-body .portal-wizard a.wizard-new { text-decoration: none; line-height: 22px; }
+.portal-body .portal-wizard a.wizard-new:hover { text-decoration: underline; }
+.portal-body .portal-wizard .wizard-new-row { margin-top: 18px; padding-top: 12px; border-top: 1px dotted var(--pt-navy); }
 .portal-body .portal-wizard a { display: inline-block; margin: 8px 0 0; margin-inline-end: 8px; font-weight: 700; color: var(--pt-navy); }
 .portal-body .portal-wizard section,
 .portal-body .portal-wizard details { display: block; margin: 10px 0; padding: 10px; background: var(--pt-soft); border: 1px solid var(--pt-line); border-radius: 0; }
@@ -1428,6 +1441,15 @@ body.portal-body.portal-rtl {
 }
 
 /* TICKER RIBBON */
+.portal-resume {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  font-weight: 700;
+  color: var(--pt-ink);
+  background: linear-gradient(180deg, var(--pt-gold-hi) 0%, var(--pt-gold) 100%);
+  border: 2px outset var(--pt-gold-edge);
+}
+.portal-resume a { color: var(--pt-navy); }
 .portal-ticker {
   display: flex;
   flex-wrap: wrap;

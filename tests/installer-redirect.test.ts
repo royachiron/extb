@@ -71,6 +71,27 @@ describe('installer browser redirects', () => {
     expect(unpinned).not.toContain('<code></code>');
   });
 
+  it('offers a way back to an earlier install only to browsers that have one', async () => {
+    const { env } = environment(origin);
+    const fresh = await (await worker.fetch(new Request(origin + '/'), env)).text();
+    expect(fresh).not.toContain('portal-resume');
+    const returning = await (await worker.fetch(new Request(origin + '/?lang=he', { headers: { Cookie: '__Host-extb_install=' + 'a'.repeat(43) } }), env)).text();
+    expect(returning).toContain('<p class="portal-resume">');
+    expect(returning).toContain('href="/wizard"');
+  });
+
+  it('starts a separate installation for new=1 instead of resuming the cookie one', async () => {
+    const { env } = environment('https://dash.cloudflare.com/oauth2/auth');
+    const ids: string[] = [];
+    (env.INSTALLATIONS.idFromName as unknown as ReturnType<typeof vi.fn>).mockImplementation((id: string) => { ids.push(id); return id; });
+    const existing = 'a'.repeat(43);
+    await worker.fetch(new Request(origin + '/oauth/start', { headers: { Cookie: '__Host-extb_install=' + existing } }), env);
+    const response = await worker.fetch(new Request(origin + '/oauth/start?new=1', { headers: { Cookie: '__Host-extb_install=' + existing } }), env);
+    expect(ids[0]).toBe(existing);
+    expect(ids[1]).not.toBe(existing);
+    expect(response.headers.get('Set-Cookie')).toContain('__Host-extb_install=' + ids[1]);
+  });
+
   it('keeps unverified feature claims off both landing pages', async () => {
     const { env } = environment(origin);
     for (const lang of ['en', 'he']) {
@@ -99,12 +120,13 @@ describe('installer browser redirects', () => {
     expect(page.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
     const html = await page.text();
     expect(html).toContain('EXTra Board');
-    expect(html).toContain('href="/oauth/start"');
+    expect(html).toContain('href="/oauth/start?new=1"');
+    expect(html).not.toContain('href="/oauth/start"');
     expect(html).toContain('Continue with Cloudflare');
     expect(html).not.toContain('2FA');
     const hebrew = await (await worker.fetch(new Request(origin + '/?lang=he'), env)).text();
     expect(hebrew).toContain('המשך עם Cloudflare');
-    expect(hebrew).toContain('href="/oauth/start"');
+    expect(hebrew).toContain('href="/oauth/start?new=1"');
 
     const css = await worker.fetch(new Request(origin + '/wizard.css'), env);
     expect(css.status).toBe(200);

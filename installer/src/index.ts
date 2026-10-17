@@ -18,7 +18,7 @@ async function handle(request:Request,env:Env):Promise<Response>{
  if(url.pathname==='/wizard.css')return new Response(styles+'\n'+landingStyles,{headers:{'Content-Type':'text/css','Cache-Control':'no-store'}});
  if(url.pathname==='/healthz')return json({ok:true});
  if(url.pathname==='/wizard.js')return new Response(wizardScript,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}});
- if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang,releaseVersion(env.RELEASE_MANIFEST_URL)),{headers});}
+ if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang,releaseVersion(env.RELEASE_MANIFEST_URL),!!cookie(request)),{headers});}
  if(!env.OAUTH_CLIENT_ID || !env.OAUTH_SCOPE || !env.ENCRYPTION_KEY)return json({error:'Installer registration is not configured'},503);
  if(url.pathname==='/oauth/start'){
   const id=url.searchParams.get('new')==='1'?randomToken():cookie(request)||randomToken();const stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
@@ -47,7 +47,8 @@ export class Installation implements DurableObject {
  private async route(request:Request):Promise<Response>{
  const url=new URL(request.url);let session=await this.state.storage.get<Session>('session');
  if(url.pathname==='/start'){
-  if(session?.job && session.job.stage!=='complete')return json({error:'An installation is already in progress; retry its current stage'},409);
+  // A failed stage keeps its checkpoint; fresh authorization is what its retry needs.
+  if(session?.job && session.job.stage!=='complete' && !session.job.error)return json({error:'An installation is already in progress; retry its current stage'},409);
   let previous=session;if(!previous){const installed=await this.state.storage.get<{subject:string;account:string;worker:string;database:string;databaseName:string;url:string;release:string}>('installation');if(installed)previous={expires:0,csrf:'',subject:installed.subject,job:{account:installed.account,worker:installed.worker,database:installed.database,databaseName:installed.databaseName,url:installed.url,stage:'complete',done:['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'],draft:null,release:{version:installed.release} as Release}};}if(previous && !previous.github)previous.github=await this.state.storage.get<{progress:GithubProgress;connection?:BuildConnection}>('github_connection');if(previous){await this.revoke(previous);await this.revokeGithub(previous);}const state=randomToken(),verifier=randomToken();session={expires:Date.now()+3600000,csrf:randomToken(),state:await digest(state),verifier,subject:previous?.subject,job:previous?.job,github:previous?.github};await this.save(session);
   const auth=new URL('https://dash.cloudflare.com/oauth2/auth');auth.search=new URLSearchParams({client_id:this.env.OAUTH_CLIENT_ID,redirect_uri:this.env.INSTALLER_ORIGIN+'/oauth/callback',response_type:'code',scope:session.job?.stage==='complete'?(this.env.GITHUB_CF_SCOPE||this.env.OAUTH_SCOPE):this.env.OAUTH_SCOPE,state,code_challenge:await digest(verifier),code_challenge_method:'S256'}).toString();return Response.redirect(auth.toString(),302);
  }
