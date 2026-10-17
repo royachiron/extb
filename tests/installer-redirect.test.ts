@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import worker from '../installer/src/index';
-import { renderWizardPage, resolveWizardLang } from '../installer/src/landing';
+import { releaseVersion, renderWizardPage, resolveWizardLang } from '../installer/src/landing';
 
 const origin = 'https://extb.achiron.fyi';
 
@@ -59,13 +59,33 @@ describe('installer browser redirects', () => {
     expect(wizard('', 'he-IL')).toBe('he');
   });
 
+  it('shows the pinned release version, or a neutral fallback without one', async () => {
+    expect(releaseVersion('https://github.com/royachiron/extb/releases/download/v0.4.1/extb-manifest.json')).toBe('v0.4.1');
+    expect(releaseVersion('')).toBe('');
+    const pinned = { ...environment(origin).env, RELEASE_MANIFEST_URL: 'https://github.com/royachiron/extb/releases/download/v0.4.1/extb-manifest.json' };
+    const html = await (await worker.fetch(new Request(origin + '/'), pinned)).text();
+    expect(html).toContain('<strong>v0.4.1</strong>');
+    expect(html).toContain('/releases/tag/v0.4.1');
+    const unpinned = await (await worker.fetch(new Request(origin + '/'), environment(origin).env)).text();
+    expect(unpinned).toContain('/releases/latest');
+    expect(unpinned).not.toContain('<code></code>');
+  });
+
+  it('keeps unverified feature claims off both landing pages', async () => {
+    const { env } = environment(origin);
+    for (const lang of ['en', 'he']) {
+      const html = await (await worker.fetch(new Request(origin + '/?lang=' + lang), env)).text();
+      for (const claim of ['2FA', 'TOTP', 'Sub-Forums', 'תתי־פורומים', '60 Sec', '60 שניות', '&lt;10ms', 'Group DMs', 'trust levels', 'דרגות אמון']) expect(html, lang + ' ' + claim).not.toContain(claim);
+    }
+  });
+
   it('renders the setup wizard inside the portal shell in the chosen language', () => {
     const hebrew = renderWizardPage('he');
     expect(hebrew).toContain('<html lang="he" dir="rtl">');
     expect(hebrew).toContain('<main id="app">');
     expect(hebrew).toContain('src="/wizard.js"');
     expect(hebrew).toContain('הקמת קהילה');
-    expect(renderWizardPage('en')).toContain('Community setup');
+    expect(renderWizardPage('en')).toContain('Community Setup');
   });
 
   it.each(['feed-chat', 'topic-poll', 'admin-cpanel', 'hebrew-rtl'])('ships the %s screenshot as a static PNG asset', (name) => {

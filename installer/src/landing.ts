@@ -1,4 +1,8 @@
+// extb.achiron.fyi portal: a 2002-style web portal for a 2026 forum engine.
+// Feature claims here must match the shipped forum; check src/ before adding one.
 export type PortalLang = 'en' | 'he';
+
+const REPO = 'https://github.com/royachiron/extb';
 
 export function resolvePortalLang(url: URL, acceptLanguage?: string | null): PortalLang {
   const param = url.searchParams.get('lang')?.toLowerCase();
@@ -6,8 +10,17 @@ export function resolvePortalLang(url: URL, acceptLanguage?: string | null): Por
   return /^\s*he\b/i.test(acceptLanguage ?? '') ? 'he' : 'en';
 }
 
-export function renderLandingPage(lang: PortalLang = 'en'): string {
-  return lang === 'he' ? landingPageHe : landingPageEn;
+/** The pinned release (e.g. v0.4.1) taken from the installer's manifest URL; '' when unknown. */
+export function releaseVersion(manifestUrl?: string): string {
+  return manifestUrl?.match(/\/releases\/download\/(v\d+\.\d+\.\d+[A-Za-z0-9.-]*)\//)?.[1] ?? '';
+}
+
+function releaseUrl(version: string): string {
+  return version ? `${REPO}/releases/tag/${version}` : `${REPO}/releases/latest`;
+}
+
+export function renderLandingPage(lang: PortalLang = 'en', version = ''): string {
+  return lang === 'he' ? landingPageHe(version) : landingPageEn(version);
 }
 
 // The landing page remembers an explicit language choice so the setup wizard can follow it.
@@ -20,653 +33,1881 @@ export function resolveWizardLang(request: Request): PortalLang {
   return chosen === 'he' || chosen === 'en' ? chosen : resolvePortalLang(new URL(request.url), request.headers.get('Accept-Language'));
 }
 
-export function renderWizardPage(lang: PortalLang): string {
-  const t = lang === 'he' ? he : en;
-  const w = lang === 'he'
-    ? { title: 'הקמת קהילה', loading: 'טוען…', steps: 'השלבים', back: 'חזרה לדף הבית' }
-    : { title: 'Community setup', loading: 'Loading…', steps: 'The steps', back: 'Back to home' };
-  return `<!doctype html>
-<html lang="${t.lang}" dir="${t.dir}">
+const landingPageEn = (version: string) => `<!doctype html>
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/wizard.css">
-<title>EXTB · ${w.title}</title>
+<title>EXTB · EXTra Board Portal — Free Community Forum on Your Own Edge</title>
 </head>
 <body class="portal-body">
 <div class="portal-shell">
+
+  <!-- TOP PORTAL UTILITY BAR -->
   <div class="portal-eyebrow">
-    <span><span class="portal-dot" aria-hidden="true"></span>${t.portal}</span>
-    <a class="portal-eyebrow-link" href="/?lang=${t.lang}">${w.back}</a>
-  </div>
-  <header class="portal-masthead">
-    <div class="portal-logo" aria-hidden="true"><span>EXTB</span></div>
-    <div>
-      <div class="portal-name">EXTra Board <span class="portal-chip">${t.tagline}</span></div>
-      <div class="portal-tagline">${t.motto}</div>
+    <div class="portal-eyebrow-left">
+      <span class="portal-dot" aria-hidden="true"></span>
+      <strong>EXTB NETWORK PORTAL</strong> &middot; Directory: <a href="#features">Software</a> &raquo; <a href="#architecture">Edge Forums</a> &raquo; <a href="#presets">Community Starter</a>
     </div>
-  </header>
-  <div class="portal-layout">
-    <div class="portal-col-main">
-      <div class="portal-panel portal-wizard">
-        <h1 class="portal-h2">${w.title}</h1>
-        <main id="app">${w.loading}</main>
+    <div class="portal-eyebrow-right">
+      <span>Release: <strong>${version || 'latest'}</strong></span> &middot;
+      <span>License: <strong>MIT Open Source</strong></span> &middot;
+      <span class="portal-lang-switch" aria-label="Language switch">
+        <a class="portal-lang-pill portal-lang-active" href="/?lang=en">EN</a>
+        <a class="portal-lang-pill" href="/?lang=he" dir="rtl" lang="he">עברית (HE)</a>
+      </span> &middot;
+      <a href="/oauth/start">Start Your Forum &raquo;</a>
+    </div>
+  </div>
+
+  <!-- MASTHEAD BANNER -->
+  <header class="portal-masthead">
+    <div class="portal-brand">
+      <div class="portal-badge" aria-hidden="true">
+        <span class="portal-badge-top">EXTB</span>
+        <span class="portal-badge-sub">EST &middot; EDGE</span>
+      </div>
+      <div>
+        <h1 class="portal-title">EXTra Board <span class="portal-title-tag">Community Engine</span></h1>
+        <p class="portal-subtitle">The classic golden-era web forum, reborn on zero-maintenance serverless infrastructure. Your community. Your database. Live in one click.</p>
       </div>
     </div>
-    <aside class="portal-col-side">
-      ${box(w.steps, `<ol class="portal-wizard-steps">${t.steps.map(s => `<li><strong>${s.title}</strong><span>${s.text}</span></li>`).join('')}</ol>`, 'portal-box-gold')}
-      ${box(t.safeTitle, `<p>${t.safeText}</p>`)}
-      ${box(t.freeTitle, `<p>${t.freeText}</p>`)}
+    <div class="portal-cta-box">
+      <div class="portal-cta-header">INSTANT PROVISIONING WIZARD</div>
+      <div class="portal-cta-body">
+        <a class="portal-btn-primary" href="/oauth/start">Create Your Community &raquo;</a>
+        <div class="portal-cta-meta">$0/mo on Cloudflare&#39;s free plan &middot; No server to rent</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CHANNEL TAB STRIP -->
+  <nav class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab portal-tab-active" href="#overview">Home &amp; Overview</a>
+    <a class="portal-tab" href="#topics">Forum Ideas</a>
+    <a class="portal-tab" href="#features">Feature Directory</a>
+    <a class="portal-tab" href="#board-preview">Live Board Preview</a>
+    <a class="portal-tab" href="#architecture">2026 Edge Specs</a>
+    <a class="portal-tab" href="#agent-mcp">AI &amp; MCP Admin</a>
+    <a class="portal-tab" href="https://github.com/royachiron/extb" target="_blank" rel="noopener">Source Code (GitHub)</a>
+  </nav>
+
+  <!-- TICKER / STATUS RIBBON -->
+  <div class="portal-ticker" id="overview">
+    <span class="portal-ticker-label">WHAT'S NEW</span>
+    <span class="portal-ticker-text">
+      Richer Feed Cards &bull; Poll Peek &amp; Undo &bull; Duplicate Topic Guard &bull; Read-Only Freeze Mode &bull; Smoother First-Time Setup &bull; Full Hebrew RTL &amp; English LTR
+    </span>
+  </div>
+
+  <!-- 3-COLUMN PORTAL GRID -->
+  <div class="portal-grid">
+
+    <!-- LEFT SIDEBAR: DIRECTORY & QUICK SPECS -->
+    <aside class="portal-col-left">
+      <div class="portal-box">
+        <div class="portal-box-header">1-Click Setup Steps</div>
+        <div class="portal-box-body">
+          <ol class="portal-steps">
+            <li><strong>Authorize Cloudflare:</strong> Connect via official PKCE OAuth. Credentials are sealed and auto-revoked after deploy.</li>
+            <li><strong>Shape Your Board:</strong> Pick a name, purpose, language (EN / HE), and starter preset.</li>
+            <li><strong>Preview &amp; Approve:</strong> Inspect or customize starter rooms and welcome threads before anything is created.</li>
+            <li><strong>Claim Ownership:</strong> Your Worker + D1 database deploy automatically. Create your admin account directly on your forum.</li>
+          </ol>
+          <div class="portal-mini-cta">
+            <a class="portal-btn-bevel" href="/oauth/start">Launch Installer &raquo;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="portal-box" id="architecture">
+        <div class="portal-box-header">System Specifications</div>
+        <div class="portal-box-body">
+          <table class="portal-spec-table">
+            <tbody>
+              <tr><th>Runtime</th><td>Cloudflare Workers (ES2022)</td></tr>
+              <tr><th>Database</th><td>Cloudflare D1 (SQLite Edge)</td></tr>
+              <tr><th>Real-Time</th><td>Hibernatable WebSockets DO</td></tr>
+              <tr><th>Auth Crypto</th><td>PBKDF2-SHA256 (Durable Object)</td></tr>
+              <tr><th>Frontend</th><td>SSR HTML + HTMX 2.0</td></tr>
+              <tr><th>Themes</th><td>Light &amp; Dark Mode (CSS Vars)</td></tr>
+              <tr><th>Languages</th><td>English (LTR) &amp; Hebrew (RTL)</td></tr>
+              <tr><th>AI Ready</th><td>Workers AI (Qwen) + MCP API</td></tr>
+              <tr><th>Monthly Cost</th><td><strong>$0</strong> on the free plan</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="portal-box" id="presets">
+        <div class="portal-box-header">5 Ready-Made Presets</div>
+        <div class="portal-box-body">
+          <ul class="portal-list">
+            <li><strong>General Community</strong><span>Town square, introductions, announcements, and live lounge.</span></li>
+            <li><strong>Club / Local Group</strong><span>Neighborhoods, hobby clubs, meetups, and member coordination.</span></li>
+            <li><strong>Creator Community</strong><span>Showcases, feedback threads, behind-the-scenes, and fan chat.</span></li>
+            <li><strong>Project Community</strong><span>Releases, roadmaps, bug reports, and contributor discussions.</span></li>
+            <li><strong>Support Community</strong><span>Troubleshooting, Q&amp;A knowledge base, and peer assistance.</span></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: HERO PITCH, DIRECTORY OF FEATURES, SIMULATED BOARD -->
+    <main class="portal-col-main">
+
+      <!-- HERO PANEL -->
+      <section class="portal-hero-card">
+        <div class="portal-hero-banner">
+          <div class="portal-hero-kicker">REMEMBER WANTING A FORUM OF YOUR OWN?</div>
+          <h2 class="portal-hero-headline">It Looks Like 2002. It Runs Like 2026. And It's 100% Yours.</h2>
+          <p class="portal-hero-lead">
+            Your band, your guild, your street, your favorite show &mdash; every great forum started with one topic someone cared about. <strong>EXTB (EXTra Board)</strong> gives you yours, free: real rooms and threads, a live chat room, polls and private messages, with the clarity and permanence of classic forums, running on edge computing that costs nothing to run and needs no server.
+          </p>
+          <div class="portal-hero-actions">
+            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">Click Here to Get Your Free Forum &raquo;</a>
+            <a class="portal-btn-secondary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb" target="_blank" rel="noopener">Manual GitHub Deploy</a>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- WHAT WILL YOURS BE ABOUT? (DIRECTORY OF COMMUNITIES) -->
+      <section class="portal-box" id="topics">
+        <div class="portal-box-header">
+          <span>What Will Yours Be About? &mdash; Community Directory</span>
+          <span class="portal-header-right">Pick a Topic &middot; Click to Start</span>
+        </div>
+        <div class="portal-box-body">
+          <ul class="portal-topic-grid">
+            <li><a href="/oauth/start">Games &amp; Guilds</a><span>D&amp;D nights, Minecraft servers, speedrunners</span></li>
+            <li><a href="/oauth/start">Music &amp; Bands</a><span>Your band, fan clubs, gear talk</span></li>
+            <li><a href="/oauth/start">Fandoms</a><span>Anime, sci-fi, that one show</span></li>
+            <li><a href="/oauth/start">Neighborhood</a><span>Your building, your street, local events</span></li>
+            <li><a href="/oauth/start">School &amp; Study</a><span>Classes, study groups, alumni</span></li>
+            <li><a href="/oauth/start">Clubs &amp; Hobbies</a><span>Photography, cars, gardening</span></li>
+            <li><a href="/oauth/start">Creators</a><span>Your audience, behind the scenes</span></li>
+            <li><a href="/oauth/start">Projects</a><span>Open source, makers, side projects</span></li>
+            <li><a href="/oauth/start">Support Circles</a><span>Parents, recovery, peer help</span></li>
+          </ul>
+          <p class="portal-small-copy portal-topic-note">Choose a starter style (community, club, creator, project or support) and EXTB writes your first rooms, rules and welcome threads. You approve all of it before anything is created.</p>
+        </div>
+      </section>
+
+      <!-- LYCOS-STYLE DIRECTORY OF FEATURES -->
+      <section class="portal-box" id="features">
+        <div class="portal-box-header">
+          <span>Webmaster's Feature Directory &mdash; Everything Included Out of the Box</span>
+          <span class="portal-header-right">6 Core Modules &middot; All Included</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-directory-grid">
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Structured Forum Rooms</h3>
+              <p class="portal-dir-links">
+                Pinned &amp; Locked Topics &middot; Rich Markdown &amp; Quotes &middot; Inline Polls &middot; Reactions &amp; Likes &middot; Unread Tracking &middot; Search
+              </p>
+              <p class="portal-dir-desc">
+                Real threads that stay organized for years. Includes inline poll voting directly from the home feed, optional image uploads, and instant deep-link reply highlighting.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Hibernating Live Chat</h3>
+              <p class="portal-dir-links">
+                WebSocket Rooms &middot; Online Presence &middot; Chat-to-Topic Promotion &middot; Zero Idle Cost
+              </p>
+              <p class="portal-dir-desc">
+                Every community gets real-time chat rooms backed by Cloudflare Durable Objects. When nobody is chatting, rooms hibernate automatically so you never pay for idle compute.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Private Messages &amp; Mentions</h3>
+              <p class="portal-dir-links">
+                Private DMs &amp; Typing &middot; @Mentions &middot; Thread Subscriptions &middot; Web Push (Optional)
+              </p>
+              <p class="portal-dir-desc">
+                Members can message each other privately, follow topics, get browser push notifications (optional), and customize their profiles, avatars, and bios.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Invitation &amp; Intake System</h3>
+              <p class="portal-dir-links">
+                Invite Codes &middot; Membership Applications &middot; Private Boards &middot; Staff Announcements
+              </p>
+              <p class="portal-dir-desc">
+                Run an open town square, an application-reviewed club, or a strictly private room. Single-use invites and customizable intake questions keep spam out.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Practical Moderation Suite</h3>
+              <p class="portal-dir-links">
+                Reports Queue &middot; Warnings &amp; Bans &middot; Ban Appeals &middot; Audit Log &middot; Read-Only Freeze Mode
+              </p>
+              <p class="portal-dir-desc">
+                Full moderator toolkit with transparent audit history, content review queues, and a one-switch Read-Only mode for maintenance or archiving.
+              </p>
+            </div>
+
+            <div class="portal-dir-item" id="agent-mcp">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Built-In AI &amp; MCP Server</h3>
+              <p class="portal-dir-links">
+                Model Context Protocol (<code>/mcp</code>) &middot; Scoped Tokens &middot; Claude / Cursor / CLI Ready
+              </p>
+              <p class="portal-dir-desc">
+                Administer your board from your favorite AI coding agent. Create rooms, update branding, review moderation reports, or seed starter threads via natural language.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- REAL FEATURE SCREENSHOTS SHOWCASE -->
+      <section class="portal-box" id="screenshots">
+        <div class="portal-box-header">
+          <span>Inside a Live EXTB Community &mdash; Real Feature Screenshots</span>
+          <span class="portal-header-right">Click Any Screen to Enlarge</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-shots-grid">
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; Main Feed + Docked Live WebSocket Chat</span>
+                <a class="portal-shot-zoom" href="/screenshots/feed-chat.png" target="_blank" rel="noopener">[Full Size &nearr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/feed-chat.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/feed-chat.png" alt="EXTB main feed with active labels, participant avatars, and docked live WebSocket chat" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>Rich Activity Feed &amp; Persistent Chat Dock:</strong> Unread tracking, 24h "Active" badges, participant avatars, and a hibernating WebSocket chat sidebar that stays connected while navigating via HTMX.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; Discussion Thread + Interactive Polls</span>
+                <a class="portal-shot-zoom" href="/screenshots/topic-poll.png" target="_blank" rel="noopener">[Full Size &nearr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/topic-poll.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/topic-poll.png" alt="EXTB discussion thread with live interactive poll bars, vote percentages, and thread follow controls" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>Structured Threads &amp; Polls:</strong> Single or multi-choice polls with instant HTMX voting, peek-before-voting, undo support, thread subscriptions, and deep-linked replies.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; Admin cPanel: People, Spaces, Moderation &amp; MCP</span>
+                <a class="portal-shot-zoom" href="/screenshots/admin-cpanel.png" target="_blank" rel="noopener">[Full Size &nearr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/admin-cpanel.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/admin-cpanel.png" alt="EXTB Admin cPanel showing user management, roles, invitations, and MCP tokens" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>Complete Control Panel (cPanel):</strong> Manage member roles, room permissions, membership intake applications, invitation links, moderation queues, and scoped AI/MCP tokens.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; Native Hebrew (RTL) &amp; Bilingual UI</span>
+                <a class="portal-shot-zoom" href="/screenshots/hebrew-rtl.png" target="_blank" rel="noopener">[Full Size &nearr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/hebrew-rtl.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/hebrew-rtl.png" alt="EXTB running in full Hebrew Right-to-Left layout" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>First-Class Bilingual Support:</strong> Built-in 1-click toggle between English (LTR) and Hebrew (RTL), plus full Light &amp; Dark theme support across desktop and mobile.
+              </figcaption>
+            </figure>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE BOARD INDEX PREVIEW (2002 vBulletin / phpBB style table!) -->
+      <section class="portal-box" id="board-preview">
+        <div class="portal-box-header">
+          <span>What You Get: Classic Board Structure + Real-Time Activity</span>
+          <span class="portal-header-right">Sample Provisioned Community</span>
+        </div>
+        <div class="portal-box-body portal-box-flush">
+          <table class="portal-board-table" aria-label="Sample forum rooms">
+            <thead>
+              <tr>
+                <th>Forum / Room</th>
+                <th class="portal-num">Capabilities</th>
+                <th>Latest Activity Preview</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9733; Announcements &amp; Rules</div>
+                  <div class="portal-room-desc">Official updates from community staff. Public reading, staff-only posting.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">Staff Post</span></td>
+                <td class="portal-lastpost">
+                  <strong>Welcome to our new home!</strong><br>
+                  <span>Pinned charter &amp; community guidelines</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9993; Introductions &amp; Intake</div>
+                  <div class="portal-room-desc">Say hello, share what you're working on, and meet fellow members.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">Threads + Polls</span></td>
+                <td class="portal-lastpost">
+                  <strong>Introduce yourself to the board</strong><br>
+                  <span>Starter thread pre-populated on setup</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9881; General Discussion</div>
+                  <div class="portal-room-desc">Long-form conversations, polls, project showcases, and deep dives.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">Markdown + Push</span></td>
+                <td class="portal-lastpost">
+                  <strong>What should we build next? [Poll]</strong><br>
+                  <span>Inline feed voting &amp; instant HTMX replies</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9889; Community Live Lounge</div>
+                  <div class="portal-room-desc">Real-time WebSocket chat room with online presence and message history.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">Live WebSocket</span></td>
+                <td class="portal-lastpost">
+                  <strong>Hibernating Durable Object</strong><br>
+                  <span>Sleeps when quiet, wakes when members join</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 2026 EDGE / MCP CONSOLE PREVIEW -->
+      <section class="portal-box">
+        <div class="portal-box-header">
+          <span>2002 Interface Outside &mdash; 2026 Agentic Engine Inside</span>
+          <span class="portal-header-right">Built-In MCP Endpoint (<code>/mcp</code>)</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-console-split">
+            <div>
+              <p class="portal-small-copy">
+                <strong>Run your community with or without AI:</strong> Connect Claude Code, Cursor, or any MCP client using a scoped admin token from <em>Admin &rarr; MCP</em>.
+              </p>
+              <p class="portal-small-copy">
+                Create rooms, customize colors, review moderation reports, or draft starter topics from your terminal—while every action is logged in the board's audit trail.
+              </p>
+            </div>
+            <pre class="portal-code-box" dir="ltr">claude mcp add --transport http my-forum \\
+  https://your-forum.workers.dev/mcp \\
+  --header "Authorization: Bearer &lt;token&gt;"</pre>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- RIGHT SIDEBAR: WHY OWN YOUR BOARD, COMPARISON, SECURITY -->
+    <aside class="portal-col-right">
+
+      <div class="portal-box portal-box-highlight">
+        <div class="portal-box-header">Why Webmasters Choose EXTB</div>
+        <div class="portal-box-body">
+          <ul class="portal-check-list">
+            <li><strong>No SaaS Lock-In:</strong> Runs in <em>your</em> Cloudflare account on <em>your</em> D1 SQLite database.</li>
+            <li><strong>Indexable &amp; Permanent:</strong> Unlike chat silos, threads have real URLs, clean HTML, and structured knowledge.</li>
+            <li><strong>Zero Server Maintenance:</strong> No Linux VPS to patch, no Redis daemon to crash, no Docker containers to babysit.</li>
+            <li><strong>GitHub Optional:</strong> Start with 1-click browser provisioning; connect a private GitHub repo later if you want to customize code.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">Security &amp; Zero-Trust Setup</div>
+        <div class="portal-box-body">
+          <p class="portal-small-copy">
+            <strong>Your password never touches this installer.</strong>
+          </p>
+          <p class="portal-small-copy">
+            EXTB provisions checksum-verified release artifacts${version ? ` (<code>${version}</code>)` : ''} directly to your Cloudflare account via PKCE OAuth. Temporary tokens are encrypted with AES-GCM and automatically revoked the moment your forum is live.
+          </p>
+          <p class="portal-small-copy">
+            You create your owner account directly on your newly deployed forum over an encrypted one-time handoff.
+          </p>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">Compare the Era</div>
+        <div class="portal-box-body portal-box-flush">
+          <table class="portal-compare-table">
+            <thead>
+              <tr><th>Feature</th><th>2002 PHP</th><th>EXTB</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Setup</td><td>FTP + MySQL</td><td><strong>A Few Clicks</strong></td></tr>
+              <tr><td>Hosting Bill</td><td>Paid Host</td><td><strong>$0 Free Plan</strong></td></tr>
+              <tr><td>Live Chat</td><td>Plugin</td><td><strong>Built-In</strong></td></tr>
+              <tr><td>Mobile UI</td><td>None</td><td><strong>Native</strong></td></tr>
+              <tr><td>AI / MCP</td><td>None</td><td><strong>Built-In</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">Quick Links &amp; Docs</div>
+        <div class="portal-box-body">
+          <ul class="portal-links-list">
+            <li>&raquo; <a href="/oauth/start"><strong>Start Web Installer</strong></a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb" target="_blank" rel="noopener">EXTB GitHub Repository</a></li>
+            <li>&raquo; <a href="${releaseUrl(version)}" target="_blank" rel="noopener">Release Notes (${version || 'latest'})</a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/WEB_INSTALLER.md" target="_blank" rel="noopener">Installer Architecture</a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener">Manual CLI Setup Guide</a></li>
+          </ul>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- BOTTOM BANNER CTA -->
+  <section class="portal-bottom-cta">
+    <div>
+      <h2>Ready to Open Your Doors?</h2>
+      <p>Launch a real forum, live chat, and private community space in your own Cloudflare account right now.</p>
+    </div>
+    <div class="portal-bottom-cta-buttons">
+      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">Continue with Cloudflare &raquo;</a>
+    </div>
+  </section>
+
+  <!-- CLASSIC PORTAL FOOTER -->
+  <footer class="portal-footer">
+    <div class="portal-footer-badges">
+      <span class="portal-micro-badge">EXTB <strong>${version || 'latest'}</strong></span>
+      <span class="portal-micro-badge">CLOUDFLARE <strong>WORKERS + D1</strong></span>
+      <span class="portal-micro-badge">HTMX <strong>2.0 SSR</strong></span>
+      <span class="portal-micro-badge">MCP <strong>AGENT READY</strong></span>
+      <span class="portal-micro-badge">LICENSE <strong>MIT</strong></span>
+    </div>
+    <p>
+      <strong>EXTB &middot; EXTra Board</strong> &mdash; Open-source community software created by Roy Achiron. Each installation is 100% independent and owned by its operator.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>`;
+
+const landingPageHe = (version: string) => `<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/wizard.css">
+<title>EXTB · פורטל EXTra Board — מערכת פורומים וקהילה בחינם בחשבון ה-Edge שלך</title>
+</head>
+<body class="portal-body portal-rtl">
+<div class="portal-shell">
+
+  <!-- TOP PORTAL UTILITY BAR -->
+  <div class="portal-eyebrow">
+    <div class="portal-eyebrow-left">
+      <span class="portal-dot" aria-hidden="true"></span>
+      <strong>פורטל הרשת EXTB</strong> &middot; אינדקס: <a href="#features">תוכנה</a> &raquo; <a href="#architecture">פורומים ב-Edge</a> &raquo; <a href="#presets">ערכות קהילה</a>
+    </div>
+    <div class="portal-eyebrow-right">
+      <span>גרסה: <strong>${version || 'latest'}</strong></span> &middot;
+      <span>רישיון: <strong>קוד פתוח MIT</strong></span> &middot;
+      <span class="portal-lang-switch" aria-label="החלפת שפה">
+        <a class="portal-lang-pill" href="/?lang=en" dir="ltr" lang="en">English (EN)</a>
+        <a class="portal-lang-pill portal-lang-active" href="/?lang=he">עברית</a>
+      </span> &middot;
+      <a href="/oauth/start">הקמת פורום &raquo;</a>
+    </div>
+  </div>
+
+  <!-- MASTHEAD BANNER -->
+  <header class="portal-masthead">
+    <div class="portal-brand">
+      <div class="portal-badge" aria-hidden="true" dir="ltr">
+        <span class="portal-badge-top">EXTB</span>
+        <span class="portal-badge-sub">EST &middot; EDGE</span>
+      </div>
+      <div>
+        <h1 class="portal-title">EXTra Board <span class="portal-title-tag">מנוע קהילות</span></h1>
+        <p class="portal-subtitle">הפורום הקלאסי של תור הזהב באינטרנט, נולד מחדש על תשתית Serverless ללא תחזוקה. הקהילה שלך. מסד הנתונים שלך. באוויר בלחיצת כפתור.</p>
+      </div>
+    </div>
+    <div class="portal-cta-box">
+      <div class="portal-cta-header">אשף הקמה אוטומטי בלחיצה אחת</div>
+      <div class="portal-cta-body">
+        <a class="portal-btn-primary" href="/oauth/start">יצירת הקהילה שלך עכשיו &raquo;</a>
+        <div class="portal-cta-meta">0 ₪ לחודש במסלול החינמי של Cloudflare &middot; בלי לשכור שרת</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CHANNEL TAB STRIP -->
+  <nav class="portal-tabs" aria-label="מדורי הפורטל">
+    <a class="portal-tab portal-tab-active" href="#overview">ראשי וסקירה</a>
+    <a class="portal-tab" href="#topics">רעיונות לפורום</a>
+    <a class="portal-tab" href="#features">אינדקס יכולות</a>
+    <a class="portal-tab" href="#board-preview">תצוגת לוח הפורומים</a>
+    <a class="portal-tab" href="#architecture">מפרט טכני 2026</a>
+    <a class="portal-tab" href="#agent-mcp">ניהול AI ו-MCP</a>
+    <a class="portal-tab" href="https://github.com/royachiron/extb" target="_blank" rel="noopener">קוד מקור (GitHub)</a>
+  </nav>
+
+  <!-- TICKER / STATUS RIBBON -->
+  <div class="portal-ticker" id="overview">
+    <span class="portal-ticker-label">מה חדש</span>
+    <span class="portal-ticker-text">
+      כרטיסי פיד עשירים &bull; הצצה וביטול בסקרים &bull; מניעת נושאים כפולים &bull; מצב קריאה בלבד &bull; הקמה ראשונה חלקה יותר &bull; עברית (RTL) ואנגלית מלאות
+    </span>
+  </div>
+
+  <!-- 3-COLUMN PORTAL GRID -->
+  <div class="portal-grid">
+
+    <!-- RIGHT SIDEBAR IN RTL (STEPS, SPECS, PRESETS) -->
+    <aside class="portal-col-left">
+      <div class="portal-box">
+        <div class="portal-box-header">4 שלבים להקמת קהילה</div>
+        <div class="portal-box-body">
+          <ol class="portal-steps">
+            <li><strong>חיבור Cloudflare:</strong> אימות רשמי ומאובטח (PKCE OAuth). ההרשאה מוצפנת ומתבטלת אוטומטית מיד בסיום ההתקנה.</li>
+            <li><strong>עיצוב הקהילה:</strong> בחירת שם, מטרה, שפת ממשק (עברית / אנגלית) וערכת נושא מוכנה.</li>
+            <li><strong>תצוגה מקדימה ואישור:</strong> צפייה ועריכה של החדרים ונושאי הפתיחה לפני שנוצר משאב כלשהו.</li>
+            <li><strong>קבלת בעלות מלאה:</strong> ה-Worker ומסד הנתונים (D1) עולים אוטומטית. יצירת חשבון המנהל מתבצעת ישירות בפורום שלך.</li>
+          </ol>
+          <div class="portal-mini-cta">
+            <a class="portal-btn-bevel" href="/oauth/start">הפעלת אשף ההתקנה &raquo;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="portal-box" id="architecture">
+        <div class="portal-box-header">מפרט מערכת טכני</div>
+        <div class="portal-box-body">
+          <table class="portal-spec-table">
+            <tbody>
+              <tr><th>סביבת ריצה</th><td>Cloudflare Workers (ES2022)</td></tr>
+              <tr><th>מסד נתונים</th><td>Cloudflare D1 (SQLite Edge)</td></tr>
+              <tr><th>זמן אמת</th><td>WebSockets ב-Durable Objects</td></tr>
+              <tr><th>הצפנה ואימות</th><td>PBKDF2-SHA256 (Durable Object)</td></tr>
+              <tr><th>ממשק משתמש</th><td>SSR HTML + HTMX 2.0</td></tr>
+              <tr><th>ערכות צבע</th><td>מצב בהיר ומצב כהה מובנים</td></tr>
+              <tr><th>שפות וכיווניות</th><td>עברית (RTL) ואנגלית (LTR)</td></tr>
+              <tr><th>מוכנות ל-AI</th><td>Workers AI (Qwen) + שרת MCP</td></tr>
+              <tr><th>עלות חודשית</th><td><strong>0 ₪</strong> במסלול החינמי</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="portal-box" id="presets">
+        <div class="portal-box-header">5 ערכות פתיחה מוכנות</div>
+        <div class="portal-box-body">
+          <ul class="portal-list">
+            <li><strong>קהילה כללית (General)</strong><span>כיכר העיר, היכרות, הכרזות הנהלה וטרקלין צ׳אט חי.</span></li>
+            <li><strong>מועדון / קבוצה מקומית</strong><span>שכונות, מועדוני תחביבים, מפגשים ותיאום בין חברים.</span></li>
+            <li><strong>קהילת יוצרים (Creator)</strong><span>שיתוף יצירות, משוב, מאחורי הקלעים וצ׳אט קהילתי.</span></li>
+            <li><strong>קהילת פרויקט (Project)</strong><span>עדכוני גרסאות, מפת דרכים, דיווחי באגים ודיוני פיתוח.</span></li>
+            <li><strong>קהילת תמיכה (Support)</strong><span>פתרון תקלות, מאגר שאלות ותשובות ועזרה הדדית.</span></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: HERO PITCH, DIRECTORY OF FEATURES, SIMULATED BOARD -->
+    <main class="portal-col-main">
+
+      <!-- HERO PANEL -->
+      <section class="portal-hero-card">
+        <div class="portal-hero-banner">
+          <div class="portal-hero-kicker">זוכרים שרציתם פורום משלכם?</div>
+          <h2 class="portal-hero-headline">נראה כמו 2002. טס כמו 2026. ו-100% בבעלותך.</h2>
+          <p class="portal-hero-lead">
+            ללהקה, לגילדה, לשכונה, לסדרה האהובה &mdash; כל פורום גדול התחיל מנושא אחד שמישהו אהב. <strong>EXTB (EXTra Board)</strong> נותן לכם את שלכם, בחינם: חדרים ושרשורים אמיתיים, חדר צ׳אט חי, סקרים והודעות פרטיות, עם הסדר והקביעות של פורומי תור הזהב, על תשתית Edge שלא עולה שקל לתפעול ולא דורשת שרת.
+          </p>
+          <div class="portal-hero-actions">
+            <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">לחצו כאן להקמת הפורום החינמי שלכם &raquo;</a>
+            <a class="portal-btn-secondary" href="https://deploy.workers.cloudflare.com/?url=https://github.com/royachiron/extb" target="_blank" rel="noopener">התקנה ידנית דרך GitHub</a>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- WHAT WILL YOURS BE ABOUT? (DIRECTORY OF COMMUNITIES) -->
+      <section class="portal-box" id="topics">
+        <div class="portal-box-header">
+          <span>על מה יהיה הפורום שלכם? &mdash; אינדקס קהילות</span>
+          <span class="portal-header-right">בחרו נושא &middot; לחצו להתחלה</span>
+        </div>
+        <div class="portal-box-body">
+          <ul class="portal-topic-grid">
+            <li><a href="/oauth/start">משחקים וגילדות</a><span>ערבי D&amp;D, שרתי מיינקראפט, ספידראנרים</span></li>
+            <li><a href="/oauth/start">מוזיקה ולהקות</a><span>הלהקה שלכם, מועדוני מעריצים, ציוד</span></li>
+            <li><a href="/oauth/start">פאנדומים</a><span>אנימה, מדע בדיוני, הסדרה ההיא</span></li>
+            <li><a href="/oauth/start">שכונה</a><span>הבניין, הרחוב, אירועים מקומיים</span></li>
+            <li><a href="/oauth/start">לימודים</a><span>כיתות, קבוצות למידה, בוגרים</span></li>
+            <li><a href="/oauth/start">מועדונים ותחביבים</a><span>צילום, רכבים, גינון</span></li>
+            <li><a href="/oauth/start">יוצרים</a><span>הקהל שלכם, מאחורי הקלעים</span></li>
+            <li><a href="/oauth/start">פרויקטים</a><span>קוד פתוח, מייקרים, פרויקטים צדדיים</span></li>
+            <li><a href="/oauth/start">מעגלי תמיכה</a><span>הורים, החלמה, עזרה הדדית</span></li>
+          </ul>
+          <p class="portal-small-copy portal-topic-note">בחרו סגנון פתיחה (קהילה, מועדון, יוצרים, פרויקט או תמיכה) ו-EXTB יכתוב בשבילכם את החדרים, הכללים ושרשורי הפתיחה. אתם מאשרים הכול לפני שמשהו נוצר.</p>
+        </div>
+      </section>
+
+      <!-- LYCOS-STYLE DIRECTORY OF FEATURES -->
+      <section class="portal-box" id="features">
+        <div class="portal-box-header">
+          <span>אינדקס יכולות למנהלי קהילות &mdash; הכל כלול מהרגע הראשון</span>
+          <span class="portal-header-right">6 מודולים מרכזיים &middot; הכל כלול</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-directory-grid">
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> חדרי פורום ודיונים מובנים</h3>
+              <p class="portal-dir-links">
+                נעץ ונעילת אשכולות &middot; Markdown וציטוטים &middot; סקרים מובנים &middot; לייקים ותגובות &middot; מעקב הודעות שלא נקראו &middot; חיפוש
+              </p>
+              <p class="portal-dir-desc">
+                אשכולות אמיתיים שנשארים מסודרים לשנים. כולל הצבעה בסקרים ישירות מהפיד הראשי, העלאת תמונות (אופציונלי) והדגשת תגובות בקישור ישיר.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> צ׳אט חי עם תרדמת אוטומטית</h3>
+              <p class="portal-dir-links">
+                חדרי WebSocket &middot; חיווי מחוברים &middot; הפיכת הודעת צ׳אט לאשכול &middot; אפס עלות במצב המתנה
+              </p>
+              <p class="portal-dir-desc">
+                לכל קהילה יש חדרי צ׳אט בזמן אמת על בסיס Durable Objects. כשאף אחד לא משוחח, החדר נכנס לתרדמת אוטומטית כך שאינך משלם על זמן סרק.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> הודעות פרטיות והתראות</h3>
+              <p class="portal-dir-links">
+                שיחות פרטיות וחיווי הקלדה &middot; תיוג @משתמשים &middot; מעקב אשכולות &middot; התראות Web Push (אופציונלי)
+              </p>
+              <p class="portal-dir-desc">
+                חברי הקהילה יכולים לשלוח הודעות פרטיות, לעקוב אחרי נושאים, לקבל התראות דחיפה לדפדפן (אופציונלי), ולעצב פרופיל אישי ותמונת אווטאר.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> הזמנות, קליטה וחדרים פרטיים</h3>
+              <p class="portal-dir-links">
+                קודי הזמנה &middot; טופס בקשת הצטרפות &middot; חדרים סגורים &middot; חדרי הכרזות צוות
+              </p>
+              <p class="portal-dir-desc">
+                נהלו פורום פתוח לכולם, מועדון עם אישור בקשות הצטרפות, או חדרים סודיים לחברים בלבד. הזמנות חד־פעמיות ושאלון היכרות מותאם אישית מונעים ספאם.
+              </p>
+            </div>
+
+            <div class="portal-dir-item">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> כלי ניהול ומודרציה מלאים</h3>
+              <p class="portal-dir-links">
+                תור דיווחים &middot; אזהרות והרחקות &middot; ערעורים &middot; יומן ביקורת (Audit) &middot; מצב הקפאה לקריאה בלבד
+              </p>
+              <p class="portal-dir-desc">
+                ארגז כלים שלם למנהלים עם היסטוריית פעולות שקופה, סינון תוכן ומתג הפעלה מהיר של מצב קריאה בלבד לתחזוקה או ארכיון.
+              </p>
+            </div>
+
+            <div class="portal-dir-item" id="agent-mcp">
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> שרת AI ו-MCP מובנה</h3>
+              <p class="portal-dir-links">
+                פרוטוקול Model Context Protocol (<code>/mcp</code>) &middot; אסימונים מוגבלי הרשאות &middot; תמיכה ב-Claude ו-Cursor
+              </p>
+              <p class="portal-dir-desc">
+                נהלו את הפורום ישירות מסוכן ה-AI שלכם. פתחו חדרים חדשים, עדכנו עיצוב וחוקים, טפלו בדיווחים או צרו אשכולות פתיחה בפקודה פשוטה בשפה טבעית.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- REAL FEATURE SCREENSHOTS SHOWCASE (HEBREW) -->
+      <section class="portal-box" id="screenshots">
+        <div class="portal-box-header">
+          <span>הצצה מבפנים לקהילה חיה &mdash; צילומי מסך אמיתיים מהמערכת</span>
+          <span class="portal-header-right">לחצו על כל תמונה להגדלה</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-shots-grid">
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; פיד ראשי + חלון צ׳אט WebSocket חי</span>
+                <a class="portal-shot-zoom" href="/screenshots/feed-chat.png" target="_blank" rel="noopener">[גודל מלא &nwarr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/feed-chat.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/feed-chat.png" alt="הפיד הראשי של EXTB עם תגיות פעילות, אווטארים וצ׳אט חי בצד" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>פיד פעילות עשיר וצ׳אט קבוע:</strong> מעקב הודעות שלא נקראו, חיווי אשכולות חמים ב-24 השעות האחרונות, אווטארים של משתתפים וצ׳אט שנשאר מחובר בזמן מעבר בין דפים.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; אשכול דיון + סקרים אינטראקטיביים</span>
+                <a class="portal-shot-zoom" href="/screenshots/topic-poll.png" target="_blank" rel="noopener">[גודל מלא &nwarr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/topic-poll.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/topic-poll.png" alt="אשכול דיון ב-EXTB עם סקר מובנה ואחוזי הצבעה" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>דיונים מובנים וסקרים חיים:</strong> הצבעה מיידית ב-HTMX ללא טעינת עמוד, אפשרות לצפות בתוצאות או לשנות הצבעה, מעקב אחרי אשכולות וקישורים ישירים לתגובות.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; לוח בקרה למנהלים (cPanel): חברים, חדרים ו-MCP</span>
+                <a class="portal-shot-zoom" href="/screenshots/admin-cpanel.png" target="_blank" rel="noopener">[גודל מלא &nwarr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/admin-cpanel.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/admin-cpanel.png" alt="לוח הבקרה של EXTB לניהול משתמשים, הרשאות ואסימוני MCP" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>לוח ניהול מלא (cPanel):</strong> ניהול דרגות חברים, הרשאות חדרים, טופסי קליטה, קישורי הזמנה, תור דיווחים ואסימוני גישה מאובטחים לסוכני AI/MCP.
+              </figcaption>
+            </figure>
+
+            <figure class="portal-shot-card">
+              <div class="portal-shot-winbar">
+                <span class="portal-shot-title">&#9638; ממשק עברי מלא (RTL) ודו־לשוניות מובנית</span>
+                <a class="portal-shot-zoom" href="/screenshots/hebrew-rtl.png" target="_blank" rel="noopener">[גודל מלא &nwarr;]</a>
+              </div>
+              <a class="portal-shot-img-link" href="/screenshots/hebrew-rtl.png" target="_blank" rel="noopener">
+                <img class="portal-shot-img" src="/screenshots/hebrew-rtl.png" alt="מערכת EXTB בממשק עברי מלא מימין לשמאל" loading="lazy" width="1280" height="760">
+              </a>
+              <figcaption class="portal-shot-caption">
+                <strong>תמיכה מלאה בעברית ובאנגלית:</strong> מעבר בלחיצה אחת בין עברית (RTL) לאנגלית (LTR), יחד עם מצב בהיר וכהה מובנה בנייד ובמחשב.
+              </figcaption>
+            </figure>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE BOARD INDEX PREVIEW -->
+      <section class="portal-box" id="board-preview">
+        <div class="portal-box-header">
+          <span>מה מקבלים מיד עם ההתקנה: מבנה פורום קלאסי + פעילות חיה</span>
+          <span class="portal-header-right">דוגמה לקהילה מותקנת</span>
+        </div>
+        <div class="portal-box-body portal-box-flush">
+          <table class="portal-board-table" aria-label="דוגמה לחדרי פורום">
+            <thead>
+              <tr>
+                <th>פורום / חדר</th>
+                <th class="portal-num">יכולות</th>
+                <th>תצוגת פעילות אחרונה</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9733; הכרזות וכללי הקהילה</div>
+                  <div class="portal-room-desc">עדכונים רשמיים מצוות הקהילה. פתוח לקריאה לכולם, פרסום לצוות בלבד.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">פרסום צוות</span></td>
+                <td class="portal-lastpost">
+                  <strong>ברוכים הבאים לבית החדש שלנו!</strong><br>
+                  <span>אמנת הקהילה וכללי ההשתתפות נעוצים בראש החדר</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9993; היכרות וחברים חדשים</div>
+                  <div class="portal-room-desc">בואו להגיד שלום, לספר על עצמכם ולהכיר את חברי הקהילה.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">אשכולות + סקרים</span></td>
+                <td class="portal-lastpost">
+                  <strong>הציגו את עצמכם לקהילה</strong><br>
+                  <span>אשכול פתיחה מוכן מראש עם סיום ההתקנה</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9881; דיונים כלליים</div>
+                  <div class="portal-room-desc">שיחות עומק, סקרים, שיתוף פרויקטים ודיונים פתוחים.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">Markdown + Push</span></td>
+                <td class="portal-lastpost">
+                  <strong>מה כדאי לנו לבנות בהמשך? [סקר]</strong><br>
+                  <span>הצבעה ישירות מהפיד ותגובות HTMX מהירות</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="portal-room-name">&#9889; טרקלין צ׳אט חי</div>
+                  <div class="portal-room-desc">חדר צ׳אט בזמן אמת (WebSocket) עם חיווי מחוברים והיסטוריית הודעות.</div>
+                </td>
+                <td class="portal-num"><span class="portal-tag">WebSocket חי</span></td>
+                <td class="portal-lastpost">
+                  <strong>Durable Object חסכוני</strong><br>
+                  <span>נרדם כשאין שיחה ומתעורר כשחברים נכנסים</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 2026 EDGE / MCP CONSOLE PREVIEW -->
+      <section class="portal-box">
+        <div class="portal-box-header">
+          <span>מבחוץ פורטל 2002 &mdash; מבפנים מנוע Agentic 2026</span>
+          <span class="portal-header-right">נקודת קצה מובנית (<code>/mcp</code>)</span>
+        </div>
+        <div class="portal-box-body">
+          <div class="portal-console-split">
+            <div>
+              <p class="portal-small-copy">
+                <strong>ניהול קהילה עם או בלי AI:</strong> חברו את Claude Code, Cursor או כל לקוח MCP באמצעות אסימון הרשאה מתוך <em>ניהול &larr; MCP</em>.
+              </p>
+              <p class="portal-small-copy">
+                צרו חדרים, עדכנו צבעים, בדקו דיווחי תוכן או נסחו אשכולות פתיחה ישירות מהטרמינל — כשכל פעולה מתועדת ביומן הביקורת של הפורום.
+              </p>
+            </div>
+            <pre class="portal-code-box" dir="ltr">claude mcp add --transport http my-forum \\
+  https://your-forum.workers.dev/mcp \\
+  --header "Authorization: Bearer &lt;token&gt;"</pre>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- LEFT SIDEBAR IN RTL: WHY OWN YOUR BOARD, COMPARISON, SECURITY -->
+    <aside class="portal-col-right">
+
+      <div class="portal-box portal-box-highlight">
+        <div class="portal-box-header">למה לבחור ב-EXTB?</div>
+        <div class="portal-box-body">
+          <ul class="portal-check-list">
+            <li><strong>ללא נעילת ספק (No Lock-In):</strong> הפורום רץ בחשבון ה-Cloudflare <em>שלך</em> ועל מסד הנתונים D1 SQLite <em>שלך</em>.</li>
+            <li><strong>תוכן קבוע ונגיש:</strong> בניגוד לקבוצות צ׳אט סגורות, לדיונים יש כתובות URL אמיתיות, HTML נקי וידע שנשמר לאורך זמן.</li>
+            <li><strong>אפס תחזוקת שרתים:</strong> בלי לעדכן שרתי לינוקס, בלי תהליכי Redis שקורסים ובלי לתחזק קונטיינרים של Docker.</li>
+            <li><strong>GitHub אופציונלי בלבד:</strong> מתחילים בהתקנה בדפדפן בלחיצה אחת; ניתן לחבר מאגר GitHub פרטי בהמשך אם תרצו לערוך קוד.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">אבטחה והקמה ב-Zero-Trust</div>
+        <div class="portal-box-body">
+          <p class="portal-small-copy">
+            <strong>הסיסמה שלך לעולם לא עוברת דרך המתקין.</strong>
+          </p>
+          <p class="portal-small-copy">
+            המתקין פורס חבילת שחרור חתומה ומאומתת${version ? ` (<code>${version}</code>)` : ''} ישירות לחשבון ה-Cloudflare שלך באמצעות PKCE OAuth. אסימוני הגישה הזמניים מוצפנים ב-AES-GCM ומתבטלים אוטומטית ברגע שהפורום באוויר.
+          </p>
+          <p class="portal-small-copy">
+            את חשבון הבעלים והסיסמה תיצרו ישירות בפורום החדש שלכם דרך אסימון העברת בעלות חד־פעמי.
+          </p>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">השוואת תקופות</div>
+        <div class="portal-box-body portal-box-flush">
+          <table class="portal-compare-table">
+            <thead>
+              <tr><th>יכולת</th><th>PHP ב-2002</th><th>EXTB</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>הקמה</td><td>FTP + MySQL</td><td><strong>כמה קליקים</strong></td></tr>
+              <tr><td>עלות אחסון</td><td>אחסון בתשלום</td><td><strong>0 ₪ במסלול החינמי</strong></td></tr>
+              <tr><td>צ׳אט חי</td><td>תוסף חיצוני</td><td><strong>מובנה</strong></td></tr>
+              <tr><td>ממשק נייד</td><td>אין</td><td><strong>מותאם מלא</strong></td></tr>
+              <tr><td>AI / MCP</td><td>אין</td><td><strong>מובנה</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="portal-box">
+        <div class="portal-box-header">קישורים מהירים ותיעוד</div>
+        <div class="portal-box-body">
+          <ul class="portal-links-list">
+            <li>&raquo; <a href="/oauth/start"><strong>התחלת התקנה אוטומטית</strong></a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb" target="_blank" rel="noopener">מאגר הקוד ב-GitHub</a></li>
+            <li>&raquo; <a href="${releaseUrl(version)}" target="_blank" rel="noopener">הערות שחרור (${version || 'latest'})</a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/WEB_INSTALLER.md" target="_blank" rel="noopener">ארכיטקטורת המתקין</a></li>
+            <li>&raquo; <a href="https://github.com/royachiron/extb/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener">מדריך התקנה ידנית (CLI)</a></li>
+          </ul>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- BOTTOM BANNER CTA -->
+  <section class="portal-bottom-cta">
+    <div>
+      <h2>מוכנים לפתוח את שערי הקהילה שלכם?</h2>
+      <p>הקימו פורום אמיתי, צ׳אט חי ומרחב קהילתי פרטי בחשבון ה-Cloudflare שלכם כבר עכשיו.</p>
+    </div>
+    <div class="portal-bottom-cta-buttons">
+      <a class="portal-btn-primary portal-btn-lg" href="/oauth/start">המשך עם Cloudflare &raquo;</a>
+    </div>
+  </section>
+
+  <!-- CLASSIC PORTAL FOOTER -->
+  <footer class="portal-footer">
+    <div class="portal-footer-badges" dir="ltr">
+      <span class="portal-micro-badge">EXTB <strong>${version || 'latest'}</strong></span>
+      <span class="portal-micro-badge">CLOUDFLARE <strong>WORKERS + D1</strong></span>
+      <span class="portal-micro-badge">HTMX <strong>2.0 SSR</strong></span>
+      <span class="portal-micro-badge">MCP <strong>AGENT READY</strong></span>
+      <span class="portal-micro-badge">LICENSE <strong>MIT</strong></span>
+    </div>
+    <p>
+      <strong>EXTB &middot; EXTra Board</strong> &mdash; מערכת קהילות בקוד פתוח שנוצרה על ידי Roy Achiron. כל התקנה היא עצמאית ב-100% ובבעלות המפעיל שלה.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>`;
+
+const wizardCopy = {
+  en: {
+    dir: 'ltr', title: 'Community Setup', loading: 'Loading&hellip;', back: 'Back to the portal &raquo;',
+    network: 'EXTB NETWORK PORTAL', tag: 'Community Engine',
+    motto: 'Your own forum, about anything. Free, in your own Cloudflare account.',
+    stepsTitle: 'Setup Steps',
+    steps: [
+      ['Authorize Cloudflare:', 'Temporary, encrypted access, revoked once your forum is live.'],
+      ['Shape Your Board:', 'Name, purpose, language and starter style.'],
+      ['Preview &amp; Approve:', 'Check the starter rooms and welcome threads first.'],
+      ['Claim Ownership:', 'Create your admin account directly on your new forum.'],
+    ],
+    safeTitle: 'Security &amp; Zero-Trust Setup',
+    safe: '<strong>Your password never touches this installer.</strong> Only checksum-verified EXTB releases are installed into your account.',
+    footer: 'Open-source community software created by Roy Achiron. Each installation is 100% independent and owned by its operator.',
+  },
+  he: {
+    dir: 'rtl', title: 'הקמת קהילה', loading: 'טוען&hellip;', back: 'חזרה לפורטל &raquo;',
+    network: 'פורטל הרשת EXTB', tag: 'מנוע קהילות',
+    motto: 'פורום משלכם, על כל נושא. בחינם, בחשבון ה-Cloudflare שלכם.',
+    stepsTitle: 'שלבי ההקמה',
+    steps: [
+      ['חיבור Cloudflare:', 'גישה זמנית ומוצפנת שמתבטלת ברגע שהפורום באוויר.'],
+      ['עיצוב הקהילה:', 'שם, מטרה, שפה וסגנון פתיחה.'],
+      ['תצוגה מקדימה ואישור:', 'בודקים קודם את החדרים ושרשורי הפתיחה.'],
+      ['קבלת בעלות:', 'יוצרים חשבון מנהל ישירות בפורום החדש.'],
+    ],
+    safeTitle: 'אבטחה והקמה ב-Zero-Trust',
+    safe: '<strong>הסיסמה שלכם לעולם לא עוברת דרך המתקין.</strong> רק גרסאות EXTB עם checksum מאומת מותקנות בחשבון שלכם.',
+    footer: 'מערכת קהילות בקוד פתוח שנוצרה על ידי Roy Achiron. כל התקנה היא עצמאית ב-100% ובבעלות המפעיל שלה.',
+  },
+} as const;
+
+export function renderWizardPage(lang: PortalLang): string {
+  const t = wizardCopy[lang];
+  return `<!doctype html>
+<html lang="${lang}" dir="${t.dir}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/wizard.css">
+<title>EXTB &middot; ${t.title}</title>
+</head>
+<body class="portal-body${lang === 'he' ? ' portal-rtl' : ''}">
+<div class="portal-shell">
+  <div class="portal-eyebrow">
+    <div class="portal-eyebrow-left"><span class="portal-dot" aria-hidden="true"></span><strong>${t.network}</strong></div>
+    <div class="portal-eyebrow-right"><a href="/?lang=${lang}">${t.back}</a></div>
+  </div>
+  <header class="portal-masthead">
+    <div class="portal-brand">
+      <div class="portal-badge" aria-hidden="true" dir="ltr"><span class="portal-badge-top">EXTB</span><span class="portal-badge-sub">EST &middot; EDGE</span></div>
+      <div>
+        <div class="portal-title">EXTra Board <span class="portal-title-tag">${t.tag}</span></div>
+        <p class="portal-subtitle">${t.motto}</p>
+      </div>
+    </div>
+  </header>
+  <div class="portal-grid portal-grid-wizard">
+    <div class="portal-col-main">
+      <section class="portal-box portal-wizard">
+        <h1 class="portal-box-header">${t.title}</h1>
+        <div class="portal-box-body"><main id="app">${t.loading}</main></div>
+      </section>
+    </div>
+    <aside class="portal-col-right">
+      <div class="portal-box portal-box-highlight">
+        <div class="portal-box-header">${t.stepsTitle}</div>
+        <div class="portal-box-body"><ol class="portal-steps">${t.steps.map(([title, text]) => `<li><strong>${title}</strong> ${text}</li>`).join('')}</ol></div>
+      </div>
+      <div class="portal-box">
+        <div class="portal-box-header">${t.safeTitle}</div>
+        <div class="portal-box-body"><p class="portal-small-copy">${t.safe}</p></div>
+      </div>
     </aside>
   </div>
-  <footer class="portal-footer"><p>${t.footer}</p></footer>
+  <footer class="portal-footer"><p><strong>EXTB &middot; EXTra Board</strong> &mdash; ${t.footer}</p></footer>
 </div>
 <script type="module" src="/wizard.js"></script>
 </body>
 </html>`;
 }
 
-const REPO = 'https://github.com/royachiron/extb';
-
-interface Item { title: string; text: string }
-interface Topic { title: string; examples: string }
-interface Shot { file: string; title: string; caption: string; alt: string }
-
-interface Copy {
-  lang: PortalLang;
-  dir: 'ltr' | 'rtl';
-  title: string;
-  description: string;
-  portal: string;
-  otherLang: { label: string; href: string; lang: PortalLang };
-  tagline: string;
-  motto: string;
-  tabs: [string, string][];
-  newLabel: string;
-  newItems: string;
-  eyebrow: string;
-  h1: string;
-  heroLead: string;
-  cta: string;
-  ctaNote: string;
-  windowTitle: string;
-  topicsTitle: string;
-  topicsLead: string;
-  topics: Topic[];
-  topicsNote: string;
-  featuresTitle: string;
-  features: Item[];
-  addons: string;
-  shotsTitle: string;
-  shotsHint: string;
-  shots: Shot[];
-  stepsTitle: string;
-  steps: Item[];
-  sideCtaTitle: string;
-  sideChecks: string[];
-  freeTitle: string;
-  freeText: string;
-  ownTitle: string;
-  ownText: string;
-  safeTitle: string;
-  safeText: string;
-  hoodTitle: string;
-  hood: [string, string][];
-  linksTitle: string;
-  links: [string, string][];
-  finalTitle: string;
-  finalText: string;
-  finalCta: string;
-  manual: string;
-  footer: string;
-}
-
-const en: Copy = {
-  lang: 'en',
-  dir: 'ltr',
-  title: 'EXTB · Your own forum, about anything, free',
-  description: 'Create a real forum with live chat, polls and private messages, free, in your own Cloudflare account.',
-  portal: 'EXTB Network · Free forums for everyone',
-  otherLang: { label: 'עברית', href: '/?lang=he', lang: 'he' },
-  tagline: 'Community engine',
-  motto: 'Forums, live chat and polls for every community',
-  tabs: [['#top', 'Home'], ['#topics', 'Ideas'], ['#features', 'Features'], ['#inside', 'Screenshots'], ['#how', 'How it works'], ['#free', 'Free & yours']],
-  newLabel: 'New in v0.4.0',
-  newItems: 'Richer feed cards · Poll peek &amp; undo · Duplicate topic guard · Read-only freeze mode',
-  eyebrow: 'The forum you always wanted',
-  h1: 'Your own forum.<br>About anything. Free.',
-  heroLead: 'Remember wanting a forum of your own, for your band, your guild, your street, your favorite show? EXTB builds it for you: real rooms and threads, a live chat room, polls and private messages. It runs free in your own Cloudflare account.',
-  cta: 'Create my forum, free',
-  ctaNote: 'A few clicks · Cloudflare free plan · No server to rent',
-  windowTitle: 'my-forum.workers.dev - EXTB',
-  topicsTitle: 'What will yours be about?',
-  topicsLead: 'Every great forum started with one topic someone cared about. Pick yours.',
-  topics: [
-    { title: 'Games &amp; Guilds', examples: 'D&amp;D nights, Minecraft servers, speedrunners' },
-    { title: 'Music &amp; Bands', examples: 'Your band, fan clubs, gear talk' },
-    { title: 'Fandoms', examples: 'Anime, sci-fi, that one show' },
-    { title: 'Neighborhood', examples: 'Your building, your street, local events' },
-    { title: 'School &amp; Study', examples: 'Classes, study groups, alumni' },
-    { title: 'Clubs &amp; Hobbies', examples: 'Photography, cars, gardening' },
-    { title: 'Creators', examples: 'Your audience, behind the scenes' },
-    { title: 'Projects', examples: 'Open source, makers, side projects' },
-    { title: 'Support Circles', examples: 'Parents, recovery, peer help' },
-  ],
-  topicsNote: 'Choose a starter style (community, club, creator, project or support) and EXTB writes your first rooms, rules and welcome threads. You review all of it before anything is created.',
-  featuresTitle: 'Everything you wished your old forum had',
-  features: [
-    { title: 'Rooms &amp; threads that last', text: 'Topics, replies, Markdown, reactions and search. Conversations that are still there next year.' },
-    { title: 'Live chat, built in', text: 'A real-time chat room that stays docked while you browse. Quiet rooms go to sleep, so idle chat costs nothing.' },
-    { title: 'Polls', text: 'Single or multiple choice. Vote right from the feed, peek at results, change your mind.' },
-    { title: 'Private messages', text: 'DMs, @mentions and member profiles.' },
-    { title: 'Your look', text: 'Your name, logo, accent color, homepage text and rules. Light and dark themes.' },
-    { title: 'Your doors', text: 'Public reading, single-use invites, private rooms and member roles.' },
-    { title: 'Moderation that works', text: 'Reports, warnings, bans, appeals and a full audit log. Freeze the board read-only any time.' },
-    { title: 'Hebrew &amp; English', text: 'Full right-to-left and left-to-right, on phone and desktop.' },
-    { title: 'AI helper (optional)', text: 'A built-in MCP server lets Claude or another agent help you manage rooms and reports, with a scoped token you can revoke.' },
-  ],
-  addons: '<strong>Optional add-ons:</strong> image uploads (Cloudflare R2), email sign-up and recovery, push notifications, your own domain.',
-  shotsTitle: 'Take a look inside',
-  shotsHint: 'Real screens, click to enlarge',
-  shots: [
-    { file: 'feed-chat', title: 'Home feed + live chat', caption: 'Who is active, what is new, and the chat room docked on the side.', alt: 'EXTB home feed with activity cards and a docked live chat' },
-    { file: 'topic-poll', title: 'A thread with a poll', caption: 'Vote, peek at results, undo. Replies link straight to the message.', alt: 'EXTB discussion thread with an interactive poll' },
-    { file: 'admin-cpanel', title: 'Your control panel', caption: 'Members, rooms, invites, moderation and AI tokens in one place.', alt: 'EXTB admin control panel' },
-    { file: 'hebrew-rtl', title: 'Hebrew, dark theme', caption: 'Every screen works right-to-left, in light or dark.', alt: 'EXTB in Hebrew with the dark theme' },
-  ],
-  stepsTitle: 'How you get it',
-  steps: [
-    { title: 'Connect Cloudflare', text: 'Sign in or create a free Cloudflare account. Your forum lives there, not on our servers.' },
-    { title: 'Describe your forum', text: 'Name, what it is about, language and starter style. Preview the rooms and first threads.' },
-    { title: 'Open the doors', text: 'Create your admin account on your new forum and invite your first members.' },
-  ],
-  sideCtaTitle: 'Get your forum',
-  sideChecks: ['Free to run', 'Yours to keep', 'Open source (MIT)'],
-  freeTitle: 'Really free?',
-  freeText: 'Yes. EXTB runs on Cloudflare\'s free plan, which currently includes 100,000 requests a day and a 500 MB database. That is plenty for a small community. Keep an eye on your dashboard as you grow.',
-  ownTitle: '100% yours',
-  ownText: 'No EXTB account and no central database. Your forum, your data, your Cloudflare account. Change anything you like: it is MIT-licensed.',
-  safeTitle: 'Safe setup',
-  safeText: 'The installer never sees your password. It uses temporary, encrypted Cloudflare access that is revoked once your forum is live, and it installs only checksum-verified releases.',
-  hoodTitle: 'Under the hood',
-  hood: [['Runs on', 'Cloudflare Workers'], ['Database', 'D1 (SQLite)'], ['Live chat', 'Durable Objects'], ['Pages', 'Server HTML + HTMX'], ['License', 'MIT']],
-  linksTitle: 'Links',
-  links: [[REPO, 'Source code'], [`${REPO}/releases/tag/v0.4.0`, 'Release notes'], [`${REPO}/blob/main/docs/INSTALLATION.md`, 'Manual install'], [`${REPO}/blob/main/docs/MCP.md`, 'MCP guide']],
-  finalTitle: 'Your forum is waiting.',
-  finalText: 'Name it, open the doors, and invite the people who care about the same thing you do.',
-  finalCta: 'Continue with Cloudflare',
-  manual: 'Prefer the command line? <a href="' + REPO + '/blob/main/docs/INSTALLATION.md">Manual install guide</a>',
-  footer: 'EXTB · EXTra Board, open-source community software by Roy Achiron. Every forum is independent and belongs to whoever runs it.',
-};
-
-const he: Copy = {
-  lang: 'he',
-  dir: 'rtl',
-  title: 'EXTB · פורום משלכם, על כל נושא, בחינם',
-  description: 'הקימו פורום אמיתי עם צ׳אט חי, סקרים והודעות פרטיות, בחינם, בחשבון Cloudflare שלכם.',
-  portal: 'רשת EXTB · פורומים בחינם לכולם',
-  otherLang: { label: 'English', href: '/?lang=en', lang: 'en' },
-  tagline: 'מנוע קהילות',
-  motto: 'פורומים, צ׳אט חי וסקרים לכל קהילה',
-  tabs: [['#top', 'ראשי'], ['#topics', 'רעיונות'], ['#features', 'יכולות'], ['#inside', 'צילומי מסך'], ['#how', 'איך זה עובד'], ['#free', 'חינם ושלכם']],
-  newLabel: 'חדש בגרסה 0.4.0',
-  newItems: 'כרטיסי פיד עשירים · הצצה וביטול בסקרים · מניעת נושאים כפולים · מצב קריאה בלבד',
-  eyebrow: 'הפורום שתמיד רציתם',
-  h1: 'פורום משלכם.<br>על כל נושא. בחינם.',
-  heroLead: 'זוכרים שרציתם פורום משלכם? ללהקה, לגילדה, לשכונה, לסדרה האהובה? EXTB בונה אותו בשבילכם: חדרים ושרשורים אמיתיים, חדר צ׳אט חי, סקרים והודעות פרטיות. הכול רץ בחינם בחשבון Cloudflare שלכם.',
-  cta: 'הקימו לי פורום, בחינם',
-  ctaNote: 'כמה קליקים · התוכנית החינמית של Cloudflare · בלי לשכור שרת',
-  windowTitle: 'my-forum.workers.dev - EXTB',
-  topicsTitle: 'על מה יהיה הפורום שלכם?',
-  topicsLead: 'כל פורום גדול התחיל מנושא אחד שמישהו אהב. בחרו את שלכם.',
-  topics: [
-    { title: 'משחקים וגילדות', examples: 'ערבי D&amp;D, שרתי מיינקראפט, ספידראנרים' },
-    { title: 'מוזיקה ולהקות', examples: 'הלהקה שלכם, מועדוני מעריצים, ציוד' },
-    { title: 'פאנדומים', examples: 'אנימה, מדע בדיוני, הסדרה ההיא' },
-    { title: 'שכונה', examples: 'הבניין, הרחוב, אירועים מקומיים' },
-    { title: 'לימודים', examples: 'כיתות, קבוצות למידה, בוגרים' },
-    { title: 'מועדונים ותחביבים', examples: 'צילום, רכבים, גינון' },
-    { title: 'יוצרים', examples: 'הקהל שלכם, מאחורי הקלעים' },
-    { title: 'פרויקטים', examples: 'קוד פתוח, מייקרים, פרויקטים צדדיים' },
-    { title: 'מעגלי תמיכה', examples: 'הורים, החלמה, עזרה הדדית' },
-  ],
-  topicsNote: 'בחרו סגנון פתיחה (קהילה, מועדון, יוצרים, פרויקט או תמיכה) ו-EXTB יכתוב בשבילכם את החדרים, הכללים ושרשורי הפתיחה. אתם רואים ומאשרים הכול לפני שמשהו נוצר.',
-  featuresTitle: 'כל מה שרציתם שיהיה לפורום הישן',
-  features: [
-    { title: 'חדרים ושרשורים שנשארים', text: 'נושאים, תגובות, Markdown, תגובות אימוג׳י וחיפוש. שיחות שעוד יהיו שם בשנה הבאה.' },
-    { title: 'צ׳אט חי מובנה', text: 'חדר צ׳אט בזמן אמת שנשאר פתוח בצד בזמן הגלישה. חדר שקט נרדם, כך שצ׳אט ריק לא עולה כלום.' },
-    { title: 'סקרים', text: 'בחירה יחידה או מרובה. מצביעים ישר מהפיד, מציצים בתוצאות ומשנים דעה.' },
-    { title: 'הודעות פרטיות', text: 'הודעות ישירות, תיוגים עם @ ופרופילים לחברים.' },
-    { title: 'המראה שלכם', text: 'שם, לוגו, צבע, טקסט לדף הבית וכללים. מצב בהיר ומצב כהה.' },
-    { title: 'הדלתות שלכם', text: 'קריאה פתוחה לכולם, הזמנות חד־פעמיות, חדרים פרטיים ותפקידים.' },
-    { title: 'ניהול שעובד', text: 'דיווחים, אזהרות, הרחקות, ערעורים ויומן פעולות מלא. אפשר להקפיא את הפורום לקריאה בלבד בכל רגע.' },
-    { title: 'עברית ואנגלית', text: 'תמיכה מלאה מימין לשמאל ומשמאל לימין, בטלפון ובמחשב.' },
-    { title: 'עוזר AI (לא חובה)', text: 'שרת MCP מובנה מאפשר ל-Claude או לסוכן אחר לעזור לכם לנהל חדרים ודיווחים, עם טוקן מוגבל שאפשר לבטל.' },
-  ],
-  addons: '<strong>תוספות לבחירה:</strong> העלאת תמונות (Cloudflare R2), הרשמה ושחזור במייל, התראות פוש, דומיין משלכם.',
-  shotsTitle: 'הציצו פנימה',
-  shotsHint: 'מסכים אמיתיים, לחצו להגדלה',
-  shots: [
-    { file: 'feed-chat', title: 'פיד הבית + צ׳אט חי', caption: 'מי פעיל, מה חדש, וחדר הצ׳אט פתוח בצד.', alt: 'פיד הבית של EXTB עם כרטיסי פעילות וצ׳אט חי' },
-    { file: 'topic-poll', title: 'שרשור עם סקר', caption: 'מצביעים, מציצים, מבטלים. קישור לתגובה מוביל ישר להודעה.', alt: 'שרשור דיון ב-EXTB עם סקר אינטראקטיבי' },
-    { file: 'admin-cpanel', title: 'לוח הבקרה שלכם', caption: 'חברים, חדרים, הזמנות, ניהול וטוקנים ל-AI במקום אחד.', alt: 'לוח הבקרה של EXTB' },
-    { file: 'hebrew-rtl', title: 'עברית, מצב כהה', caption: 'כל מסך עובד מימין לשמאל, בבהיר או בכהה.', alt: 'EXTB בעברית במצב כהה' },
-  ],
-  stepsTitle: 'איך מקבלים אותו',
-  steps: [
-    { title: 'מתחברים ל-Cloudflare', text: 'נכנסים לחשבון Cloudflare או פותחים אחד בחינם. הפורום שלכם יושב שם, לא אצלנו.' },
-    { title: 'מתארים את הפורום', text: 'שם, נושא, שפה וסגנון פתיחה. רואים מראש את החדרים ואת השרשורים הראשונים.' },
-    { title: 'פותחים את הדלתות', text: 'יוצרים חשבון מנהל בפורום החדש ומזמינים את החברים הראשונים.' },
-  ],
-  sideCtaTitle: 'קבלו פורום',
-  sideChecks: ['חינם להפעלה', 'שלכם לתמיד', 'קוד פתוח (MIT)'],
-  freeTitle: 'באמת בחינם?',
-  freeText: 'כן. EXTB רץ על התוכנית החינמית של Cloudflare, שכוללת כיום 100,000 בקשות ביום ומסד נתונים של 500MB. זה מספיק לקהילה קטנה. כדאי לעקוב אחרי לוח הבקרה ככל שהקהילה גדלה.',
-  ownTitle: '100% שלכם',
-  ownText: 'אין חשבון EXTB ואין מסד נתונים מרכזי. הפורום, המידע והחשבון ב-Cloudflare שייכים לכם. אפשר לשנות הכול: הרישיון הוא MIT.',
-  safeTitle: 'התקנה בטוחה',
-  safeText: 'המתקין לא רואה את הסיסמה שלכם. הוא משתמש בגישה זמנית ומוצפנת ל-Cloudflare שמבוטלת ברגע שהפורום עולה, ומתקין רק גרסאות עם checksum מאומת.',
-  hoodTitle: 'מתחת למכסה',
-  hood: [['רץ על', 'Cloudflare Workers'], ['מסד נתונים', 'D1 (SQLite)'], ['צ׳אט חי', 'Durable Objects'], ['עמודים', 'HTML מהשרת + HTMX'], ['רישיון', 'MIT']],
-  linksTitle: 'קישורים',
-  links: [[REPO, 'קוד המקור'], [`${REPO}/releases/tag/v0.4.0`, 'הערות גרסה'], [`${REPO}/blob/main/docs/INSTALLATION.md`, 'התקנה ידנית'], [`${REPO}/blob/main/docs/MCP.md`, 'מדריך MCP']],
-  finalTitle: 'הפורום שלכם מחכה.',
-  finalText: 'תנו לו שם, פתחו את הדלתות והזמינו את מי שאכפת לו מאותו דבר כמוכם.',
-  finalCta: 'המשך עם Cloudflare',
-  manual: 'מעדיפים שורת פקודה? <a href="' + REPO + '/blob/main/docs/INSTALLATION.md">מדריך התקנה ידנית</a>',
-  footer: 'EXTB · EXTra Board, תוכנת קהילות בקוד פתוח מאת Roy Achiron. כל פורום עצמאי ושייך למי שמפעיל אותו.',
-};
-
-function box(title: string, body: string, extraClass = ''): string {
-  return `<div class="portal-box${extraClass ? ' ' + extraClass : ''}"><h2 class="portal-box-title">${title}</h2><div class="portal-box-body">${body}</div></div>`;
-}
-
-function render(t: Copy): string {
-  const cta = (label: string, cls = '') => `<a class="portal-btn${cls ? ' ' + cls : ''}" href="/oauth/start">${label} <span aria-hidden="true">&raquo;</span></a>`;
-  return `<!doctype html>
-<html lang="${t.lang}" dir="${t.dir}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="${t.description}">
-<link rel="stylesheet" href="/wizard.css">
-<title>${t.title}</title>
-</head>
-<body class="portal-body">
-<div class="portal-shell" id="top">
-  <div class="portal-eyebrow">
-    <span><span class="portal-dot" aria-hidden="true"></span>${t.portal}</span>
-    <a class="portal-lang" href="${t.otherLang.href}" lang="${t.otherLang.lang}" hreflang="${t.otherLang.lang}">${t.otherLang.label}</a>
-  </div>
-
-  <header class="portal-masthead">
-    <div class="portal-logo" aria-hidden="true"><span>EXTB</span></div>
-    <div>
-      <div class="portal-name">EXTra Board <span class="portal-chip">${t.tagline}</span></div>
-      <div class="portal-tagline">${t.motto}</div>
-    </div>
-  </header>
-
-  <nav class="portal-tabs" aria-label="${t.lang === 'he' ? 'ניווט' : 'Sections'}">
-    ${t.tabs.map(([href, label], i) => `<a class="portal-tab${i === 0 ? ' portal-tab-active' : ''}" href="${href}">${label}</a>`).join('')}
-  </nav>
-  <div class="portal-ticker"><span class="portal-new">${t.newLabel}</span> ${t.newItems}</div>
-
-  <div class="portal-layout">
-    <div class="portal-col-main">
-      <div class="portal-hero">
-        <p class="portal-kicker">${t.eyebrow}</p>
-        <h1>${t.h1}</h1>
-        <p class="portal-lead">${t.heroLead}</p>
-        ${cta(t.cta, 'portal-btn-big')}
-        <p class="portal-note">${t.ctaNote}</p>
-        <div class="portal-window">
-          <div class="portal-winbar"><span class="portal-winbtns" aria-hidden="true"><i></i><i></i><i></i></span><span dir="ltr">${t.windowTitle}</span></div>
-          <img class="portal-shot-img" src="/screenshots/feed-chat.png" alt="${t.shots[0]?.alt ?? ''}" width="1280" height="760">
-        </div>
-      </div>
-
-      <section class="portal-panel" id="topics">
-        <h2 class="portal-h2">${t.topicsTitle}</h2>
-        <p class="portal-sub">${t.topicsLead}</p>
-        <ul class="portal-directory">
-          ${t.topics.map(x => `<li><a href="/oauth/start">${x.title}</a><span>${x.examples}</span></li>`).join('')}
-        </ul>
-        <p class="portal-fine">${t.topicsNote}</p>
-      </section>
-
-      <section class="portal-panel" id="features">
-        <h2 class="portal-h2">${t.featuresTitle}</h2>
-        <ul class="portal-features">
-          ${t.features.map(x => `<li><h3>${x.title}</h3><p>${x.text}</p></li>`).join('')}
-        </ul>
-        <p class="portal-fine">${t.addons}</p>
-      </section>
-
-      <section class="portal-panel" id="inside">
-        <h2 class="portal-h2">${t.shotsTitle} <small>${t.shotsHint}</small></h2>
-        <div class="portal-shots">
-          ${t.shots.map(s => `<figure class="portal-shot">
-            <a href="/screenshots/${s.file}.png" target="_blank" rel="noopener">
-              <span class="portal-winbar"><span class="portal-winbtns" aria-hidden="true"><i></i><i></i><i></i></span><span>${s.title}</span></span>
-              <img class="portal-shot-img" src="/screenshots/${s.file}.png" alt="${s.alt}" loading="lazy" width="1280" height="760">
-            </a>
-            <figcaption>${s.caption}</figcaption>
-          </figure>`).join('')}
-        </div>
-      </section>
-
-      <section class="portal-panel" id="how">
-        <h2 class="portal-h2">${t.stepsTitle}</h2>
-        <ol class="portal-steps">
-          ${t.steps.map(s => `<li><h3>${s.title}</h3><p>${s.text}</p></li>`).join('')}
-        </ol>
-      </section>
-
-      <div class="portal-final">
-        <h2>${t.finalTitle}</h2>
-        <p>${t.finalText}</p>
-        ${cta(t.finalCta, 'portal-btn-big')}
-        <p class="portal-note">${t.manual}</p>
-      </div>
-    </div>
-
-    <aside class="portal-col-side" id="free">
-      ${box(t.sideCtaTitle, `${cta(t.cta)}<ul class="portal-checks">${t.sideChecks.map(c => `<li>${c}</li>`).join('')}</ul>`, 'portal-box-gold')}
-      ${box(t.freeTitle, `<p>${t.freeText}</p>`)}
-      ${box(t.ownTitle, `<p>${t.ownText}</p>`)}
-      ${box(t.safeTitle, `<p>${t.safeText}</p>`)}
-      ${box(t.hoodTitle, `<dl class="portal-specs">${t.hood.map(([k, v]) => `<dt>${k}</dt><dd dir="ltr">${v}</dd>`).join('')}</dl>`)}
-      ${box(t.linksTitle, `<ul class="portal-links">${t.links.map(([href, label]) => `<li><a href="${href}">${label}</a></li>`).join('')}</ul>`)}
-    </aside>
-  </div>
-
-  <footer class="portal-footer">
-    <div class="portal-badges" aria-hidden="true" dir="ltr"><span>CLOUDFLARE<b>WORKERS</b></span><span>OPEN<b>SOURCE</b></span><span>HTML<b>+HTMX</b></span><span>RTL<b>READY</b></span><span>LICENSE<b>MIT</b></span></div>
-    <p>${t.footer}</p>
-  </footer>
-</div>
-</body>
-</html>`;
-}
-
-const landingPageEn = render(en);
-const landingPageHe = render(he);
-
-export const landingPage = landingPageEn;
-
-export const landingStyles = String.raw`
-/* EXTB portal: 2002 web portal layout, modern type and spacing. */
-body.portal-body {
-  --pt-page: #d9e1ec;
+// Setup wizard: wizard.js builds plain form elements inside #app; give them the portal's 2002 controls.
+const wizardStyles = String.raw`
+/* SETUP WIZARD */
+.portal-wizard {
+  --pt-ink: #0f172a;
+  --pt-navy: #003366;
+  --pt-muted: #334155;
   --pt-paper: #ffffff;
-  --pt-ink: #12203a;
-  --pt-muted: #4b5a74;
-  --pt-line: #b7c5da;
-  --pt-soft: #eef3fa;
-  --pt-navy: #0b2a5b;
-  --pt-navy-2: #1a4d9e;
-  --pt-link: #1747a6;
-  --pt-gold: #ffcf3f;
-  --pt-gold-2: #f2a20c;
-  --pt-gold-ink: #2a1c00;
-  --pt-red: #c41e3a;
-  --pt-glow: #5fe3ff;
-  --pt-ok: #1f9d55;
-  max-width: none;
+  --pt-soft: #f8fafc;
+  --pt-line: #cbd5e1;
+  --pt-bevel: #94a3b8;
+  --pt-gold-hi: #ffdd57;
+  --pt-gold: #f59e0b;
+  --pt-gold-edge: #fde68a;
+  --pt-code-bg: #0f172a;
+  --pt-code-ink: #86efac;
+}
+.portal-grid-wizard {
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+.portal-wizard .portal-box-header {
   margin: 0;
-  padding: 24px 16px 40px;
-  color: var(--pt-ink);
-  background-color: var(--pt-page);
-  background-image: radial-gradient(rgba(11, 42, 91, .09) 1px, transparent 1px);
-  background-size: 14px 14px;
-  font: 15px/1.6 "Segoe UI", Tahoma, Verdana, system-ui, -apple-system, "Helvetica Neue", Arial, "Noto Sans Hebrew", "Noto Sans", sans-serif;
+  font-size: 13px;
 }
-.portal-body main, .portal-body section, .portal-body details { padding: 0; margin: 0; border: 0; border-radius: 0; background: none; }
-.portal-body a { color: var(--pt-link); }
-.portal-body h1, .portal-body h2, .portal-body h3 { font-family: inherit; margin: 0; line-height: 1.25; }
-.portal-body img { max-width: 100%; height: auto; display: block; }
-
-.portal-shell {
-  max-width: 1080px;
-  margin: 0 auto;
-  background: var(--pt-paper);
-  border: 1px solid var(--pt-navy);
-  box-shadow: 0 10px 40px rgba(11, 42, 91, .18);
-}
-
-.portal-eyebrow {
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 6px 16px;
-  font-size: 12px; letter-spacing: .02em;
-  color: #c9d7ef; background: #071a3b;
-}
-.portal-dot { display: inline-block; width: 8px; height: 8px; margin-inline-end: 8px; background: var(--pt-ok); box-shadow: 0 0 6px var(--pt-ok); vertical-align: 1px; }
-.portal-body .portal-lang {
-  color: var(--pt-gold-ink); background: var(--pt-gold);
-  padding: 2px 12px; font-weight: 700; text-decoration: none;
-  border: 1px solid var(--pt-gold-2);
-}
-.portal-body .portal-lang:hover { background: #ffe07a; }
-
-.portal-masthead {
-  display: flex; align-items: center; gap: 18px;
-  padding: 22px 24px;
-  color: #fff;
-  background:
-    repeating-linear-gradient(90deg, rgba(95, 227, 255, .07) 0 1px, transparent 1px 48px),
-    linear-gradient(180deg, var(--pt-navy-2), var(--pt-navy));
-  border-bottom: 3px solid var(--pt-gold);
-}
-.portal-logo {
-  flex: none; display: grid; place-items: center;
-  width: 64px; height: 64px;
-  background: linear-gradient(180deg, #ffe17a, var(--pt-gold-2));
-  border: 2px solid #fff; outline: 1px solid var(--pt-gold-ink);
-  color: var(--pt-gold-ink); font-weight: 900; font-size: 18px; letter-spacing: .04em;
-}
-.portal-name { font-size: 28px; font-weight: 800; letter-spacing: -.01em; }
-.portal-chip {
-  display: inline-block; vertical-align: middle;
-  margin-inline-start: 8px; padding: 1px 8px;
-  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--pt-glow); border: 1px solid var(--pt-glow);
-}
-.portal-tagline { color: #c9d7ef; font-size: 14px; }
-
-.portal-tabs {
-  display: flex; flex-wrap: wrap; gap: 4px;
-  padding: 8px 12px 0;
-  background: linear-gradient(180deg, #c9d6ea, #aebfdb);
-  border-bottom: 1px solid var(--pt-navy);
-}
-.portal-body .portal-tab {
-  padding: 6px 14px;
-  font-size: 13px; font-weight: 700; text-decoration: none;
-  color: var(--pt-navy);
-  background: linear-gradient(180deg, #fff, #e3eaf5);
-  border: 1px solid #7f94b8; border-bottom: 0;
-}
-.portal-body .portal-tab:hover { background: #fff; }
-.portal-body .portal-tab-active { background: var(--pt-paper); border-top: 3px solid var(--pt-gold-2); }
-
-.portal-ticker { padding: 8px 16px; font-size: 13px; color: var(--pt-muted); background: #fffbea; border-bottom: 1px solid #f0dfa0; }
-.portal-new { display: inline-block; margin-inline-end: 8px; padding: 0 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--pt-red); }
-
-.portal-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 290px;
-  gap: 20px;
-  padding: 20px;
-}
-.portal-col-main, .portal-col-side { min-width: 0; display: grid; gap: 20px; align-content: start; }
-
-.portal-hero {
-  padding: 28px 28px 24px;
-  background: linear-gradient(180deg, var(--pt-soft), #fff 70%);
-  border: 1px solid var(--pt-line);
-  border-top: 4px solid var(--pt-navy-2);
-}
-.portal-kicker { margin: 0 0 6px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--pt-navy-2); }
-.portal-hero h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 800; letter-spacing: -.02em; color: var(--pt-navy); }
-.portal-lead { max-width: 60ch; margin: 14px 0 20px; font-size: 17px; color: #26334d; }
-.portal-note { margin: 10px 0 0; font-size: 13px; color: var(--pt-muted); }
-
-.portal-body .portal-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; padding: 10px 20px;
-  font-weight: 800; text-decoration: none;
-  color: var(--pt-gold-ink);
-  background: linear-gradient(180deg, #ffe48a, var(--pt-gold) 45%, var(--pt-gold-2));
-  border: 1px solid #b77a00;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 0 #9a6600;
-}
-.portal-body .portal-btn:hover { filter: brightness(1.05); }
-.portal-body .portal-btn:active { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7); }
-.portal-body .portal-btn:focus-visible, .portal-body a:focus-visible { outline: 3px solid var(--pt-navy-2); outline-offset: 2px; }
-.portal-btn-big { font-size: 18px; padding: 14px 28px; }
-
-.portal-window { margin-top: 24px; border: 1px solid var(--pt-navy); background: #fff; box-shadow: 0 0 0 4px rgba(95, 227, 255, .18), 0 12px 30px rgba(11, 42, 91, .2); }
-.portal-winbar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 10px;
-  font-size: 12px; font-weight: 700; color: #fff;
-  background: linear-gradient(90deg, var(--pt-navy), var(--pt-navy-2));
-}
-.portal-winbtns { display: inline-flex; gap: 4px; }
-.portal-winbtns i { width: 10px; height: 10px; background: #dbe4f3; border: 1px solid #6c83ab; }
-
-.portal-panel { padding: 22px 24px; border: 1px solid var(--pt-line); }
-.portal-h2 { font-size: 22px; font-weight: 800; color: var(--pt-navy); padding-bottom: 8px; border-bottom: 2px solid var(--pt-gold); }
-.portal-h2 small { font-size: 13px; font-weight: 400; color: var(--pt-muted); margin-inline-start: 8px; }
-.portal-sub { margin: 10px 0 0; color: var(--pt-muted); }
-.portal-fine { margin: 16px 0 0; font-size: 13px; color: var(--pt-muted); }
-
-.portal-directory { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; }
-.portal-directory li { padding-inline-start: 12px; border-inline-start: 3px solid var(--pt-gold); }
-.portal-directory a { font-weight: 800; font-size: 16px; }
-.portal-directory span { display: block; font-size: 13px; color: var(--pt-muted); }
-
-.portal-features { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.portal-features li { padding: 14px; background: var(--pt-soft); border: 1px solid #d6e0ef; }
-.portal-features h3 { font-size: 15px; font-weight: 800; color: var(--pt-navy); }
-.portal-features h3::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-inline-end: 8px; background: var(--pt-gold-2); vertical-align: 1px; }
-.portal-features p { margin: 6px 0 0; font-size: 14px; color: #33415c; }
-
-.portal-shots { margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.portal-shot { margin: 0; min-width: 0; }
-.portal-shot a { display: block; text-decoration: none; border: 1px solid var(--pt-navy); }
-.portal-shot a:hover { box-shadow: 0 0 0 3px rgba(95, 227, 255, .35); }
-.portal-shot figcaption { margin-top: 6px; font-size: 13px; color: var(--pt-muted); }
-
-.portal-steps { list-style: none; counter-reset: step; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.portal-steps li { counter-increment: step; }
-.portal-steps li::before {
-  content: counter(step);
-  display: grid; place-items: center;
-  width: 36px; height: 36px; margin-bottom: 8px;
-  font-weight: 900; color: var(--pt-gold-ink);
-  background: var(--pt-gold); border: 1px solid var(--pt-gold-2);
-}
-.portal-steps h3 { font-size: 16px; font-weight: 800; color: var(--pt-navy); }
-.portal-steps p { margin: 4px 0 0; font-size: 14px; color: #33415c; }
-
-.portal-final {
-  padding: 32px 24px; text-align: center; color: #fff;
-  background:
-    repeating-linear-gradient(90deg, rgba(95, 227, 255, .07) 0 1px, transparent 1px 48px),
-    linear-gradient(180deg, var(--pt-navy-2), var(--pt-navy));
-}
-.portal-final h2 { font-size: 30px; font-weight: 800; }
-.portal-final p { margin: 8px auto 18px; max-width: 52ch; color: #d5e0f3; }
-.portal-final .portal-note { margin: 14px 0 0; color: #b8c8e6; }
-.portal-body .portal-final .portal-note a { color: var(--pt-glow); }
-
-.portal-box { border: 1px solid var(--pt-line); background: #fff; }
-.portal-box-title { padding: 7px 12px; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: linear-gradient(180deg, var(--pt-navy-2), var(--pt-navy)); }
-.portal-box-body { padding: 12px; font-size: 14px; color: #33415c; }
-.portal-box-body p { margin: 0; }
-.portal-box-gold { border-color: var(--pt-gold-2); }
-.portal-box-gold .portal-box-title { color: var(--pt-gold-ink); background: linear-gradient(180deg, #ffe48a, var(--pt-gold)); }
-.portal-box-gold .portal-btn { width: 100%; }
-.portal-checks { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-weight: 700; color: var(--pt-ink); }
-.portal-checks li::before { content: "\2713"; margin-inline-end: 8px; color: var(--pt-ok); font-weight: 900; }
-.portal-specs { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; }
-.portal-specs dt { font-weight: 700; color: var(--pt-ink); }
-.portal-specs dd { margin: 0; text-align: start; }
-.portal-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.portal-links li::before { content: "\00BB"; margin-inline-end: 6px; color: var(--pt-gold-2); font-weight: 900; }
-
-.portal-footer { padding: 16px 20px 20px; border-top: 1px solid var(--pt-line); background: var(--pt-soft); text-align: center; font-size: 13px; color: var(--pt-muted); }
-.portal-footer p { margin: 10px 0 0; }
-.portal-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.portal-badges span {
-  display: inline-flex; flex-direction: column; justify-content: center;
-  width: 88px; height: 31px;
-  font: 700 9px/1.1 Verdana, Tahoma, sans-serif; letter-spacing: .04em;
-  color: #fff; background: linear-gradient(180deg, var(--pt-navy-2), var(--pt-navy));
-  border: 1px solid #071a3b;
-}
-.portal-badges b { color: var(--pt-gold); font-size: 10px; }
-
-.portal-body .portal-eyebrow-link { color: var(--pt-gold); }
-.portal-wizard-steps { margin: 0; padding-inline-start: 20px; display: grid; gap: 10px; }
-.portal-wizard-steps strong { display: block; color: var(--pt-ink); }
-.portal-wizard-steps span { font-size: 13px; }
-
-/* Setup wizard: wizard.js builds plain elements inside #app. */
-.portal-body .portal-wizard #app { display: block; padding: 0; margin: 14px 0 0; border: 0; background: none; }
-.portal-body .portal-wizard p { margin: 8px 0; }
-.portal-body .portal-wizard form { display: grid; gap: 8px; }
-.portal-body .portal-wizard label { display: block; margin-top: 8px; font-weight: 700; color: var(--pt-navy); }
+.portal-body .portal-wizard #app { display: block; padding: 0; margin: 0; border: 0; background: none; }
+.portal-body .portal-wizard p { margin: 6px 0; color: var(--pt-ink); }
+.portal-body .portal-wizard form { display: grid; gap: 6px; }
+.portal-body .portal-wizard label { display: block; margin-top: 6px; font-weight: 700; color: var(--pt-navy); }
 .portal-body .portal-wizard input,
 .portal-body .portal-wizard select,
 .portal-body .portal-wizard textarea {
-  width: 100%; padding: 10px 12px;
-  font: inherit; color: var(--pt-ink);
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--pt-ink);
   background: var(--pt-paper);
-  border: 1px solid #7f94b8; border-radius: 0;
-  box-shadow: inset 1px 1px 2px rgba(11, 42, 91, .12);
+  border: 2px inset var(--pt-line);
+  border-radius: 0;
 }
 .portal-body .portal-wizard input:focus,
 .portal-body .portal-wizard select:focus,
-.portal-body .portal-wizard textarea:focus { outline: 3px solid rgba(95, 227, 255, .55); outline-offset: 0; border-color: var(--pt-navy-2); }
+.portal-body .portal-wizard textarea:focus { outline: 2px solid var(--pt-gold); outline-offset: 0; }
 .portal-body .portal-wizard button {
-  min-height: 44px; margin: 10px 0 0; margin-inline-end: 10px; padding: 10px 20px;
-  font: inherit; font-weight: 800; color: var(--pt-gold-ink); cursor: pointer;
-  background: linear-gradient(180deg, #ffe48a, var(--pt-gold) 45%, var(--pt-gold-2));
-  border: 1px solid #b77a00; border-radius: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 0 #9a6600;
+  min-height: 40px;
+  margin: 8px 0 0;
+  margin-inline-end: 8px;
+  padding: 7px 16px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--pt-ink);
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--pt-gold-hi) 0%, var(--pt-gold) 100%);
+  border: 2px outset var(--pt-gold-edge);
+  border-radius: 0;
 }
-.portal-body .portal-wizard button:hover { filter: brightness(1.05); }
-.portal-body .portal-wizard button:disabled { opacity: .55; cursor: default; filter: none; }
-.portal-body .portal-wizard a { display: inline-block; margin: 10px 0 0; margin-inline-end: 10px; font-weight: 700; }
+.portal-body .portal-wizard button:hover { text-decoration: underline; }
+.portal-body .portal-wizard button:active { border-style: inset; }
+.portal-body .portal-wizard button:disabled { opacity: .55; cursor: default; text-decoration: none; }
+.portal-body .portal-wizard a { display: inline-block; margin: 8px 0 0; margin-inline-end: 8px; font-weight: 700; color: var(--pt-navy); }
 .portal-body .portal-wizard section,
-.portal-body .portal-wizard details { display: block; margin: 14px 0; padding: 14px; background: var(--pt-soft); border: 1px solid #d6e0ef; border-radius: 0; }
-.portal-body .portal-wizard summary { font-weight: 800; color: var(--pt-navy); cursor: pointer; }
-.portal-body .portal-wizard pre { padding: 12px; font-size: 13px; color: #d5e6ff; background: #0b1730; overflow: auto; }
-
+.portal-body .portal-wizard details { display: block; margin: 10px 0; padding: 10px; background: var(--pt-soft); border: 1px solid var(--pt-line); border-radius: 0; }
+.portal-body .portal-wizard summary { font-weight: 700; color: var(--pt-navy); cursor: pointer; }
+.portal-body .portal-wizard pre { padding: 8px 10px; font: 12.5px/1.45 "Courier New", Consolas, monospace; color: var(--pt-code-ink); background: var(--pt-code-bg); border: 2px inset var(--pt-muted); overflow: auto; }
 @media (max-width: 960px) {
-  .portal-layout { grid-template-columns: minmax(0, 1fr); }
-  .portal-col-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .portal-features, .portal-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 640px) {
-  body.portal-body { padding: 0; }
-  .portal-shell { border: 0; }
-  .portal-masthead { padding: 16px; gap: 12px; }
-  .portal-logo { width: 48px; height: 48px; font-size: 14px; }
-  .portal-name { font-size: 22px; }
-  .portal-chip { display: none; }
-  .portal-tabs { flex-wrap: nowrap; overflow-x: auto; }
-  .portal-body .portal-tab { flex: none; }
-  .portal-layout { padding: 12px; gap: 14px; }
-  .portal-col-main, .portal-col-side { gap: 14px; }
-  .portal-hero { padding: 20px 16px; }
-  .portal-lead { font-size: 16px; }
-  .portal-body .portal-btn-big { width: 100%; font-size: 17px; }
-  .portal-panel { padding: 16px; }
-  .portal-col-side, .portal-features, .portal-directory, .portal-shots, .portal-steps { grid-template-columns: minmax(0, 1fr); }
-  .portal-final h2 { font-size: 24px; }
+  .portal-grid-wizard { grid-template-columns: minmax(0, 1fr); }
 }
 `;
+
+export const landingStyles = String.raw`
+/* === 2002 PORTAL MEETS 2026 EDGE STYLING === */
+body.portal-body {
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background-color: #d8dee9;
+  background-image: radial-gradient(#bac3d4 1px, transparent 1px);
+  background-size: 16px 16px;
+  color: #111827;
+  font: 14px/1.5 Verdana, Tahoma, "Segoe UI", system-ui, Arial, sans-serif;
+}
+body.portal-body.portal-rtl {
+  font: 15px/1.55 Tahoma, Arial, "Segoe UI", system-ui, sans-serif;
+}
+.portal-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 12px 28px;
+}
+.portal-shell main,
+.portal-shell section,
+.portal-shell details {
+  padding: 0;
+  margin-block: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.portal-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 5px 10px;
+  border: 1px solid #020617;
+  border-bottom: none;
+  font-size: 12.5px;
+}
+.portal-eyebrow a {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+.portal-eyebrow a:hover {
+  color: #fde047;
+}
+.portal-lang-switch {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+.portal-lang-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #1e293b;
+  color: #e2e8f0 !important;
+  border: 1px solid #475569;
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 12px;
+}
+.portal-lang-pill:hover {
+  background: #334155;
+  color: #fde047 !important;
+}
+.portal-lang-active {
+  background: #ffcc00;
+  color: #0f172a !important;
+  border-color: #fde047;
+}
+.portal-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border: 1px solid #86efac;
+  margin-inline-end: 5px;
+  vertical-align: middle;
+}
+.portal-masthead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(180deg, #003366 0%, #002244 65%, #001833 100%);
+  color: #ffffff;
+  padding: 14px 16px;
+  border: 2px solid #001226;
+  box-shadow: inset 0 1px 0 #3b82f6;
+}
+.portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 460px;
+}
+.portal-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: 68px;
+  background: #ffcc00;
+  color: #001833;
+  border: 2px outset #fef08a;
+  font-family: "Trebuchet MS", Impact, Arial Black, sans-serif;
+  text-align: center;
+  padding: 4px;
+}
+.portal-badge-top {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.portal-badge-sub {
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid #001833;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.portal-title {
+  margin: 0;
+  font: 700 27px/1.15 "Trebuchet MS", Verdana, Tahoma, "Segoe UI", sans-serif;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  text-shadow: 1px 1px 0 #000d1a;
+}
+.portal-title-tag {
+  display: inline-block;
+  font: 700 12px/1 Tahoma, Verdana, sans-serif;
+  background: #1d4ed8;
+  color: #fef08a;
+  border: 1px solid #60a5fa;
+  padding: 2px 6px;
+  vertical-align: middle;
+  margin-inline-start: 6px;
+  text-transform: uppercase;
+}
+.portal-subtitle {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  color: #cbd5e1;
+  max-width: 560px;
+}
+.portal-cta-box {
+  flex: 0 1 320px;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 2px outset #cbd5e1;
+}
+.portal-cta-header {
+  background: #ffcc00;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.6px;
+  padding: 3px 8px;
+  border-bottom: 1px solid #94a3b8;
+  text-align: center;
+}
+.portal-cta-body {
+  padding: 8px 10px;
+  text-align: center;
+}
+.portal-btn-primary {
+  display: inline-block;
+  background: linear-gradient(180deg, #ffdd57 0%, #f59e0b 100%);
+  color: #0f172a !important;
+  font-weight: 700;
+  font-size: 14.5px;
+  text-decoration: none;
+  padding: 7px 14px;
+  border: 2px outset #fde68a;
+  cursor: pointer;
+}
+.portal-btn-primary:hover {
+  background: linear-gradient(180deg, #fef08a 0%, #fbbf24 100%);
+  text-decoration: underline;
+}
+.portal-btn-primary:active {
+  border-style: inset;
+}
+.portal-btn-lg {
+  font-size: 15.5px;
+  padding: 9px 18px;
+}
+.portal-btn-secondary {
+  display: inline-block;
+  background: #e2e8f0;
+  color: #0f172a !important;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-decoration: none;
+  padding: 8px 12px;
+  border: 2px outset #f8fafc;
+}
+.portal-btn-secondary:hover {
+  background: #f1f5f9;
+  text-decoration: underline;
+}
+.portal-btn-bevel {
+  display: block;
+  text-align: center;
+  background: #003366;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-decoration: none;
+  padding: 6px 10px;
+  border: 2px outset #3b82f6;
+}
+.portal-btn-bevel:hover {
+  background: #004080;
+  color: #fde047 !important;
+}
+.portal-cta-he {
+  margin-top: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.portal-cta-he a {
+  color: #003366;
+  text-decoration: underline;
+}
+.portal-cta-meta {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+/* CHANNEL TABS */
+.portal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: #94a3b8;
+  padding: 4px 6px 0;
+  border-left: 2px solid #001226;
+  border-right: 2px solid #001226;
+}
+.portal-tab {
+  display: inline-block;
+  padding: 5px 12px;
+  background: #dce3ee;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 12.5px;
+  text-decoration: none;
+  border: 1px solid #475569;
+  border-bottom: none;
+}
+.portal-tab:hover {
+  background: #ffffff;
+  color: #003366;
+}
+.portal-tab-active {
+  background: #ffffff;
+  color: #003366;
+  border-top: 2px solid #f59e0b;
+}
+.portal-tab-lang {
+  margin-inline-start: auto;
+  background: #fef08a;
+  color: #0f172a;
+}
+
+/* TICKER RIBBON */
+.portal-ticker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: #fefce8;
+  border: 1px solid #64748b;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+}
+.portal-ticker-label {
+  background: #b91c1c;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 1px 6px;
+  letter-spacing: 0.4px;
+}
+.portal-ticker-text {
+  color: #1e293b;
+}
+
+/* 3-COLUMN PORTAL LAYOUT */
+.portal-grid {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 260px;
+  gap: 10px;
+  align-items: start;
+}
+.portal-col-left,
+.portal-col-main,
+.portal-col-right {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+/* SCREENSHOT GALLERY: 2x2 portal windows */
+.portal-shots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  gap: 10px;
+}
+.portal-shot-card {
+  min-width: 0;
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid #64748b;
+  box-shadow: 1px 1px 0 #94a3b8;
+}
+.portal-shot-winbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 6px;
+  background: linear-gradient(90deg, #003366 0%, #1e3a8a 100%);
+  color: #ffffff;
+  font-size: 12px;
+}
+.portal-shot-title {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.portal-shot-zoom {
+  flex: none;
+  color: #fde047;
+  font-size: 11.5px;
+}
+.portal-shot-img-link {
+  display: block;
+}
+.portal-shot-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+.portal-shot-caption {
+  padding: 6px 8px;
+  font-size: 12.5px;
+  color: #334155;
+  line-height: 1.45;
+  border-top: 1px solid #cbd5e1;
+}
+.portal-shot-caption strong {
+  color: #003366;
+}
+
+/* PORTAL BOXES */
+.portal-box {
+  background: #ffffff;
+  border: 1px solid #64748b;
+  box-shadow: 1px 1px 0 #94a3b8;
+}
+.portal-box-highlight {
+  border-color: #003366;
+  background: #f8fafc;
+}
+.portal-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(90deg, #003366 0%, #1e3a8a 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 5px 8px;
+  border-bottom: 1px solid #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.portal-header-right {
+  font-weight: 400;
+  font-size: 11.5px;
+  color: #fde047;
+  text-transform: none;
+}
+.portal-box-body {
+  padding: 10px;
+}
+.portal-box-flush {
+  padding: 0;
+}
+
+/* HERO CARD */
+.portal-hero-card {
+  background: #ffffff !important;
+  border: 2px solid #003366 !important;
+  box-shadow: 2px 2px 0 #94a3b8;
+}
+.portal-hero-banner {
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+.portal-hero-kicker {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1d4ed8;
+  letter-spacing: 0.7px;
+  margin-bottom: 4px;
+}
+.portal-hero-headline {
+  margin: 0 0 8px;
+  font: 700 24px/1.25 "Trebuchet MS", Verdana, Tahoma, "Segoe UI", sans-serif;
+  color: #0f172a;
+}
+.portal-hero-lead {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #1e293b;
+}
+.portal-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px dotted #94a3b8;
+}
+
+/* LYCOS-STYLE DIRECTORY GRID */
+.portal-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.portal-dir-item {
+  padding: 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+.portal-dir-item h3 {
+  margin: 0 0 3px;
+  font-size: 14.5px;
+  color: #003366;
+}
+.portal-folder {
+  color: #d97706;
+  margin-inline-end: 4px;
+}
+.portal-dir-links {
+  margin: 0 0 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+.portal-dir-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+/* COMMUNITY DIRECTORY (WHAT WILL YOURS BE ABOUT?) */
+.portal-topic-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+.portal-topic-grid li {
+  padding-inline-start: 8px;
+  border-inline-start: 3px solid #f59e0b;
+}
+.portal-topic-grid a {
+  font-weight: 700;
+  color: #003366;
+  text-decoration: underline;
+}
+.portal-topic-grid a:hover {
+  color: #b91c1c;
+}
+.portal-topic-grid span {
+  display: block;
+  font-size: 12.5px;
+  color: #475569;
+}
+.portal-topic-note {
+  margin-top: 10px !important;
+  padding-top: 8px;
+  border-top: 1px dotted #94a3b8;
+}
+
+/* CLASSIC FORUM TABLE PREVIEW */
+.portal-board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.portal-board-table th {
+  background: #dce3ee;
+  color: #0f172a;
+  text-align: start;
+  padding: 5px 8px;
+  border-bottom: 1px solid #64748b;
+  font-size: 12.5px;
+}
+.portal-board-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #cbd5e1;
+  vertical-align: top;
+}
+.portal-board-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+.portal-room-name {
+  font-weight: 700;
+  color: #003366;
+  font-size: 13.5px;
+}
+.portal-room-desc {
+  color: #475569;
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+.portal-num {
+  text-align: center !important;
+  white-space: nowrap;
+}
+.portal-tag {
+  display: inline-block;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+  padding: 1px 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.portal-lastpost {
+  font-size: 12.5px;
+  color: #334155;
+}
+.portal-lastpost span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* SIDEBAR LISTS & TABLES */
+.portal-steps {
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 13px;
+  display: grid;
+  gap: 6px;
+}
+.portal-mini-cta {
+  margin-top: 10px;
+}
+.portal-spec-table,
+.portal-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.portal-spec-table th,
+.portal-spec-table td,
+.portal-compare-table th,
+.portal-compare-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: start;
+}
+.portal-spec-table th {
+  color: #475569;
+  font-weight: 700;
+  width: 42%;
+  background: #f8fafc;
+}
+.portal-compare-table th {
+  background: #dce3ee;
+  color: #0f172a;
+  border-bottom: 1px solid #64748b;
+}
+.portal-list,
+.portal-check-list,
+.portal-links-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.portal-list li strong {
+  display: block;
+  color: #003366;
+}
+.portal-list li span {
+  color: #475569;
+  font-size: 12.5px;
+}
+.portal-check-list li {
+  padding-inline-start: 14px;
+  position: relative;
+}
+.portal-check-list li::before {
+  content: "■";
+  color: #003366;
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  font-size: 11.5px;
+}
+.portal-small-copy {
+  margin: 0 0 7px;
+  font-size: 13px;
+  color: #334155;
+}
+.portal-small-copy:last-child {
+  margin-bottom: 0;
+}
+.portal-he-note {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.portal-he-note:last-child {
+  margin-bottom: 0;
+}
+.portal-links-list a {
+  color: #003366;
+  text-decoration: underline;
+}
+.portal-links-list a:hover {
+  color: #b91c1c;
+}
+.portal-console-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.portal-code-box {
+  margin: 0;
+  padding: 8px 10px;
+  background: #0f172a;
+  color: #86efac;
+  border: 2px inset #334155;
+  font: 12.5px/1.45 "Courier New", Consolas, monospace;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+/* BOTTOM BANNER */
+.portal-bottom-cta {
+  margin-top: 12px;
+  padding: 12px 16px !important;
+  background: linear-gradient(90deg, #002244 0%, #003366 100%) !important;
+  color: #ffffff;
+  border: 2px solid #001226 !important;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.portal-bottom-cta h2 {
+  margin: 0 0 2px;
+  font-size: 18px;
+  color: #fde047;
+}
+.portal-bottom-cta p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #e2e8f0;
+}
+
+/* FOOTER */
+.portal-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #94a3b8;
+  text-align: center;
+  font-size: 12.5px;
+  color: #475569;
+}
+.portal-footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.portal-micro-badge {
+  display: inline-block;
+  font: 11px/1.2 Tahoma, Verdana, sans-serif;
+  background: #e2e8f0;
+  color: #0f172a;
+  border: 1px solid #64748b;
+  padding: 2px 6px;
+}
+.portal-micro-badge strong {
+  color: #003366;
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 960px) {
+  .portal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portal-col-main {
+    order: -1;
+  }
+}
+@media (max-width: 640px) {
+  .portal-shell {
+    overflow-wrap: anywhere;
+  }
+  .portal-box-header {
+    flex-wrap: wrap;
+  }
+  .portal-board-table {
+    table-layout: fixed;
+  }
+  .portal-directory-grid,
+  .portal-console-split,
+  .portal-shots-grid {
+    grid-template-columns: 1fr;
+  }
+  .portal-topic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .portal-tab {
+    padding: 8px 12px;
+  }
+  .portal-masthead {
+    padding: 12px;
+  }
+  .portal-cta-box {
+    flex: 1 1 100%;
+  }
+}
+${wizardStyles}`;

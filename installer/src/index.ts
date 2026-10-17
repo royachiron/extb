@@ -1,7 +1,7 @@
 import { randomToken, digest, hexDigest, equal, seal, unseal } from './security';
 import { githubAuthorizeUrl, exchangeGithubCode, createPrivateForumRepository, connectWorkerBuilds, getWorkerBuildStatus, startWorkerBuild, GithubConnectionError, type GithubProgress, type InstalledForum, type BuildConnection } from './github';
 import { wizardScript } from './wizard';
-import { renderLandingPage, renderWizardPage, resolvePortalLang, resolveWizardLang, langCookie, landingStyles } from './landing';
+import { renderLandingPage, renderWizardPage, releaseVersion, resolvePortalLang, resolveWizardLang, langCookie, landingStyles } from './landing';
 import { communityDraftSchema, makeCommunityDraft, renderCommunityPreview } from '../../src/community/draft';
 import { cf, loadRelease, upload, checkedFile, type Release } from './cloudflare';
 interface Env { INSTALLATIONS: DurableObjectNamespace; ENCRYPTION_KEY:string; INSTALLER_ORIGIN:string; OAUTH_CLIENT_ID:string; OAUTH_SCOPE:string; RELEASE_MANIFEST_URL:string; RELEASE_MANIFEST_SHA256:string; GITHUB_CLIENT_ID?:string; GITHUB_CLIENT_SECRET?:string; GITHUB_CF_SCOPE?:string }
@@ -18,7 +18,7 @@ async function handle(request:Request,env:Env):Promise<Response>{
  if(url.pathname==='/wizard.css')return new Response(styles+'\n'+landingStyles,{headers:{'Content-Type':'text/css','Cache-Control':'no-store'}});
  if(url.pathname==='/healthz')return json({ok:true});
  if(url.pathname==='/wizard.js')return new Response(wizardScript,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}});
- if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang),{headers});}
+ if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang,releaseVersion(env.RELEASE_MANIFEST_URL)),{headers});}
  if(!env.OAUTH_CLIENT_ID || !env.OAUTH_SCOPE || !env.ENCRYPTION_KEY)return json({error:'Installer registration is not configured'},503);
  if(url.pathname==='/oauth/start'){
   const id=url.searchParams.get('new')==='1'?randomToken():cookie(request)||randomToken();const stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
