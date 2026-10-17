@@ -16,22 +16,33 @@ export async function isSetupComplete(ctx: AppContext): Promise<boolean> {
   return !!await ctx.env.DB.prepare("SELECT value FROM settings WHERE key = 'setup_complete'").first();
 }
 
+const USERNAME_PATTERN = '[A-Za-z0-9_\\-]{3,32}';
+
+function ownerFieldError(username: string, password: string, he: boolean): string {
+  if (!isValidDisplayName(username)) return he ? 'שם המשתמש צריך להכיל 3-32 אותיות באנגלית, מספרים, _ או - (לא כתובת מייל).' : 'Username must be 3-32 letters, numbers, _ or - (not an email).';
+  if (!isValidPassword(password)) return he ? 'הסיסמה צריכה להכיל לפחות 8 תווים.' : 'Password must be at least 8 characters.';
+  return he ? 'בדקו את שם הקהילה.' : 'Check the community name.';
+}
+
 function setupForm(ctx: AppContext, error = '', draft?: CommunityDraft): string {
   if (draft) return `${renderCommunityPreview(draft)}
-    ${error ? `<p role="alert">${esc(error)}</p>` : ''}
     <details><summary>${draft.language === 'he' ? 'עריכת התוכן' : 'Edit starter content'}</summary><form method="post" action="/setup/preview">${csrfField(ctx)}
     <label>${draft.language === 'he' ? 'תוכן הקהילה' : 'Community draft'} <textarea name="draft" rows="20" required>${esc(JSON.stringify(draft, null, 2))}</textarea></label><button class="btn">${draft.language === 'he' ? 'עדכון התצוגה' : 'Update preview'}</button></form></details>
     <form method="post" action="/setup/personalize">${csrfField(ctx)}<p>${draft.language === 'he' ? 'התאמה אישית באמצעות AI היא אופציונלית ופועלת בחשבון Cloudflare שלכם. Cloudflare מספקת 10,000 נוירונים חינמיים ביום לכל החשבון.' : 'Optional AI personalization runs in your Cloudflare account. Cloudflare provides 10,000 free neurons daily across the account.'}</p><button class="btn">${draft.language === 'he' ? 'התאמה אישית / יצירה מחדש (עד שלושה ניסיונות)' : 'Personalize / regenerate (up to three attempts)'}</button></form>
+    ${error ? `<p role="alert">${esc(error)}</p>` : ''}
     <form method="post" action="/setup">${csrfField(ctx)}
-    <label>${draft.language === 'he' ? 'שם משתמש' : 'Owner username'} <input name="username" required minlength="3" maxlength="32" autocomplete="username"></label>
-    <label>${draft.language === 'he' ? 'סיסמה' : 'Owner password'} <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <label>${draft.language === 'he' ? 'שם משתמש' : 'Owner username'} <input name="username" required minlength="3" maxlength="32" pattern="${USERNAME_PATTERN}" autocomplete="username" aria-describedby="owner-username-hint"${error ? ' autofocus' : ''}></label>
+    <small id="owner-username-hint">${draft.language === 'he' ? 'אותיות באנגלית, מספרים, _ או - (לא כתובת מייל). משמש להתחברות.' : 'Letters, numbers, _ or - (not an email). You will log in with it.'}</small>
+    <label>${draft.language === 'he' ? 'סיסמה' : 'Owner password'} <input type="password" name="password" required minlength="8" autocomplete="new-password" aria-describedby="owner-password-hint"></label>
+    <small id="owner-password-hint">${draft.language === 'he' ? 'לפחות 8 תווים.' : 'At least 8 characters.'}</small>
     <input type="hidden" name="community_name" value="${esc(draft.name)}"><input type="hidden" name="approved_draft" value="${esc(JSON.stringify(draft))}">
     <label><input type="checkbox" name="approve_draft" value="1" required> ${draft.language === 'he' ? 'אני מאשר/ת את התוכן המוצג' : 'I approve this starter content'}</label>
     <button class="btn" type="submit">${draft.language === 'he' ? 'יצירת הקהילה' : 'Create community'}</button></form>`;
   return `<h1>Create your community</h1><p>Your setup passphrase is the secret entered during Cloudflare deployment.</p>
     ${error ? `<p role="alert">${esc(error)}</p>` : ''}<form method="post" action="/setup">${csrfField(ctx)}
     <label>Setup passphrase <input type="password" name="passphrase" required autocomplete="off"></label>
-    <label>Admin username <input name="username" required minlength="3" maxlength="32" autocomplete="username"></label>
+    <label>Admin username <input name="username" required minlength="3" maxlength="32" pattern="${USERNAME_PATTERN}" autocomplete="username"></label>
+    <small>Letters, numbers, _ or - (not an email).</small>
     <label>Admin password <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
     <label>Community name <input name="community_name" required maxlength="80" value="EXTB"></label>
     <button class="btn" type="submit">Create community</button></form>`;
@@ -84,7 +95,7 @@ export async function postSetup(req: Request, ctx: AppContext): Promise<Response
   const username = String(form.get('username') || '').trim();
   const password = String(form.get('password') || '');
   const name = draft?.name || String(form.get('community_name') || '').trim();
-  if (!isValidDisplayName(username) || !isValidPassword(password) || !name || name.length > 80) return setupPage(ctx, 'Check the username, password and community name.', 400, draft);
+  if (!isValidDisplayName(username) || !isValidPassword(password) || !name || name.length > 80) return setupPage(ctx, ownerFieldError(username, password, draft?.language === 'he'), 400, draft);
   const salt = generateSalt();
   const passwordHash = await hashPasswordForEnv(ctx.env, password, salt);
   const nextOwner = await ctx.env.DB.prepare('SELECT COALESCE(MAX(id), 0) + 1 AS id FROM users').first<{ id: number }>();

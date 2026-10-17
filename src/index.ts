@@ -49,7 +49,10 @@ export default {
     const secret = env.CHAT_DO_SECRET || (await getSetting(env, 'chat_auth_secret'))?.value || '';
     const requestEnv: Env = { ...env, COMMUNITY_ORIGIN: origin, CHAT_DO_SECRET: secret };
     const ctx: AppContext = { env: requestEnv, user: null, cookies: [], branding, origin, locale };
-    if (pathname !== '/setup' && !pathname.startsWith('/setup/') && !pathname.startsWith('/css/') && !pathname.startsWith('/icons/') && pathname !== '/favicon.svg' && !(await isSetupComplete(ctx))) {
+    if (pathname !== '/setup' && !pathname.startsWith('/setup/') && !pathname.startsWith('/css/') && !pathname.startsWith('/icons/') && pathname !== '/favicon.svg' && pathname !== '/sw.js' && !(await isSetupComplete(ctx))) {
+      // HTMX would follow the redirect and swap the whole setup page into .main (a nested layout),
+      // and background polls would reload the page mid-typing. Nothing exists yet, so swap nothing.
+      if (req.headers.get('hx-request') === 'true') return new Response(null, { status: 204 });
       return Response.redirect(`${origin}/setup`, 302);
     }
     const chosenLanguage = new URL(req.url).searchParams.get('lang');
