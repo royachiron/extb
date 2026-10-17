@@ -85,6 +85,11 @@ export function markdownToolbar(textareaId: string, previewId: string, opts?: { 
 
 export function roomIcon(room: Room): string {
   if (room.icon) return room.icon;
+  // Starter rooms are named in the community's language, so match them by slug.
+  const bySlug: Record<string, string> = {
+    announcements: '📢', introductions: '👋', general: '💬', questions: '❓', resources: '📚', chat: '🗨️',
+  };
+  if (bySlug[room.slug]) return bySlug[room.slug]!;
   const map: Record<string, string> = {
     'Amputation': '🦿',
     'SCI': '♿',
@@ -104,7 +109,8 @@ export function roomIcon(room: Room): string {
     'Questions': '❓',
     'Chat': '💬',
   };
-  return map[room.name] || '•';
+  // Otherwise the room's first letter: a row of identical dots told rooms apart only on hover.
+  return map[room.name] || esc([...(room.name || '').trim()][0] || '•');
 }
 
 export function htmlResponse(html: string, status = 200): Response {

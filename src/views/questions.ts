@@ -63,7 +63,7 @@ export function renderQuestionsIndex(opts: {
 
   return `
     <header class="page-head" style="margin-bottom: 24px;">
-      <h1 style="margin: 0; font-size: 24px; font-weight: 700;">Q&amp;A</h1>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 700;"><!--extb-ui-->Q&amp;A<!--/extb-ui--></h1>
       <p style="margin:8px 0 0;color:var(--text-muted);font-size:14px;">Ask questions, share what you know, and learn from your community.</p>
     </header>
     ${flashHtml}

@@ -162,7 +162,7 @@ export async function getFeed(
   }
 
   const gate = false;
-  const body = (!ctx.user ? `<div class="community-welcome"><h1>${esc((ctx.branding || DEFAULT_BRANDING).name)}</h1><p>${esc((ctx.branding || DEFAULT_BRANDING).homepage_copy)}</p></div>` : '') + renderFeed({ user: ctx.user, rooms, activeRoom, topics, pollUrl, siteKey: ctx.env.TURNSTILE_SITE_KEY, csrfToken: ctx.csrfToken, gate, ironGateActive: ctx.ironGateActive, hasMore, baseUrl, page, feedStamp });
+  const body = (!ctx.user ? `<div class="community-welcome"><h1>${esc((ctx.branding || DEFAULT_BRANDING).name)}</h1><p style="white-space:pre-line">${esc((ctx.branding || DEFAULT_BRANDING).homepage_copy)}</p></div>` : '') + renderFeed({ user: ctx.user, rooms, activeRoom, topics, pollUrl, siteKey: ctx.env.TURNSTILE_SITE_KEY, csrfToken: ctx.csrfToken, gate, ironGateActive: ctx.ironGateActive, hasMore, baseUrl, page, feedStamp });
 
   if (req.headers.get('hx-request') === 'true') {
     return html(body);

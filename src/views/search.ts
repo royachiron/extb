@@ -34,7 +34,7 @@ export function renderSearchResults(opts: {
         <input name="q" value="${esc(q)}" placeholder="Search..." data-extb-i18n-placeholder="Search..." autocomplete="off" aria-label="Search" data-extb-i18n-aria-label="Search" style="flex:1;">
         <button type="submit" class="btn"><!--extb-ui-->Search<!--/extb-ui--></button>
       </form>
-      <p class="subtitle" style="color:var(--text-muted);margin:0;">${offset > 0 ? `Results ${offset + 1}-${offset + count}` : `${count}${hasMore ? '+' : ''} result${count === 1 && !hasMore ? '' : 's'}`} for: <strong>${esc(q)}</strong></p>
+      <p class="subtitle" style="color:var(--text-muted);margin:0;"><!--extb-ui-->Results for<!--/extb-ui--> <strong>${esc(q)}</strong> (${offset > 0 ? `${offset + 1}-${offset + count}` : `${count}${hasMore ? '+' : ''}`})</p>
     </section>
     ${resultsHtml}
     ${hasMore ? `<div style="margin:16px 0;text-align:center;"><a class="btn btn-secondary" href="/search?q=${encodeURIComponent(q)}&offset=${offset + PAGE}"><!--extb-ui-->More results<!--/extb-ui--></a></div>` : ''}

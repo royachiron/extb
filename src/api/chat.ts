@@ -91,7 +91,7 @@ export async function getChat(
           user: ctx.user,
           rooms,
           activeRoomSlug: 'chat',
-          title: '',
+          title: 'Chat',
           body,
           csrfToken: ctx.csrfToken,
           showFab: false,

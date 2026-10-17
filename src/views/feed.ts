@@ -73,11 +73,11 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[], ironGateAct
   const deletedTag = t.deleted_at
     ? `<span class="deleted">[deleted${t.delete_reason ? `: ${esc(t.delete_reason)}` : ''}]</span> `
     : '';
-  const pin = t.is_pinned ? '<span class="pin" title="Pinned">📌</span> ' : '';
-  const lock = t.is_locked ? '<span class="lock" title="Locked">🔒</span> ' : '';
-  const poll = (t as any).has_poll ? '<span class="poll" title="Poll">📊</span> ' : '';
+  const pin = t.is_pinned ? '<span class="pin" title="Pinned" data-extb-i18n-title="Pinned">📌</span> ' : '';
+  const lock = t.is_locked ? '<span class="lock" title="Locked" data-extb-i18n-title="Locked">🔒</span> ' : '';
+  const poll = (t as any).has_poll ? '<span class="poll" title="Poll" data-extb-i18n-title="Poll">📊</span> ' : '';
   const unread = t.is_unread ? 1 : 0;
-  const unreadDot = unread ? '<span class="tc-unread-dot" title="Unread"></span>' : '';
+  const unreadDot = unread ? '<span class="tc-unread-dot" title="Unread" data-extb-i18n-title="Unread"></span>' : '';
 
   const tagChips = t.tags
     ? t.tags.split(',').map((tag: string) => `<a href="/search?q=${esc(tag.trim())}" hx-get="/search?q=${esc(tag.trim())}" hx-target=".main" hx-push-url="true" class="tag-chip">#${esc(tag.trim())}</a>`).join('')
@@ -87,9 +87,9 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[], ironGateAct
   const replies = t.active_reply_count ?? t.reply_count;
   const isNew = Date.now() - toUtcMs(t.created_at) < 24 * 3600 * 1000;
   const labels =
-    (x && x.replies24h >= HOT_REPLIES_24H ? '<span class="tc-label-hot" title="Several replies in the last 24 hours">🔥 Active</span>' : '') +
-    (isNew ? '<span class="tc-label-new">New</span>' : '');
-  const newPill = x && x.newReplies > 0 ? `<span class="tc-new-pill">${x.newReplies} new</span>` : '';
+    (x && x.replies24h >= HOT_REPLIES_24H ? '<span class="tc-label-hot" title="Several replies in the last 24 hours" data-extb-i18n-title="Several replies in the last 24 hours">🔥 <!--extb-ui-->Active<!--/extb-ui--></span>' : '') +
+    (isNew ? '<span class="tc-label-new"><!--extb-ui-->New<!--/extb-ui--></span>' : '');
+  const newPill = x && x.newReplies > 0 ? `<span class="tc-new-pill">${x.newReplies} <!--extb-ui-->new<!--/extb-ui--></span>` : '';
 
   // CW-tagged threads never preview their content in the feed - the pills say
   // what it is, opening the thread is the consent step.
@@ -104,8 +104,8 @@ function renderTopicCard(t: Topic, user: User | null, rooms: Room[], ironGateAct
   const views = t.view_count ? `<span class="tc-views" title="${t.view_count} view${t.view_count === 1 ? '' : 's'}">👁 ${t.view_count}</span><span>·</span>` : '';
   const lastLine = x?.lastReply
     ? `<span class="tc-last">↩ <span class="tc-last-name">${esc(x.lastReply.name)}</span> ${agoTime(x.lastReply.at)}</span>`
-    : `<span class="tc-last">posted ${agoTime(t.created_at)}</span>`;
-  const reactions = x && x.reactions > 0 ? `<span>·</span><span class="tc-rx" title="Reactions">❤ ${x.reactions}</span>` : '';
+    : `<span class="tc-last"><!--extb-ui-->posted<!--/extb-ui--> ${agoTime(t.created_at)}</span>`;
+  const reactions = x && x.reactions > 0 ? `<span>·</span><span class="tc-rx" title="Reactions" data-extb-i18n-title="Reactions">❤ ${x.reactions}</span>` : '';
 
   // Nudge a reply on unanswered threads - only for people who can actually post there.
   const nudge = replies === 0 && user && room && !t.is_locked && t.user_id !== user.id && canPost(user, room, ironGateActive)
@@ -433,7 +433,7 @@ export function renderFeed(opts: {
   return `
 <header class="feed-head" style="margin-bottom:20px;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-    <h1 class="feed-title" style="margin:0;font-size:22px;font-weight:700;color:var(--text-main);">${activeRoom ? esc(activeRoom.name) : '<!--extb-ui-->most recently updated<!--/extb-ui-->'}</h1>
+    <h1 class="feed-title" style="margin:0;font-size:22px;font-weight:700;color:var(--text-main);">${activeRoom ? esc(activeRoom.name) : '<!--extb-ui-->Latest updates<!--/extb-ui-->'}</h1>
     <div style="display:flex;gap:8px;align-items:center;">
       ${activeRoom && isMod(user) ? `
         <button class="btn btn-secondary" 
@@ -450,7 +450,7 @@ ${anonComposer}
 ${composer}
 <div id="topic-list"
   hx-get="${pollUrl}"
-  hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed:wake [!document.getElementById('topic-list').dataset.paged]"
+  hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed-wake[!document.getElementById('topic-list').dataset.paged]"
   hx-vals='js:{v: (document.getElementById("feed-stamp") || {dataset: {}}).dataset.v || ""}'
   hx-target="#topic-list"
   hx-swap="innerHTML">

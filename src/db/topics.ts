@@ -125,7 +125,7 @@ export async function listFeedTopics(
 
 export async function getTopicById(env: Env, id: number): Promise<Topic | null> {
   const row = await env.DB.prepare(
-    `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review, u.signature,
+    `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review, u.signature, u.access_level,
        (SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.status = 'approved' AND p.deleted_at IS NULL) as active_reply_count,
        (SELECT json_group_array(json_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color, 'text_color', b.text_color, 'shape', b.shape, 'status', ub.status))
         FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = t.user_id) AS badges_json
@@ -138,7 +138,7 @@ export async function getTopicById(env: Env, id: number): Promise<Topic | null> 
 
 export async function getTopicByShortId(env: Env, shortId: string): Promise<Topic | null> {
   const row = await env.DB.prepare(
-    `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review, u.signature,
+    `SELECT t.*, u.display_name AS author_display_name, u.avatar_color, u.avatar_url, u.require_review as user_require_review, t.require_review, u.signature, u.access_level,
        (SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.status = 'approved' AND p.deleted_at IS NULL) as active_reply_count,
        (SELECT json_group_array(json_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color, 'text_color', b.text_color, 'shape', b.shape, 'status', ub.status))
         FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = t.user_id) AS badges_json

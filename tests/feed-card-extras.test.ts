@@ -67,15 +67,15 @@ describe('feed card render', () => {
     expect(h).toContain('↩ <span class="tc-last-name">Alton</span>');
     expect(h).toContain('👁 41');
     expect(h).toContain('❤ 7');
-    expect(h).toContain('3 new');
-    expect(h).toContain('🔥 Active');
+    expect(h).toContain('3 <!--extb-ui-->new<!--/extb-ui-->');
+    expect(h).toContain('🔥 <!--extb-ui-->Active<!--/extb-ui-->');
     expect(h).toContain('class="tc-av"');
     expect(h).toContain('class="ago-time"');
   });
 
   it('below the active threshold there is no active label; old threads are not New', () => {
     const h = render(topic({ extras: extras({ replies24h: HOT_REPLIES_24H - 1 }) }));
-    expect(h).not.toContain('🔥 Active');
+    expect(h).not.toContain('🔥 <!--extb-ui-->Active<!--/extb-ui-->');
     expect(h).not.toContain('tc-label-new');
   });
 

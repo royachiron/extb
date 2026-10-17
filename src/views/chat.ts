@@ -2,6 +2,7 @@
 // ./layout here would close an import cycle (layout -> chat-dock -> chat).
 import { esc, csrfField } from './layout-utils';
 import type { User, Room } from '../types';
+import { canPost } from '../access';
 import {
   chatBubble, chatHeader, chatReactionPill, chatAddBtn, chatReplyBtn, chatBotItem,
   chatPendingMatch, chatSendDelay,
@@ -57,7 +58,9 @@ function userInitials(name: string): string {
  * OOB fragment: the "Online" participants panel, swapped whole on every chat
  * poll. Moved verbatim from api/chat.ts getChatMessagesApi.
  */
-export function renderChatParticipants(activeNames: string[]): string {
+export function renderChatParticipants(names: string[]): string {
+  // Anonymous readers have no name to show; listing them adds blank avatars.
+  const activeNames = names.filter(name => name.trim() !== '[guest]');
   return `
     <div id="chat-participants" hx-swap-oob="true">
       <p class="chat-users-label"><!--extb-ui-->Online<!--/extb-ui--></p>
@@ -115,6 +118,12 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
   const guestIndicator = !user && guestName
     ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;padding:0 4px;">Chatting as <strong>${esc(guestName)}</strong></div>`
     : '';
+  // Mirror the chat room's server-side post check, so readers are not offered a box that only errors on send.
+  const activeRoom = rooms.find(r => r.slug === activeSlug);
+  const canWrite = activeRoom ? canPost(user, activeRoom) : !!user;
+  const readOnlyNote = canWrite ? '' : user
+    ? `<p class="chat-readonly-note"><!--extb-ui-->You can read this chat but not post in it.<!--/extb-ui--></p>`
+    : `<p class="chat-readonly-note"><a class="btn" href="/login"><!--extb-ui-->Log in to chat<!--/extb-ui--></a></p>`;
 
   // Horizontal room switcher. On the /chat page each tab is a full page nav
   // (one WS per page) and only shows with 2+ rooms. In the dock the tabs are
@@ -371,6 +380,8 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
     background: var(--card-bg);
   }
   .chat-input-inner { display: flex; gap: 8px; align-items: center; }
+  .chat-input-inner[hidden] { display: none; }
+  .chat-readonly-note { margin: 0; padding: 6px 4px; text-align: center; font-size: 13px; color: var(--text-muted); }
   .chat-input-row input[type="text"] {
     flex: 1; padding: 8px 14px;
     border: 1px solid var(--border-color); border-radius: 20px;
@@ -503,6 +514,7 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
   </div>
 
   <div class="chat-ui">
+    ${dock ? '' : '<h1 class="sr-only"><!--extb-ui-->Chat<!--/extb-ui--></h1>'}
     <div class="chat-main">
       <div id="chat-root" data-me="${esc(user ? (user.display_name || user.email?.split('@')[0] || '') : '')}" data-ismod="${user && ['mod', 'admin'].includes(user.access_level) ? '1' : '0'}" data-room="${esc(activeSlug)}" data-dock="${dock ? '1' : '0'}" data-csrf="${csrfToken}" data-bot-name="${esc(botName || '')}" style="display:none"></div>
       <div id="chat-messages">
@@ -518,7 +530,8 @@ export function renderChat(opts: { user: User | null; csrfToken?: string; guestN
           <button type="button" id="chat-reply-cancel" title="Cancel reply" data-extb-i18n-title="Cancel reply" aria-label="Cancel reply" data-extb-i18n-aria-label="Cancel reply">✕</button>
         </div>
         <div id="chat-hints" role="listbox" aria-label="Suggestions" hidden></div>
-        <div class="chat-input-inner">
+        ${readOnlyNote}
+        <div class="chat-input-inner"${canWrite ? '' : ' hidden'}>
           <input type="text" id="chat-input" name="content" required maxlength="500" placeholder="Type a message, or / for commands" data-extb-i18n-placeholder="Type a message, or / for commands" autocomplete="off" aria-autocomplete="list" aria-controls="chat-hints">
           <button type="submit" id="chat-send" class="chat-send-btn" title="Send" data-extb-i18n-title="Send">
             <svg id="chat-send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">

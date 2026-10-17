@@ -37,7 +37,7 @@ describe('interface localization', () => {
  expect(hebrew).toContain('>הרשמה</a>');
  expect(hebrew).toContain('>סיסמה</label>');
  expect(hebrew).toContain('class="room-label">Login</span>');
- expect(hebrew).toContain(' - Login</title>');
+ expect(hebrew).toContain('<title>Login</title>');
  expect(hebrew).not.toContain('EXTB_UI:');
  expect(hebrew).not.toContain('<!--extb-ui-->');
  });

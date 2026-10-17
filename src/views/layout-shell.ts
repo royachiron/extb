@@ -156,7 +156,7 @@ export function renderBottomNav(p: {
   <!--/extb-ui--></a>` : `
   <a href="/about" hx-get="/about" hx-target=".main" hx-push-url="true" class="bn-item" data-path="/about">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    Q&amp;A
+    <!--extb-ui-->Q&amp;A<!--/extb-ui-->
   </a>`}
   <a href="/chat" class="bn-item" data-path="/chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><!--extb-ui-->
@@ -246,5 +246,5 @@ export function renderUserMenu(p: {
            <form method="post" action="/logout">${csrfField({ csrfToken })}<button type="submit"><!--extb-ui-->Logout<!--/extb-ui--></button></form>
          </div></div>
        </div>`
-    : `<a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true"><!--extb-ui-->Login<!--/extb-ui--></a><a href="/register" hx-get="/register" hx-target=".main" hx-push-url="true" class="btn"><!--extb-ui-->Register<!--/extb-ui--></a>`;
+    : `<a href="/login" hx-get="/login" hx-target=".main" hx-push-url="true" class="nav-login"><!--extb-ui-->Login<!--/extb-ui--></a><a href="/register" hx-get="/register" hx-target=".main" hx-push-url="true" class="btn"><!--extb-ui-->Register<!--/extb-ui--></a>`;
 }

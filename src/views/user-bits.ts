@@ -18,6 +18,8 @@ export function avatarHtml(displayName: string, color: string, size = 64, url?: 
 }
 
 export function badgeHtml(level: string): string {
+  // No level (e.g. an author row loaded without it) would draw an empty grey pill.
+  if (!level) return '';
   const colors: Record<string, string> = {
     member: '#6b7280', full: '#10b981', mod: '#3b82f6', admin: '#ef4444',
   };

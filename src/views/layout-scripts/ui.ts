@@ -142,7 +142,7 @@ export const SCRIPT_UI = `
           if (!utc) return;
           const date = new Date(utc);
           if (isNaN(date.getTime())) return;
-          el.textContent = date.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+          el.textContent = date.toLocaleString(document.documentElement.lang === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
           el.dataset.localized = '1';
         });
         // Feed-card compact times ("3h ago"). Re-computed on every call so they
@@ -158,6 +158,14 @@ export const SCRIPT_UI = `
 
       function agoText(date, nowMs) {
         var s = Math.max(0, Math.round((nowMs - date.getTime()) / 1000));
+        if (document.documentElement.lang === 'he' && window.Intl && Intl.RelativeTimeFormat) {
+          var rtf = new Intl.RelativeTimeFormat('he', { numeric: 'auto', style: 'short' });
+          if (s < 60) return 'עכשיו';
+          if (s < 3600) return rtf.format(-Math.floor(s / 60), 'minute');
+          if (s < 86400) return rtf.format(-Math.floor(s / 3600), 'hour');
+          if (s < 7 * 86400) return rtf.format(-Math.floor(s / 86400), 'day');
+          return date.toLocaleDateString('he-IL', date.getFullYear() === new Date(nowMs).getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
+        }
         if (s < 60) return 'just now';
         if (s < 3600) return Math.floor(s / 60) + 'm ago';
         if (s < 86400) return Math.floor(s / 3600) + 'h ago';

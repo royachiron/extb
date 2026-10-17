@@ -423,6 +423,8 @@ export const routes: Route[] = [
   { method: 'GET', pattern: p('/manifest.json'), handler: getManifest },
   { method: 'GET', pattern: p('/sw.js'), handler: getServiceWorker },
   { method: 'GET', pattern: p('/favicon.svg'), handler: getFavicon },
+  // Browsers request /favicon.ico on their own; point them at the SVG instead of a 404.
+  { method: 'GET', pattern: p('/favicon.ico'), handler: async () => new Response(null, { status: 301, headers: { Location: '/favicon.svg', 'Cache-Control': 'public, max-age=86400' } }) },
   { method: 'GET', pattern: p('/tos'), handler: getTos },
   { method: 'GET', pattern: p('/about/tos'), handler: getTos },
   { method: 'POST', pattern: p('/tos/accept'), handler: postAcceptTos },

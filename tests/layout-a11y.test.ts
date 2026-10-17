@@ -53,7 +53,8 @@ describe('reactions accessibility', () => {
   it('labels active reaction chips and picker buttons', () => {
     const html = renderReactions(1, [{ emoji: '❤️', count: 3, users: 'a, b, c' }]);
     expect(html).toContain('aria-label="❤️ reaction, 3 - toggle"');
-    expect(html).toContain('aria-label="React with 👍"');
+    expect(html).toContain('aria-label="👍"');
+    expect(html).toContain('role="group" aria-label="Add a reaction"');
   });
 
   it('uses CSS vars for the picker divider (no hardcoded hex)', () => {

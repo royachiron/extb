@@ -11,6 +11,7 @@ import { routes } from './routes';
 import { isCacheableGuestRequest, guestCacheTtl } from './cache';
 import { applySecurityHeaders } from './lib/security-headers';
 import { isWriteRequest, readOnlyResponse } from './lib/read-only';
+import { friendlyNotFound } from './lib/not-found';
 export { ChatRoom } from './durable/chat-room';
 
 // Per-isolate single-flight dedup. When a popular cacheable URL expires from
@@ -137,6 +138,7 @@ export default {
       }
     }
 
+    response = await friendlyNotFound(req, ctx, response);
     return withCookies(await localizeResponse(response, locale, req.url), ctx);
   }
 };
@@ -180,6 +182,7 @@ async function renderAndMaybeCache(
     }
   }
 
+  response = await friendlyNotFound(req, ctx, response);
   response = await localizeResponse(response, ctx.locale ?? 'en', req.url);
 
   // Store cacheable guest responses. Built from the dispatch result BEFORE

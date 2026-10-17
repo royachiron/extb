@@ -101,7 +101,7 @@ export function renderLayout(opts: LayoutOpts): string {
 <meta name="theme-color" content="${esc(branding.accent_color)}">
 <meta name="csrf-token" content="${esc(csrfToken || '')}">
 ${opts.noindex ? '<meta name="robots" content="noindex,nofollow">' : ''}
-<title>${esc(title)} - ${esc(branding.name)}</title>
+<title>${title && title !== branding.name ? `${esc(title)} - ` : ''}${esc(branding.name)}</title>
 <meta name="description" content="${esc(desc)}">
 <meta property="og:type" content="${esc(opts.ogType ?? 'website')}">
 <meta property="og:site_name" content="${esc(branding.name)}">
@@ -224,7 +224,7 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
     html { scroll-behavior: auto !important; }
   }
 
-  .skip-link { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .skip-link { position:absolute; top:0; inset-inline-start:0; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .skip-link:focus { width:auto; height:auto; margin:0; overflow:visible; clip-path:none; inset-inline-start:0; top:0; z-index:1000; padding:10px 16px; background:var(--card-bg); color:var(--text-main); border:2px solid var(--primary); font-weight:700; }
 
   a { color: var(--primary); text-decoration: none; font-weight: 500; }
@@ -669,6 +669,7 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   textarea.image-transfer-drag { border-color: var(--primary); box-shadow: 0 0 0 3px var(--highlight-bg); }
   textarea.image-transfer-busy { background: var(--bg-color); cursor: progress; }
   .form-group { margin-bottom: 20px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .form-label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-main); }
   .form-hint { margin-top: 6px; font-size: 13px; color: var(--text-muted); }
   .form-error { margin-top: 6px; font-size: 13px; color: var(--danger); }
@@ -784,6 +785,8 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
     .drawer-footer { padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); }
     .topnav nav { display: none; }
     .topnav form { display: none; }
+    /* The bottom bar already offers Login; the top bar has no room for both. */
+    .topnav .nav-login { display: none; }
     .topnav input { width: 140px; }
     .bottom-nav {
       display: flex;

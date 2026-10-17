@@ -51,7 +51,7 @@ export function renderReactions(postId: number, reactions: any[], isTopic = fals
       hx-vals='{"emoji": "${esc(e)}", "isTopic": ${isTopic}}' 
       hx-target="#${targetId}"
       hx-swap="outerHTML"
-      aria-label="React with ${esc(e)}"
+      aria-label="${esc(e)}"
       style="background:none;border:none;padding:4px;cursor:pointer;font-size:16px;filter:grayscale(1);transition:filter 0.2s;"
       onmouseover="this.style.filter='none'"
       onmouseout="this.style.filter='grayscale(1)'">
@@ -62,7 +62,7 @@ export function renderReactions(postId: number, reactions: any[], isTopic = fals
   return `
     <div id="${targetId}" class="post-reactions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center;">
       ${activeReactions}
-      <div class="reaction-picker" style="display:flex;align-items:center;gap:4px;margin-left:4px;padding-left:8px;border-left:1px solid var(--border-color);">
+      <div class="reaction-picker" role="group" aria-label="Add a reaction" data-extb-i18n-aria-label="Add a reaction" style="display:flex;align-items:center;gap:4px;margin-left:4px;padding-left:8px;border-left:1px solid var(--border-color);">
         ${picker}
       </div>
     </div>
@@ -182,7 +182,7 @@ export function renderPost(post: any, isOriginal: boolean, currentUser: any | nu
       ${modActionsHtml}
       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
         <span class="post-time" data-utc="${post.created_at.includes('T') ? post.created_at : post.created_at.replace(' ', 'T') + 'Z'}">${new Date(post.created_at).toLocaleString()}</span>
-        <button type="button" class="post-uid" data-post-anchor="${cardId}" title="Copy link to this ${isOriginal ? 'post' : 'reply'}" aria-label="Copy link">#${isOriginal ? `t${post.id}` : `p${post.id}`}</button>
+        <button type="button" class="post-uid" data-post-anchor="${cardId}" title="${isOriginal ? 'Copy link to this post' : 'Copy link to this reply'}" data-extb-i18n-title="${isOriginal ? 'Copy link to this post' : 'Copy link to this reply'}" aria-label="Copy link" data-extb-i18n-aria-label="Copy link">#${isOriginal ? `t${post.id}` : `p${post.id}`}</button>
         ${canReport ? renderReportButton('post', post.id) : ''}
       </div>
     </div>

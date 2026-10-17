@@ -8,14 +8,14 @@ export function userSidebar(currentSection: string, profileName?: string, isSelf
     : '';
   return `
     <aside class="admin-sidebar">
-      <h3>${isSelf ? 'My Account' : 'User Profile'}</h3>
+      <h3>${isSelf ? '<!--extb-ui-->My Account<!--/extb-ui-->' : '<!--extb-ui-->User Profile<!--/extb-ui-->'}</h3>
       <ul>
-        ${profileName ? `<li><a href="/u/${esc(profileName)}" hx-get="/u/${esc(profileName)}" hx-target=".main" hx-push-url="true" class="${currentSection === 'profile' ? 'active' : ''}">👤 View Profile</a></li>` : ''}
+        ${profileName ? `<li><a href="/u/${esc(profileName)}" hx-get="/u/${esc(profileName)}" hx-target=".main" hx-push-url="true" class="${currentSection === 'profile' ? 'active' : ''}">👤 <!--extb-ui-->View Profile<!--/extb-ui--></a></li>` : ''}
         ${isSelf ? `
-          <li><a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true" class="${currentSection === 'settings' ? 'active' : ''}">⚙️ Settings</a></li>
-          <li><a href="/settings/warnings" hx-get="/settings/warnings" hx-target=".main" hx-push-url="true" class="${currentSection === 'warnings' ? 'active' : ''}">⚠️ Warnings${warnBadge}</a></li>
+          <li><a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true" class="${currentSection === 'settings' ? 'active' : ''}">⚙️ <!--extb-ui-->Settings<!--/extb-ui--></a></li>
+          <li><a href="/settings/warnings" hx-get="/settings/warnings" hx-target=".main" hx-push-url="true" class="${currentSection === 'warnings' ? 'active' : ''}">⚠️ <!--extb-ui-->Warnings<!--/extb-ui-->${warnBadge}</a></li>
         ` : ''}
-        <li><a href="/dms" hx-get="/dms" hx-target=".main" hx-push-url="true">✉️ Direct Messages</a></li>
+        <li><a href="/dms" hx-get="/dms" hx-target=".main" hx-push-url="true">✉️ <!--extb-ui-->Direct Messages<!--/extb-ui--></a></li>
       </ul>
     </aside>
   `;

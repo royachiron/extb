@@ -23,8 +23,8 @@ export const HEBREW: Readonly<Record<string, string>> = {
   "Community helper": "עוזר הקהילה",
   "Review your membership status and next steps.": "בדיקת מצב החברות והצעדים הבאים.",
 "reply":"תגובה", "replies":"תגובות", "topics":"דיונים",
-"most recently updated": "העדכונים האחרונים",
-"You clicked Members - that directory opens once your intro is approved.":"לחצת על חברי הקהילה — הרשימה תיפתח לאחר אישור ההיכרות שלך.","We've sent a verification link to your email address. Click it to activate your account.":"שלחנו קישור אימות לכתובת הדוא״ל שלך. יש ללחוץ עליו כדי להפעיל את החשבון.","Check your spam folder if you don't see it.":"אם ההודעה לא הגיעה, כדאי לבדוק בתיקיית דואר הזבל.","Resend to":"שליחה מחדש אל","Already verified?":"כבר אימתת את החשבון?","If your account has email recovery enabled, we have sent a reset link. Otherwise, ask your community administrator for a private reset link.":"אם שחזור בדוא״ל מופעל בחשבון שלך, שלחנו קישור לאיפוס. אחרת, אפשר לבקש ממנהל הקהילה קישור פרטי לאיפוס.","Choose new password":"בחירת סיסמה חדשה","Your password has been successfully reset.":"הסיסמה שלך אופסה בהצלחה.","3-32 chars, letters/numbers/underscore/hyphen only.":"3–32 תווים, אותיות באנגלית, ספרות, קו תחתון או מקף בלבד.","Permanent after saving.":"לא ניתן לשנות לאחר השמירה.","Pick one below or type your own":"בחירת הצעה למטה או הקלדת שם משלך","+ More suggestions":"+ הצעות נוספות","Used for chat timestamps and post dates.":"משמש להצגת שעות בצ׳אט ותאריכי פרסומים.","Welcome to our community":"ברוכים הבאים לקהילה שלנו","A place to share ideas, ask questions, meet people, and keep the conversation going.":"מקום לשיתוף רעיונות, לשאלות, להיכרות עם אנשים ולהמשך השיחה.","Explore the discussion rooms, join live chat, and make yourself at home.":"אפשר לגלות את חדרי הדיון, להצטרף לצ׳אט ולהרגיש בבית.","Read the community guidelines":"קריאת כללי הקהילה","Community rules":"כללי הקהילה","Your account and content":"החשבון והתוכן שלך","You remain responsible for your contributions. Do not post material you have no right to share. Keep your password private. Community administrators may moderate content and restrict accounts to enforce these rules.":"האחריות לפרסומים שלך נשארת שלך. אין לפרסם חומר שאין לך זכות לשתף. יש לשמור את הסיסמה בסוד. מנהלי הקהילה יכולים לנהל תוכן ולהגביל חשבונות כדי לאכוף את הכללים.","This installation is operated by its community owner. Contact your community administrators for privacy, account, or moderation questions.":"הקהילה מופעלת בידי הבעלים שלה. לשאלות על פרטיות, חשבון או ניהול תוכן, יש לפנות למנהלי הקהילה.","Community Guidelines &amp; Terms of Use":"כללי הקהילה ותנאי השימוש","Contents":"תוכן עניינים","TL;DR":"בקצרה","The short version &mdash; the full text below is what governs.":"הגרסה הקצרה — הנוסח המלא בהמשך הוא הקובע.","Respect each other":"כבוד הדדי","No harassment, hate, spam, or illegal content.":"אין מקום להטרדה, לשנאה, לדואר זבל או לתוכן לא חוקי.","Protect privacy":"שמירה על פרטיות","Share only information you have permission to share.":"יש לשתף רק מידע שיש לך רשות לשתף.","Moderators can remove content and restrict access. Report issues through the community tools.":"מנהלי הקהילה יכולים להסיר תוכן ולהגביל גישה. אפשר לדווח על בעיות דרך כלי הקהילה.","The Community Guidelines have been updated.":"כללי הקהילה עודכנו.","Please review and acknowledge to continue participating.":"יש לקרוא ולאשר כדי להמשיך להשתתף.","Review &amp; accept":"קריאה ואישור","Community Guidelines - TL;DR":"כללי הקהילה — בקצרה","Read full guidelines ▾":"קריאת הכללים המלאים ▾","I understand &mdash; accept and continue":"הבנתי — אישור והמשך","I understand - accept and continue":"הבנתי — אישור והמשך","Read and accept the Community Guidelines":"קריאה ואישור של כללי הקהילה","Last updated:":"עדכון אחרון:","Version":"גרסה",
+"Latest updates": "העדכונים האחרונים",
+"You clicked Members - that directory opens once your intro is approved.":"לחצת על חברי הקהילה - הרשימה תיפתח לאחר אישור ההיכרות שלך.","We've sent a verification link to your email address. Click it to activate your account.":"שלחנו קישור אימות לכתובת הדוא״ל שלך. יש ללחוץ עליו כדי להפעיל את החשבון.","Check your spam folder if you don't see it.":"אם ההודעה לא הגיעה, כדאי לבדוק בתיקיית דואר הזבל.","Resend to":"שליחה מחדש אל","Already verified?":"כבר אימתת את החשבון?","If your account has email recovery enabled, we have sent a reset link. Otherwise, ask your community administrator for a private reset link.":"אם שחזור בדוא״ל מופעל בחשבון שלך, שלחנו קישור לאיפוס. אחרת, אפשר לבקש ממנהל הקהילה קישור פרטי לאיפוס.","Choose new password":"בחירת סיסמה חדשה","Your password has been successfully reset.":"הסיסמה שלך אופסה בהצלחה.","3-32 chars, letters/numbers/underscore/hyphen only.":"3-32 תווים, אותיות באנגלית, ספרות, קו תחתון או מקף בלבד.","Permanent after saving.":"לא ניתן לשנות לאחר השמירה.","Pick one below or type your own":"בחירת הצעה למטה או הקלדת שם משלך","+ More suggestions":"+ הצעות נוספות","Used for chat timestamps and post dates.":"משמש להצגת שעות בצ׳אט ותאריכי פרסומים.","Welcome to our community":"ברוכים הבאים לקהילה שלנו","A place to share ideas, ask questions, meet people, and keep the conversation going.":"מקום לשיתוף רעיונות, לשאלות, להיכרות עם אנשים ולהמשך השיחה.","Explore the discussion rooms, join live chat, and make yourself at home.":"אפשר לגלות את חדרי הדיון, להצטרף לצ׳אט ולהרגיש בבית.","Read the community guidelines":"קריאת כללי הקהילה","Community rules":"כללי הקהילה","Your account and content":"החשבון והתוכן שלך","You remain responsible for your contributions. Do not post material you have no right to share. Keep your password private. Community administrators may moderate content and restrict accounts to enforce these rules.":"האחריות לפרסומים שלך נשארת שלך. אין לפרסם חומר שאין לך זכות לשתף. יש לשמור את הסיסמה בסוד. מנהלי הקהילה יכולים לנהל תוכן ולהגביל חשבונות כדי לאכוף את הכללים.","This installation is operated by its community owner. Contact your community administrators for privacy, account, or moderation questions.":"הקהילה מופעלת בידי הבעלים שלה. לשאלות על פרטיות, חשבון או ניהול תוכן, יש לפנות למנהלי הקהילה.","Community Guidelines &amp; Terms of Use":"כללי הקהילה ותנאי השימוש","Contents":"תוכן עניינים","TL;DR":"בקצרה","The short version &mdash; the full text below is what governs.":"הגרסה הקצרה - הנוסח המלא בהמשך הוא הקובע.","Respect each other":"כבוד הדדי","No harassment, hate, spam, or illegal content.":"אין מקום להטרדה, לשנאה, לדואר זבל או לתוכן לא חוקי.","Protect privacy":"שמירה על פרטיות","Share only information you have permission to share.":"יש לשתף רק מידע שיש לך רשות לשתף.","Moderators can remove content and restrict access. Report issues through the community tools.":"מנהלי הקהילה יכולים להסיר תוכן ולהגביל גישה. אפשר לדווח על בעיות דרך כלי הקהילה.","The Community Guidelines have been updated.":"כללי הקהילה עודכנו.","Please review and acknowledge to continue participating.":"יש לקרוא ולאשר כדי להמשיך להשתתף.","Review &amp; accept":"קריאה ואישור","Community Guidelines - TL;DR":"כללי הקהילה - בקצרה","Read full guidelines ▾":"קריאת הכללים המלאים ▾","I understand &mdash; accept and continue":"הבנתי - אישור והמשך","I understand - accept and continue":"הבנתי - אישור והמשך","Read and accept the Community Guidelines":"קריאה ואישור של כללי הקהילה","Last updated:":"עדכון אחרון:","Version":"גרסה",
 "Your community is ready. Join a conversation or introduce yourself.":"הקהילה שלך מוכנה. אפשר להצטרף לשיחה או להציג את עצמך.","Trusted membership is required for this room.":"הכניסה לחדר הזה דורשת חברות מלאה ומאומתת.","Online":"מחוברים","No one yet":"עדיין אין משתתפים","Hide chat":"הסתרת צ׳אט","Make chat larger":"הגדלת הצ׳אט","Larger":"הגדלה","Close":"סגירה","Cancel reply":"ביטול תגובה","Replying to":"תגובה אל","Add reaction":"הוספת תגובה רגשית","Posts:":"פרסומים:","Comments:":"תגובות:","offline":"לא מחובר/ת","mobile notifications":"התראות בנייד","An email verification link activates your account.":"קישור אימות בדוא״ל מפעיל את החשבון שלך.","Welcome! Please choose your public identity. Your display name is":"ברוכים הבאים! יש לבחור את הזהות הציבורית שלך. שם התצוגה שלך הוא","permanent":"קבוע",
 "Connecting…":"מתחברים…","Type a message, or / for commands":"כתיבת הודעה, או / לפקודות","Trusted member":"חבר/ה מלא/ה","member":"חבר/ה","full":"חבר/ה מלא/ה","mod":"מנהל/ת","admin":"מנהל/ת ראשי/ת","online":"מחוברים","Send failed.":"השליחה נכשלה.",
   "Login": "כניסה",
@@ -208,8 +208,41 @@ export const HEBREW: Readonly<Record<string, string>> = {
   "User": "משתמש",
   "Access level": "רמת הרשאה",
   "Account": "חשבון",
-  "+ Add": "+ הוספה"
+  "+ Add": "+ הוספה",
+  "Pinned": "נעוץ",
+  "Locked": "נעול",
+  "Poll": "סקר",
+  "Unread": "לא נקרא",
+  "Several replies in the last 24 hours": "כמה תגובות ב-24 השעות האחרונות",
+  "Active": "פעיל",
+  "New": "חדש",
+  "new": "חדשות",
+  "posted": "פורסם",
+  "Reactions": "תגובות אמוג׳י",
+  "Add a reaction": "הוספת תגובת אמוג׳י",
+  "Copy link": "העתקת קישור",
+  "Copy link to this post": "העתקת קישור לפוסט",
+  "Copy link to this reply": "העתקת קישור לתגובה",
+  "Results for": "תוצאות עבור",
+  "My Account": "החשבון שלי",
+  "User Profile": "פרופיל משתמש",
+  "View Profile": "צפייה בפרופיל",
+  "Direct Messages": "הודעות פרטיות",
+  "Block": "חסימה",
+  "Unblock": "ביטול חסימה",
+  "Joined": "הצטרפות",
+  "Platform Stats": "פעילות בפורום",
+  "Log in to chat": "כניסה כדי לכתוב בצ׳אט",
+  "About our community": "על הקהילה",
+  "Page not found": "הדף לא נמצא",
+  "Q&amp;A": "שו״ת",
+  "This page does not exist or was removed.": "הדף הזה לא קיים או שהוסר.",
+  "Back to the forum": "חזרה לפורום",
+  "Community Guidelines & Terms of Use": "כללי הקהילה ותנאי השימוש",
+  "You can read this chat but not post in it.": "אפשר לקרוא את הצ׳אט הזה, אבל לא לכתוב בו."
 };
+/** Fixed page titles passed to the layout; anything else in <title> is community content. */
+const PAGE_TITLES: ReadonlySet<string> = new Set(['About our community', 'Appeal Suspension', 'Chat', 'Check email', 'Choose password', 'Community Guidelines & Terms of Use', 'Page not found', 'Edit Profile', 'Edit post', 'Forum Index', 'Getting started', 'Inbox', 'Invitations', 'Log in', 'Member Directory', 'Members', 'Membership settings', 'Moderation', 'Needs you', 'New Topic', 'New topic', 'Notifications', 'Questions & Answers', 'Register', 'Reset password', 'Set up EXTB', 'Set up profile', 'Settings', 'Warnings', 'Welcome', 'Admin', 'Direct messages']);
 export function resolveLocale(req: Request, fallback: string = 'en'): Locale {
  const query = new URL(req.url).searchParams.get('lang');
  if (query === 'he' || query === 'en') return query;
@@ -231,7 +264,21 @@ export function localizeHtml(html: string, locale: string): string {
      return tag.includes(marker) && locale === 'he' && HEBREW[text] ? `${attr}="${HEBREW[text]}"` : original;
    });
  });
- result = result.replace(/<html\b[^>]*>/, `<html lang="${locale === 'he' ? 'he' : 'en'}" dir="${locale === 'he' ? 'rtl' : 'ltr'}">`);
+ // Page titles are "<page> - <community>". Only fixed UI titles are translated: topic titles and
+ // usernames (a user named "admin") share the <title> and must never be rewritten.
+ if (locale === 'he') result = result.replace(/<title>([^<]*)<\/title>/, (all, inner: string) => {
+  const sep = inner.lastIndexOf(' - '), head = sep >= 0 ? inner.slice(0, sep) : inner;
+  const plain = head.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  const search = plain.match(/^Search: (.*)$/);
+  const versioned = plain.match(/^(.*) (\(v\d+\))$/);
+  const translated = search ? `${HEBREW['Search'] || 'Search'}: ${search[1]}`
+   : PAGE_TITLES.has(plain) ? HEBREW[plain]
+   : versioned && PAGE_TITLES.has(versioned[1]!) && HEBREW[versioned[1]!] ? `${HEBREW[versioned[1]!]} ${versioned[2]}` : undefined;
+  if (!translated) return all;
+  const safe = translated.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<title>${safe}${sep >= 0 ? inner.slice(sep) : ''}</title>`;
+ });
+ result = result.replace(/<html\b[^>]*>/,`<html lang="${locale === 'he' ? 'he' : 'en'}" dir="${locale === 'he' ? 'rtl' : 'ltr'}">`);
  return result.replace(/\u0000EXTB_PROTECTED_(\d+)\u0000/g, (_all, index: string) => protectedParts[Number(index)] ?? '');
 }
 export async function localizeResponse(response: Response, locale: Locale, requestUrl?: string): Promise<Response> {

@@ -46,8 +46,11 @@ describe('roomIcon', () => {
   it('prefers the room.icon override', () => {
     expect(roomIcon({ icon: '🚀', name: 'General' } as any)).toBe('🚀');
   });
-  it('falls back to the name map then the bullet', () => {
-    expect(roomIcon({ icon: '', name: 'General' } as any)).toBe('💬');
-    expect(roomIcon({ icon: '', name: 'Nonexistent' } as any)).toBe('•');
+  it('uses starter slugs, then the name map, then the first letter', () => {
+    expect(roomIcon({ icon: '', name: 'הודעות', slug: 'announcements' } as any)).toBe('📢');
+    expect(roomIcon({ icon: '', name: 'General', slug: 'lounge' } as any)).toBe('💬');
+    expect(roomIcon({ icon: '', name: 'Nonexistent', slug: 'x' } as any)).toBe('N');
+    expect(roomIcon({ icon: '', name: '<b>', slug: 'x' } as any)).toBe('&lt;');
+    expect(roomIcon({ icon: '', name: '', slug: 'x' } as any)).toBe('•');
   });
 });

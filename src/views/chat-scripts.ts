@@ -382,6 +382,8 @@ ${buildersSrc}
 
   function renderPresence(users) {
     if (!participants) return;
+    // Anonymous readers have no name to show; listing them adds blank avatars.
+    users = users.filter(function (n) { return n.trim() !== '[guest]'; });
     var items = users.length === 0
       ? '<li style="font-size:12px;color:var(--text-muted);">' + chatUi('No one yet') + '</li>'
       : users.map(function (name) {
@@ -725,7 +727,7 @@ ${buildersSrc}
   function presenceDiff(users) {
     onlineNames = users.slice();
     var now = {};
-    users.forEach(function (n) { now[n] = 1; });
+    users.forEach(function (n) { if (n.trim() !== '[guest]') now[n] = 1; });
     if (presenceBase) {
       Object.keys(now).forEach(function (n) {
         if (presenceBase[n] || n === me) return;

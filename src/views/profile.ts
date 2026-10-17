@@ -13,6 +13,12 @@ export { AVATAR_PALETTE, avatarHtml, badgeHtml, TIMEZONES, timezoneOptions } fro
 import { avatarHtml, badgeHtml, timezoneOptions } from './user-bits';
 import { userSidebar, DASHBOARD_STYLE } from './profile-shared';
 
+/** Month and year of joining as M/YYYY: readable in both languages without a server locale. */
+function joinedMonth(iso: string): string {
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso.replace(' ', 'T') + 'Z');
+  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`;
+}
+
 function modActionsCard(viewer: User, target: User, csrfToken?: string): string {
   const adminViewer = isAdmin(viewer);
   const banned = target.is_banned === 1;
@@ -245,16 +251,16 @@ export function renderProfile(opts: {
               <h1 style="margin:0; font-size:32px; font-weight:900; color:var(--text-main); letter-spacing:-0.03em; word-break:break-word;">${esc(profileUser.display_name ?? '(no name)')}</h1>
               ${badgeHtml(profileUser.access_level)}
               
-              <div style="margin-left:auto; display:flex; gap:8px;">
+              <div style="margin-inline-start:auto; display:flex; gap:8px;">
                 ${isSelf ? `<a href="/settings/profile" hx-get="/settings/profile" hx-target=".main" hx-push-url="true" class="btn btn-secondary"><!--extb-ui-->Edit Profile<!--/extb-ui--></a>` : ''}
-                ${!isSelf ? `
+                ${!isSelf && user ? `
                   <div id="profile-actions" style="display:flex; gap:8px;">
                     ${(user?.access_level === 'admin' || (profileUser as any).allow_dms !== 0) ? `<a href="/dms/new?to=${encodeURIComponent(profileUser.display_name ?? '')}" class="btn"><!--extb-ui-->Message<!--/extb-ui--></a>` : ''}
                     <button class="btn btn-secondary"
                       hx-post="/u/${esc(profileUser.display_name || `user${profileUser.id}`)}/block"
                       hx-target="#profile-actions"
                       hx-swap="outerHTML">
-                      ${(profileUser as any).is_blocked ? 'Unblock' : 'Block'}
+                      ${(profileUser as any).is_blocked ? '<!--extb-ui-->Unblock<!--/extb-ui-->' : '<!--extb-ui-->Block<!--/extb-ui-->'}
                     </button>
                     ${user && !['mod', 'admin'].includes(user.access_level) ? renderReportButton('user', profileUser.id) : ''}
                   </div>
@@ -265,7 +271,7 @@ export function renderProfile(opts: {
             
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:12px;">
               ${profileUser.pronouns ? `<span style="font-size:13px; font-weight:600; color:var(--text-main); background:var(--border-color); padding:2px 10px; border-radius:999px;">${esc(profileUser.pronouns)}</span>` : ''}
-              <span style="font-size:14px; color:var(--text-main);">Joined: ${new Date(profileUser.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
+              <span style="font-size:14px; color:var(--text-main);"><!--extb-ui-->Joined<!--/extb-ui-->: <span dir="ltr">${joinedMonth(profileUser.created_at)}</span></span>
             </div>
             
             ${haveList || needList ? `
@@ -317,7 +323,7 @@ export function renderProfile(opts: {
 
           <aside>
             <div class="card" style="padding:24px; border-radius:20px;">
-              <h2 style="font-size:18px; font-weight:800; color:var(--text-main); margin-bottom:20px;">Platform Stats</h2>
+              <h2 style="font-size:18px; font-weight:800; color:var(--text-main); margin-bottom:20px;"><!--extb-ui-->Platform Stats<!--/extb-ui--></h2>
               <div style="display:flex; flex-direction:column; gap:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="color:var(--text-muted); font-size:14px; font-weight:600;"><!--extb-ui-->Topics Started<!--/extb-ui--></span>
@@ -326,9 +332,6 @@ export function renderProfile(opts: {
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="color:var(--text-muted); font-size:14px; font-weight:600;"><!--extb-ui-->Community Replies<!--/extb-ui--></span>
                   <strong style="color:var(--primary); font-size:20px; font-weight:900;">${counts.posts}</strong>
-                </div>
-                <div style="margin-top:12px; padding-top:20px; border-top:1px solid var(--border-color);">
-                  <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">Active participant in <strong>this community</strong>.</div>
                 </div>
               </div>
             </div>
@@ -344,7 +347,7 @@ export function renderProfile(opts: {
     <div class="admin-layout">
       ${userSidebar('profile', profileUser.display_name || undefined, isSelf)}
       <div class="admin-content">
-        <div class="breadcrumb">Profile &gt; <span>${esc(profileUser.display_name ?? 'User')}</span></div>
+        <div class="breadcrumb"><!--extb-ui-->Profile<!--/extb-ui--> &rsaquo; <span>${esc(profileUser.display_name ?? 'User')}</span></div>
         ${mainContent}
       </div>
     </div>

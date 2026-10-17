@@ -13,7 +13,7 @@ describe('feed pagination', () => {
   it('poll trigger is gated on visibility AND unpaged list AND not idle, and wakes on return', () => {
     const html = renderFeed({ ...baseOpts });
     expect(html).toContain(
-      `hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed:wake [!document.getElementById('topic-list').dataset.paged]"`
+      `hx-trigger="every 60s [document.visibilityState==='visible' && !document.getElementById('topic-list').dataset.paged && (!window.__userIdle || !window.__userIdle())], feed-wake[!document.getElementById('topic-list').dataset.paged]"`
     );
   });
 
