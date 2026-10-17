@@ -67,8 +67,9 @@ describe('installer owner form', { timeout: 40000 }, () => {
       const html = await response.text();
       expect(response.status).toBe(400);
       const alert = html.indexOf('role="alert"');
-      expect(alert).toBeGreaterThan(html.indexOf('Edit starter content'));
+      expect(alert).toBeGreaterThan(html.indexOf('action="/setup"'));
       expect(alert).toBeLessThan(html.indexOf('name="username"'));
+      expect(html.indexOf('name="username"')).toBeLessThan(html.indexOf('Edit starter content'));
       expect(html).toContain('Username must be 3-32 letters, numbers, _ or - (not an email).');
     } finally { db.close(); }
   });

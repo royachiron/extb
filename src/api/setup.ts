@@ -24,28 +24,44 @@ function ownerFieldError(username: string, password: string, he: boolean): strin
   return he ? 'בדקו את שם הקהילה.' : 'Check the community name.';
 }
 
+function setupAlert(error: string): string {
+  return error ? `<p class="setup-alert" role="alert">${esc(error)}</p>` : '';
+}
+
+function ownerFields(he: boolean, error: string): string {
+  return `<div class="form-group"><label class="form-label" for="owner-username">${he ? 'שם משתמש' : 'Username'}</label>
+    <input type="text" id="owner-username" name="username" required minlength="3" maxlength="32" pattern="${USERNAME_PATTERN}" autocomplete="username" spellcheck="false" autocapitalize="off" dir="ltr" aria-describedby="owner-username-hint"${error ? ' autofocus' : ''}>
+    <p class="form-hint" id="owner-username-hint">${he ? 'אותיות באנגלית, מספרים, _ או - (לא כתובת מייל). משמש להתחברות.' : 'Letters, numbers, _ or - (not an email). You will log in with it.'}</p></div>
+    <div class="form-group"><label class="form-label" for="owner-password">${he ? 'סיסמה' : 'Password'}</label>
+    <input type="password" id="owner-password" name="password" required minlength="8" autocomplete="new-password" dir="ltr" aria-describedby="owner-password-hint">
+    <p class="form-hint" id="owner-password-hint">${he ? 'לפחות 8 תווים.' : 'At least 8 characters.'}</p></div>`;
+}
+
 function setupForm(ctx: AppContext, error = '', draft?: CommunityDraft): string {
-  if (draft) return `${renderCommunityPreview(draft)}
-    <details><summary>${draft.language === 'he' ? 'עריכת התוכן' : 'Edit starter content'}</summary><form method="post" action="/setup/preview">${csrfField(ctx)}
-    <label>${draft.language === 'he' ? 'תוכן הקהילה' : 'Community draft'} <textarea name="draft" rows="20" required>${esc(JSON.stringify(draft, null, 2))}</textarea></label><button class="btn">${draft.language === 'he' ? 'עדכון התצוגה' : 'Update preview'}</button></form></details>
-    <form method="post" action="/setup/personalize">${csrfField(ctx)}<p>${draft.language === 'he' ? 'התאמה אישית באמצעות AI היא אופציונלית ופועלת בחשבון Cloudflare שלכם. Cloudflare מספקת 10,000 נוירונים חינמיים ביום לכל החשבון.' : 'Optional AI personalization runs in your Cloudflare account. Cloudflare provides 10,000 free neurons daily across the account.'}</p><button class="btn">${draft.language === 'he' ? 'התאמה אישית / יצירה מחדש (עד שלושה ניסיונות)' : 'Personalize / regenerate (up to three attempts)'}</button></form>
-    ${error ? `<p role="alert">${esc(error)}</p>` : ''}
-    <form method="post" action="/setup">${csrfField(ctx)}
-    <label>${draft.language === 'he' ? 'שם משתמש' : 'Owner username'} <input name="username" required minlength="3" maxlength="32" pattern="${USERNAME_PATTERN}" autocomplete="username" aria-describedby="owner-username-hint"${error ? ' autofocus' : ''}></label>
-    <small id="owner-username-hint">${draft.language === 'he' ? 'אותיות באנגלית, מספרים, _ או - (לא כתובת מייל). משמש להתחברות.' : 'Letters, numbers, _ or - (not an email). You will log in with it.'}</small>
-    <label>${draft.language === 'he' ? 'סיסמה' : 'Owner password'} <input type="password" name="password" required minlength="8" autocomplete="new-password" aria-describedby="owner-password-hint"></label>
-    <small id="owner-password-hint">${draft.language === 'he' ? 'לפחות 8 תווים.' : 'At least 8 characters.'}</small>
+  if (draft) {
+    const he = draft.language === 'he';
+    return `<div class="setup-page" lang="${draft.language}" dir="${he ? 'rtl' : 'ltr'}">
+    <header class="setup-head"><p class="setup-step">${he ? 'שלב אחרון' : 'Last step'}</p><h1>${he ? 'יצירת חשבון הבעלים' : 'Create your owner account'}</h1>
+    <p>${he ? `החשבון הזה ינהל את <strong>${esc(draft.name)}</strong>. אפשר לשנות כל דבר אחר אחר כך מלוח הבקרה.` : `This account will run <strong>${esc(draft.name)}</strong>. Everything else can be changed later from the admin panel.`}</p></header>
+    <div class="setup-grid">
+    <form class="setup-card setup-owner" method="post" action="/setup">${csrfField(ctx)}
+    ${setupAlert(error)}${ownerFields(he, error)}
     <input type="hidden" name="community_name" value="${esc(draft.name)}"><input type="hidden" name="approved_draft" value="${esc(JSON.stringify(draft))}">
-    <label><input type="checkbox" name="approve_draft" value="1" required> ${draft.language === 'he' ? 'אני מאשר/ת את התוכן המוצג' : 'I approve this starter content'}</label>
-    <button class="btn" type="submit">${draft.language === 'he' ? 'יצירת הקהילה' : 'Create community'}</button></form>`;
-  return `<h1>Create your community</h1><p>Your setup passphrase is the secret entered during Cloudflare deployment.</p>
-    ${error ? `<p role="alert">${esc(error)}</p>` : ''}<form method="post" action="/setup">${csrfField(ctx)}
-    <label>Setup passphrase <input type="password" name="passphrase" required autocomplete="off"></label>
-    <label>Admin username <input name="username" required minlength="3" maxlength="32" pattern="${USERNAME_PATTERN}" autocomplete="username"></label>
-    <small>Letters, numbers, _ or - (not an email).</small>
-    <label>Admin password <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
-    <label>Community name <input name="community_name" required maxlength="80" value="EXTB"></label>
-    <button class="btn" type="submit">Create community</button></form>`;
+    <label class="setup-check"><input type="checkbox" name="approve_draft" value="1" required> <span>${he ? 'אני מאשר/ת את תוכן הפתיחה שבתצוגה המקדימה' : 'Use the starter content shown in the preview'}</span></label>
+    <button class="btn setup-submit" type="submit">${he ? 'יצירת הקהילה' : 'Create community'}</button></form>
+    <section class="setup-card setup-preview" aria-labelledby="setup-preview-title"><h2 class="setup-preview-title" id="setup-preview-title">${he ? 'תצוגה מקדימה של תוכן הפתיחה' : 'Starter content preview'}</h2>
+    ${renderCommunityPreview(draft)}
+    <details class="setup-more"><summary>${he ? 'עריכת התוכן' : 'Edit starter content'}</summary><form method="post" action="/setup/preview">${csrfField(ctx)}
+    <label class="form-label" for="setup-draft">${he ? 'תוכן הקהילה (JSON)' : 'Community draft (JSON)'}</label><textarea id="setup-draft" name="draft" rows="16" dir="ltr" required>${esc(JSON.stringify(draft, null, 2))}</textarea><button class="btn">${he ? 'עדכון התצוגה' : 'Update preview'}</button></form></details>
+    <details class="setup-more"><summary>${he ? 'התאמה אישית באמצעות AI (אופציונלי)' : 'Personalize with AI (optional)'}</summary><form method="post" action="/setup/personalize">${csrfField(ctx)}<p class="form-hint">${he ? 'פועל בחשבון Cloudflare שלכם. Cloudflare מספקת 10,000 נוירונים חינמיים ביום לכל החשבון.' : 'Runs in your Cloudflare account. Cloudflare provides 10,000 free neurons daily across the account.'}</p><button class="btn">${he ? 'יצירה מחדש (עד שלושה ניסיונות)' : 'Regenerate (up to three attempts)'}</button></form></details>
+    </section></div></div>`;
+  }
+  return `<div class="setup-page"><header class="setup-head"><h1>Create your community</h1><p>Your setup passphrase is the secret entered during Cloudflare deployment.</p></header>
+    <form class="setup-card setup-owner setup-solo" method="post" action="/setup">${csrfField(ctx)}${setupAlert(error)}
+    <div class="form-group"><label class="form-label" for="setup-passphrase">Setup passphrase</label><input type="password" id="setup-passphrase" name="passphrase" required autocomplete="off"></div>
+    ${ownerFields(false, error)}
+    <div class="form-group"><label class="form-label" for="setup-name">Community name</label><input type="text" id="setup-name" name="community_name" required maxlength="80" value="EXTB"></div>
+    <button class="btn setup-submit" type="submit">Create community</button></form></div>`;
 }
 
 async function storedDraft(ctx: AppContext): Promise<CommunityDraft | undefined> {
@@ -55,7 +71,7 @@ async function storedDraft(ctx: AppContext): Promise<CommunityDraft | undefined>
 }
 
 async function setupPage(ctx: AppContext, error = '', status = 200, draft?: CommunityDraft, claim = false): Promise<Response> {
-  const body = claim ? `<h1>Open your community</h1><p id="ownership-status">Return to the installer to open your secure ownership link.</p>${csrfField(ctx)}${ownershipFragmentScript}` : setupForm(ctx, error, draft);
+  const body = claim ? `<div class="setup-page"><div class="setup-card setup-solo"><h1>Open your community</h1><p id="ownership-status">Return to the installer to open your secure ownership link.</p></div></div>${csrfField(ctx)}${ownershipFragmentScript}` : setupForm(ctx, error, draft);
   return html(renderLayout({ branding: ctx.branding, origin: ctx.origin, uploadsEnabled: !!ctx.env.MEDIA, user: ctx.user, rooms: await listRooms(ctx.env), csrfToken: ctx.csrfToken, title: 'Set up EXTB', body }), status);
 }
 
