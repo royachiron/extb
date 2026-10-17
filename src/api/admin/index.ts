@@ -61,6 +61,7 @@ import { renderLayout } from '../../views/layout';
 import { sendSaltUpgradeEmail, sendBanEmail } from '../../email';
 
 import { normalizeAdminLocation } from './shared';
+import { availableUpdate, renderUpdateNotice } from '../../lib/updates';
 
 export * from './shared';
 export * from './settings';
@@ -148,7 +149,9 @@ export async function getAdminPanel(
     section === 'moderation' && tab === 'reports' ? listOpenReports(ctx.env) : Promise.resolve([]),
   ]);
 
+  const update = viewerIsAdmin ? await availableUpdate(ctx) : null;
   const html = renderAdmin({
+    updateNotice: renderUpdateNotice(update),
     user,
     rooms: allRooms,
     allRooms,

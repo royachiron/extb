@@ -19,6 +19,10 @@ export interface Env {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   BUILD_ID: string;
+  /** Worker name, set by the web installer so updates can find a forum on a custom domain. */
+  EXTB_WORKER?: string;
+  /** Installer that offers updates; defaults to the public EXTB installer. */
+  EXTB_INSTALLER_URL?: string;
 }
 
 export type AccessLevel = 'member' | 'full' | 'mod' | 'admin';

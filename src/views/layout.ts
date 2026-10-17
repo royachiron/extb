@@ -869,6 +869,9 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   .admin-wrap { display: flex; flex-direction: column; }
   .admin-hd { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 12px; }
   .admin-hd h1 { margin: 0; font-size: 18px; font-weight: 800; }
+  .admin-update { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0 0 14px; padding: 12px 16px; border: 1px solid var(--primary); border-radius: 12px; background: var(--highlight-bg); color: var(--text-main); }
+  .admin-update p { margin: 0; }
+  .admin-update-note { flex: 1 1 260px; font-size: 13px; color: var(--text-muted); }
   .admin-nav { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
   .admin-nav::-webkit-scrollbar { display: none; }
   .admin-nav a { white-space: nowrap; padding: 6px 14px; border-radius: 20px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.15s; }

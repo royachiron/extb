@@ -28,7 +28,10 @@ export async function loadRelease(url:string,sha256:string):Promise<Release> {
  for(const file of [...release.modules,...release.migrations,...release.assets.files]) if(!releaseURL(file.url,release.version) || !/^[a-f0-9]{64}$/.test(file.sha256)) throw new Error('Invalid release file');
  return release;
 }
-export async function upload(token:string,account:string,worker:string,database:string,release:Release):Promise<void> {
+// An update re-uploads the Worker. Secrets survive uploads on their own, but other bindings missing from
+// the metadata (an R2 media bucket, KV) are dropped unless listed here (checked against the API 2026-10-17).
+const KEPT_BINDINGS=['secret_text','secret_key','r2_bucket','kv_namespace','queue','send_email','analytics_engine','service'];
+export async function upload(token:string,account:string,worker:string,database:string,release:Release,options:{keepBindings?:boolean}={}):Promise<void> {
  const prefix=`/accounts/${account}/workers`;
  const session=await cf<{jwt:string;buckets:string[][]}>(token,`${prefix}/scripts/${worker}/assets-upload-session`,{method:'POST',body:JSON.stringify({manifest:release.assets.manifest})});
  let completion=session.buckets.length===0?session.jwt:'';
@@ -48,7 +51,7 @@ export async function upload(token:string,account:string,worker:string,database:
  const workers=await cf<{id:string;migration_tag?:string}[]>(token,`${prefix}/scripts`);const existing=workers.find(w=>w.id===worker);if(existing?.migration_tag && existing.migration_tag!=='v1')throw new Error('Invalid existing Worker migration');
  const migrations=existing?.migration_tag==='v1'?undefined:{new_sqlite_classes:['ChatRoom','PasswordHasher'],new_tag:'v1'};
  const form=new FormData();
- form.set('metadata',JSON.stringify({main_module:release.mainModule,compatibility_date:'2026-10-02',compatibility_flags:['nodejs_compat'],bindings:[{type:'d1',name:'DB',id:database},{type:'durable_object_namespace',name:'CHAT_ROOM',class_name:'ChatRoom'},{type:'durable_object_namespace',name:'PASSWORD_HASHER',class_name:'PasswordHasher'},{type:'assets',name:'ASSETS'},{type:'plain_text',name:'BUILD_ID',text:release.version}],migrations,assets:{jwt:completion,config:{run_worker_first:true}}}));
+ form.set('metadata',JSON.stringify({main_module:release.mainModule,compatibility_date:'2026-10-02',compatibility_flags:['nodejs_compat'],bindings:[{type:'d1',name:'DB',id:database},{type:'durable_object_namespace',name:'CHAT_ROOM',class_name:'ChatRoom'},{type:'durable_object_namespace',name:'PASSWORD_HASHER',class_name:'PasswordHasher'},{type:'assets',name:'ASSETS'},{type:'plain_text',name:'BUILD_ID',text:release.version},{type:'plain_text',name:'EXTB_WORKER',text:worker}],migrations,keep_bindings:options.keepBindings?KEPT_BINDINGS:undefined,assets:{jwt:completion,config:{run_worker_first:true}}}));
  for(const module of release.modules){const mime={esm:'application/javascript+module',text:'text/plain',buffer:'application/octet-stream','compiled-wasm':'application/wasm'}[module.type||'esm'];if(!mime)throw new Error('Invalid module type');form.set(module.name,new Blob([await checkedFile(module.url,module.sha256,release.version)],{type:mime}),module.name);}
  await cf(token,`${prefix}/scripts/${worker}`,{method:'PUT',body:form});
  await cf(token,`${prefix}/scripts/${worker}/subdomain`,{method:'POST',body:JSON.stringify({enabled:true,previews_enabled:false})});

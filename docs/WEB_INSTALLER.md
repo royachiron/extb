@@ -25,6 +25,19 @@ The installer finishes setup itself in a final "owner account" stage. It mints a
 
 The forum's `/healthz` returns readiness without credentials or community content and works before setup redirects. After deployment, Cloudflare can take a few minutes to publish a new `workers.dev` address. The installer polls `/healthz` every 5 seconds for up to 10 minutes before reporting a failure. Cloudflare 5xx/429 responses, timeouts and dropped connections are retried automatically up to 6 times with backoff. Meanwhile, the wizard shows a calm "publishing" or "retrying" note, not an error. Provisioning errors that remain expose sanitized stage information and a relevant Cloudflare dashboard link.
 
+## Updating a forum
+
+Forums never update themselves: replacing a Worker needs Cloudflare credentials a forum must not hold. Once a day, a forum's admin panel asks the installer's `/api/latest` which release it installs. When that release is newer than the forum's `BUILD_ID`, admins see an "Update now" banner. The check is cached in the `update_check` setting, and failures also wait a day.
+
+The banner links to `/update?forum=<origin>[&worker=<name>]`. That page opens a separate installer session, so updating never disturbs an install still in progress, and asks for Cloudflare authorization. It then runs four stages:
+
+1. **Locate forum:** find the account, Worker and D1 database. A `workers.dev` address identifies its subdomain and Worker; on a custom domain the forum supplies its Worker name from the `EXTB_WORKER` binding. Refuse Workers that are not EXTB forums, and refuse downgrades. Finish immediately when the forum is already current.
+2. **Migrations:** apply only migrations missing from `d1_migrations`.
+3. **Worker deployment:** upload the release with `keep_bindings`. Secrets survive uploads on their own. Other bindings the owner added, such as an R2 media bucket or KV, would otherwise be dropped (verified against the API).
+4. **Readiness:** wait for `/healthz`.
+
+No resources are created. Ownership, users and content are never touched, and the Cloudflare token is revoked when the update finishes. Forums installed before v0.5.0 have no banner; their owners can open the `/update?forum=…` link directly.
+
 ## Starter content with your own AI
 
 Starter content begins from a ready-made template in the forum's language. To personalize it, the wizard preview (and the forum's setup page) offers a ready-made prompt (`src/community/prompt.ts`). The prompt holds the current draft, an editable preferences section and the format's hard rules. The owner runs it in any assistant and pastes the reply into "Edit content". The reply may include code fences or surrounding prose. It is validated against the same strict schema as a manual edit, so it cannot change room slugs, permissions or roles.

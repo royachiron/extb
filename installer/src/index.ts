@@ -6,9 +6,25 @@ import { communityDraftSchema, draftPrompt, makeCommunityDraft, parseDraftText, 
 import { cf, loadRelease, upload, checkedFile, type Release } from './cloudflare';
 import { ADMIN_USERNAME, adminPassword, createForumAdmin } from './owner';
 interface Env { INSTALLATIONS: DurableObjectNamespace; ENCRYPTION_KEY:string; INSTALLER_ORIGIN:string; OAUTH_CLIENT_ID:string; OAUTH_SCOPE:string; RELEASE_MANIFEST_URL:string; RELEASE_MANIFEST_SHA256:string; GITHUB_CLIENT_ID?:string; GITHUB_CLIENT_SECRET?:string; GITHUB_CF_SCOPE?:string }
-interface Session { expires:number; csrf:string; state?:string; verifier?:string; subject?:string; encryptedToken?:string; accounts?:{id:string;name:string}[]; job?:Job; github?:{state?:string;verifier?:string;encryptedToken?:string;progress:GithubProgress;connection?:BuildConnection;lastBuild?:{id:string;startedAt:number}} }
-interface Job { account:string; worker:string; databaseName:string; database?:string; databaseCreationAttempted?:boolean; release?:Release; stage:string; done:string[]; ownership?:string; ownershipExpires?:number; url?:string; draft:unknown; error?:string; notice?:'publishing'|'retrying'; transient?:number; readyDeadline?:number; adminPassword?:string; adminAttempted?:boolean }
+interface Session { expires:number; csrf:string; state?:string; verifier?:string; subject?:string; encryptedToken?:string; accounts?:{id:string;name:string}[]; job?:Job; updateTarget?:UpdateTarget; github?:{state?:string;verifier?:string;encryptedToken?:string;progress:GithubProgress;connection?:BuildConnection;lastBuild?:{id:string;startedAt:number}} }
+interface Job { account:string; worker:string; databaseName:string; database?:string; databaseCreationAttempted?:boolean; release?:Release; stage:string; done:string[]; ownership?:string; ownershipExpires?:number; url?:string; draft:unknown; error?:string; notice?:'publishing'|'retrying'; transient?:number; readyDeadline?:number; adminPassword?:string; adminAttempted?:boolean; mode?:'update'; fromVersion?:string; upToDate?:boolean }
+/** An existing forum to update: its public address, and its Worker name when the forum knows it. */
+interface UpdateTarget { url:string; worker?:string }
 const stages=['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness','owner account'];
+// Updating reuses the install stages that are safe to repeat; nothing is created and no owner is touched.
+const updateStages=['locate forum','migrations','Worker deployment','readiness'];
+const WORKER_NAME=/^[a-z0-9][a-z0-9-]{0,62}$/;
+/** Validates the forum address from an update link: https, and a workers.dev host unless the Worker name is given. */
+export function updateTarget(forum:string|null,worker:string|null):UpdateTarget|null{
+ let url:URL;try{url=new URL(forum||'');}catch{return null;}
+ if(url.protocol!=='https:' || url.username || url.password || url.port)return null;
+ const name=worker && WORKER_NAME.test(worker)?worker:undefined;
+ if(!name && !/^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname))return null;
+ return {url:url.origin,worker:name};
+}
+function versionParts(version:string|undefined):number[]|null{const m=/^v?(\d+)\.(\d+)\.(\d+)$/.exec(version||'');return m?[Number(m[1]),Number(m[2]),Number(m[3])]:null;}
+/** Semver comparison of "vX.Y.Z" strings; null when either is not a release version. */
+export function compareVersions(a:string|undefined,b:string|undefined):number|null{const x=versionParts(a),y=versionParts(b);if(!x||!y)return null;for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]!-y[i]!;return 0;}
 const advance=Symbol('next provisioning stage');
 // The forum is deployed but Cloudflare has not published it yet: poll again without failing.
 const wait=Symbol('waiting for Cloudflare');
@@ -26,7 +42,17 @@ async function handle(request:Request,env:Env):Promise<Response>{
  if(url.pathname==='/healthz')return json({ok:true});
  if(url.pathname==='/wizard.js')return new Response(wizardScript,{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}});
  if(url.pathname==='/'){const lang=resolvePortalLang(url,request.headers.get('Accept-Language'));const headers=new Headers({'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store'});if(url.searchParams.has('lang'))headers.set('Set-Cookie',langCookie(lang));return new Response(renderLandingPage(lang,releaseVersion(env.RELEASE_MANIFEST_URL),!!cookie(request)),{headers});}
+ // Forums poll this to offer an update; it is the release this installer would install.
+ if(url.pathname==='/api/latest')return Response.json({version:releaseVersion(env.RELEASE_MANIFEST_URL)||null},{headers:{'Cache-Control':'public, max-age=3600'}});
  if(!env.OAUTH_CLIENT_ID || !env.OAUTH_SCOPE || !env.ENCRYPTION_KEY)return json({error:'Installer registration is not configured'},503);
+ if(url.pathname==='/update'){
+  const target=updateTarget(url.searchParams.get('forum'),url.searchParams.get('worker'));
+  if(!target)return json({error:'Invalid forum address for update'},400);
+  // A separate session, so updating never disturbs an installation this browser is still finishing.
+  const id=randomToken(),stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
+  const start=new URL(env.INSTALLER_ORIGIN+'/start');start.searchParams.set('forum',target.url);if(target.worker)start.searchParams.set('worker',target.worker);
+  const response=await stub.fetch(new Request(start.toString(),{redirect:'manual'}));const headers=new Headers(response.headers);headers.set('Set-Cookie',sessionCookie(id));return new Response(response.body,{status:response.status,headers});
+ }
  if(url.pathname==='/oauth/start'){
   const id=url.searchParams.get('new')==='1'?randomToken():cookie(request)||randomToken();const stub=env.INSTALLATIONS.get(env.INSTALLATIONS.idFromName(id));
   const response=await stub.fetch(new Request(env.INSTALLER_ORIGIN+'/start',{redirect:'manual'}));const headers=new Headers(response.headers);headers.set('Set-Cookie',sessionCookie(id));return new Response(response.body,{status:response.status,headers});
@@ -56,7 +82,9 @@ export class Installation implements DurableObject {
  if(url.pathname==='/start'){
   // A failed stage keeps its checkpoint; fresh authorization is what its retry needs.
   if(session?.job && session.job.stage!=='complete' && !session.job.error)return json({error:'An installation is already in progress; retry its current stage'},409);
-  let previous=session;if(!previous){const installed=await this.state.storage.get<{subject:string;account:string;worker:string;database:string;databaseName:string;url:string;release:string}>('installation');if(installed)previous={expires:0,csrf:'',subject:installed.subject,job:{account:installed.account,worker:installed.worker,database:installed.database,databaseName:installed.databaseName,url:installed.url,stage:'complete',done:['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'],draft:null,release:{version:installed.release} as Release}};}if(previous && !previous.github)previous.github=await this.state.storage.get<{progress:GithubProgress;connection?:BuildConnection}>('github_connection');if(previous){await this.revoke(previous);await this.revokeGithub(previous);}const state=randomToken(),verifier=randomToken();session={expires:Date.now()+3600000,csrf:randomToken(),state:await digest(state),verifier,subject:previous?.subject,job:previous?.job,github:previous?.github};await this.save(session);
+  let previous=session;if(!previous){const installed=await this.state.storage.get<{subject:string;account:string;worker:string;database:string;databaseName:string;url:string;release:string}>('installation');if(installed)previous={expires:0,csrf:'',subject:installed.subject,job:{account:installed.account,worker:installed.worker,database:installed.database,databaseName:installed.databaseName,url:installed.url,stage:'complete',done:['account checks','database creation','migrations','ownership authorization','Worker deployment','readiness'],draft:null,release:{version:installed.release} as Release}};}if(previous && !previous.github)previous.github=await this.state.storage.get<{progress:GithubProgress;connection?:BuildConnection}>('github_connection');if(previous){await this.revoke(previous);await this.revokeGithub(previous);}const state=randomToken(),verifier=randomToken();session={expires:Date.now()+3600000,csrf:randomToken(),state:await digest(state),verifier,subject:previous?.subject,job:previous?.job,github:previous?.github};
+  const target=updateTarget(url.searchParams.get('forum'),url.searchParams.get('worker'));if(target && !session.job)session.updateTarget=target;
+  await this.save(session);
   const auth=new URL('https://dash.cloudflare.com/oauth2/auth');auth.search=new URLSearchParams({client_id:this.env.OAUTH_CLIENT_ID,redirect_uri:this.env.INSTALLER_ORIGIN+'/oauth/callback',response_type:'code',scope:session.job?.stage==='complete'?(this.env.GITHUB_CF_SCOPE||this.env.OAUTH_SCOPE):this.env.OAUTH_SCOPE,state,code_challenge:await digest(verifier),code_challenge_method:'S256'}).toString();return Response.redirect(auth.toString(),302);
  }
  if(!session || session.expires<=Date.now())return json({error:'Session expired; authorize again'},401);
@@ -77,7 +105,7 @@ export class Installation implements DurableObject {
  }
  if(!session.subject || !session.encryptedToken && session.job?.stage!=='complete')return json({error:'Cloudflare authorization required'},401);
  if(request.method!=='GET' && (request.headers.get('Origin')!==this.env.INSTALLER_ORIGIN || !equal(request.headers.get('x-csrf-token')||'',session.csrf)))return json({error:'Invalid CSRF authorization'},403);
- if(url.pathname==='/api/session')return json({csrf:session.csrf,accounts:session.accounts,githubConfigured:!!(this.env.GITHUB_CLIENT_ID&&this.env.GITHUB_CLIENT_SECRET&&this.env.GITHUB_CF_SCOPE),cloudflareAuthorized:!!session.encryptedToken,github:session.github?{authorized:!!session.github.encryptedToken,progress:session.github.progress,connection:session.github.connection,lastBuild:session.github.lastBuild}:undefined,job:session.job?this.publicJob(session.job):undefined});
+ if(url.pathname==='/api/session')return json({csrf:session.csrf,accounts:session.accounts,githubConfigured:!!(this.env.GITHUB_CLIENT_ID&&this.env.GITHUB_CLIENT_SECRET&&this.env.GITHUB_CF_SCOPE),cloudflareAuthorized:!!session.encryptedToken,github:session.github?{authorized:!!session.github.encryptedToken,progress:session.github.progress,connection:session.github.connection,lastBuild:session.github.lastBuild}:undefined,job:session.job?this.publicJob(session.job):undefined,update:session.updateTarget});
  if(url.pathname==='/wizard')return wizard(request);
  if(url.pathname==='/api/preview' && request.method==='POST'){const body=await request.json() as {draft?:unknown;draftText?:string;input?:Parameters<typeof makeCommunityDraft>[0]};let draft;
   // draftText is pasted as is from the owner's own AI; code fences and stray prose are tolerated.
@@ -90,7 +118,12 @@ export class Installation implements DurableObject {
   const draft=communityDraftSchema.parse(body.draft);
   const suffix=(await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer)).slice(0,24);session.job={account:body.account,worker:'extb-'+suffix,databaseName:'extb-'+suffix,stage:'account checks',done:[],draft};await this.save(session);
  }
- if((url.pathname==='/api/install'||url.pathname==='/api/retry') && request.method==='POST'){
+ if(url.pathname==='/api/update' && request.method==='POST' && !session.job){
+  if(!session.updateTarget)return json({error:'No forum to update'},404);
+  if(!session.encryptedToken)return json({error:'Cloudflare authorization required'},401);
+  session.job={mode:'update',url:session.updateTarget.url,worker:session.updateTarget.worker||'',account:'',databaseName:'',stage:updateStages[0]!,done:[],draft:null};await this.save(session);
+ }
+ if((url.pathname==='/api/install'||url.pathname==='/api/retry'||url.pathname==='/api/update') && request.method==='POST'){
   if(!session.job)return json({error:'No installation'},404);if(!this.provisioning && session.job.stage!=='complete'){delete session.job.error;delete session.job.readyDeadline;delete session.job.transient;await this.save(session);await this.state.storage.setAlarm(Math.min(Date.now()+100,session.expires));}return json(this.publicJob(session.job),202);
  }
  if(url.pathname==='/api/status'){
@@ -151,18 +184,43 @@ export class Installation implements DurableObject {
  }
  return json({error:'Not found'},404);
  }
- private publicJob(job:Job){return {stage:job.stage,completed:job.done,stages,notice:job.notice,error:job.error,url:job.url,worker:job.worker,database:job.database,dashboard:`https://dash.cloudflare.com/${job.account}/workers/services/view/${job.worker}/production`};}
+ private publicJob(job:Job){return {stage:job.stage,completed:job.done,stages:job.mode==='update'?updateStages:stages,mode:job.mode,fromVersion:job.fromVersion,version:job.release?.version,upToDate:job.upToDate,notice:job.notice,error:job.error,url:job.url,worker:job.worker,database:job.database,dashboard:`https://dash.cloudflare.com/${job.account}/workers/services/view/${job.worker}/production`};}
+ /** Finds an existing forum's account, Worker and database from its address, then checks it is EXTB and older than the pinned release. */
+ private async locateForum(session:Session,job:Job,token:string){
+  const host=new URL(job.url!).hostname,[label,subdomain]=host.split('.');
+  let account:string|undefined,worker=job.worker||undefined;
+  for(const candidate of session.accounts||[]){
+   if(worker){const found=await cf<{bindings:unknown[]}>(token,`/accounts/${candidate.id}/workers/scripts/${worker}/settings`).then(()=>true,()=>false);if(found){account=candidate.id;break;}continue;}
+   const domain=await cf<{subdomain?:string}>(token,`/accounts/${candidate.id}/workers/subdomain`).catch(()=>({subdomain:undefined}));
+   if(host.endsWith('.workers.dev') && domain.subdomain===subdomain){account=candidate.id;worker=label;break;}
+  }
+  if(!account || !worker)throw new Error('Invalid forum address: no Worker with this address in the Cloudflare accounts you authorized');
+  const settings=await cf<{bindings:{type:string;name:string;id?:string;text?:string;class_name?:string}[]}>(token,`/accounts/${account}/workers/scripts/${worker}/settings`);
+  const database=settings.bindings.find(b=>b.type==='d1' && b.name==='DB')?.id;
+  if(!database || !settings.bindings.some(b=>b.type==='durable_object_namespace' && b.class_name==='ChatRoom'))throw new Error('Invalid forum: this Worker is not an EXTB forum');
+  job.account=account;job.worker=worker;job.database=database;
+  job.fromVersion=settings.bindings.find(b=>b.type==='plain_text' && b.name==='BUILD_ID')?.text;
+  job.release=await loadRelease(this.env.RELEASE_MANIFEST_URL,this.env.RELEASE_MANIFEST_SHA256);
+  const order=compareVersions(job.fromVersion,job.release.version);
+  if(order!==null && order>0)throw new Error(`Invalid downgrade: the forum runs ${job.fromVersion}, newer than this installer's ${job.release.version}`);
+  if(order===0)job.upToDate=true;
+ }
  private async run(session:Session){
   const job=session.job!;if(job.stage==='complete')return;
   const token=await unseal<string>(session.encryptedToken!,this.env.ENCRYPTION_KEY);
-  const checkpoint=async(stage:string,fn:()=>Promise<void>)=>{if(session.expires<=Date.now())throw new Error('Invalid expired installation authorization');if(job.done.includes(stage))return;job.stage=stage;delete job.error;await this.save(session);await fn();job.done.push(stage);job.stage=stages[stages.indexOf(stage)+1]||stage;delete job.notice;delete job.transient;await this.save(session);if(stage!==stages[stages.length-1])throw advance;};
+  const update=job.mode==='update',list=update?updateStages:stages;
+  const checkpoint=async(stage:string,fn:()=>Promise<void>)=>{if(session.expires<=Date.now())throw new Error('Invalid expired installation authorization');if(job.done.includes(stage))return;job.stage=stage;delete job.error;await this.save(session);await fn();job.done.push(stage);job.stage=list[list.indexOf(stage)+1]||stage;delete job.notice;delete job.transient;await this.save(session);if(stage!==list[list.length-1])throw advance;};
   try{
-   await checkpoint('account checks',async()=>{
+   if(update){
+    await checkpoint('locate forum',async()=>{await this.locateForum(session,job,token);});
+    if(job.upToDate){job.done=[...list];job.stage='complete';await this.revoke(session);await this.save(session);return;}
+   }
+   if(!update)await checkpoint('account checks',async()=>{
     const workers=await cf<{id:string}[]>(token,`/accounts/${job.account}/workers/scripts`);if(workers.some(w=>w.id===job.worker))throw new Error('Invalid Worker name collision; start a new installation');await cf(token,`/accounts/${job.account}/d1/database?per_page=1`);
     const domain=await cf<{subdomain:string}>(token,`/accounts/${job.account}/workers/subdomain`);if(!domain.subdomain)throw new Error('Invalid workers.dev subdomain; enable it in Cloudflare first');job.url=`https://${job.worker}.${domain.subdomain}.workers.dev`;
     job.release=await loadRelease(this.env.RELEASE_MANIFEST_URL,this.env.RELEASE_MANIFEST_SHA256);
    });
-   await checkpoint('database creation',async()=>{
+   if(!update)await checkpoint('database creation',async()=>{
     const existing=await cf<{uuid:string;name:string}[]>(token,`/accounts/${job.account}/d1/database?name=${job.databaseName}`);
     if(existing.length>1 || existing.some(db=>db.name===job.databaseName) && !job.databaseCreationAttempted)throw new Error('Invalid database name collision; start a new installation');
     // The random name is persisted before creation, so lost responses recover the same database.
@@ -177,13 +235,14 @@ export class Installation implements DurableObject {
      const results=await cf<{success:boolean}[]>(token,`/accounts/${job.account}/d1/database/${job.database}/query`,{method:'POST',body:JSON.stringify({batch:[{sql},{sql:'INSERT INTO d1_migrations(name) VALUES (?)',params:[migration.name]}]})});if(results.some(r=>!r.success))throw new Error('Cloudflare request failed (migration batch)');
     }
    });
-   await checkpoint('ownership authorization',async()=>{const ownership=await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer);job.ownership=await seal(ownership,this.env.ENCRYPTION_KEY);job.ownershipExpires=session.expires;await this.save(session);await query("INSERT INTO settings(key,value) VALUES ('setup_ownership_hash',?),('setup_ownership_expires_at',?),('setup_draft',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[await hexDigest(new TextEncoder().encode(ownership).buffer as ArrayBuffer),String(session.expires),JSON.stringify(job.draft)]);});
-   await checkpoint('Worker deployment',async()=>{await upload(token,job.account,job.worker,job.database!,job.release!);});
+   if(!update)await checkpoint('ownership authorization',async()=>{const ownership=await hexDigest(new TextEncoder().encode(randomToken()).buffer as ArrayBuffer);job.ownership=await seal(ownership,this.env.ENCRYPTION_KEY);job.ownershipExpires=session.expires;await this.save(session);await query("INSERT INTO settings(key,value) VALUES ('setup_ownership_hash',?),('setup_ownership_expires_at',?),('setup_draft',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[await hexDigest(new TextEncoder().encode(ownership).buffer as ArrayBuffer),String(session.expires),JSON.stringify(job.draft)]);});
+   await checkpoint('Worker deployment',async()=>{await upload(token,job.account,job.worker,job.database!,job.release!,{keepBindings:update});});
    await checkpoint('readiness',async()=>{
     job.readyDeadline??=Date.now()+READINESS_WINDOW;let ready=false;
     try{const response=await fetch(job.url+'/healthz',{signal:AbortSignal.timeout(10000)});ready=response.ok && (await response.json() as {ok?:boolean}).ok===true;}catch{}
     if(!ready){if(Date.now()<job.readyDeadline)throw wait;throw new Error('Cloudflare request failed (forum readiness; not online after 10 minutes)');}
    });
+   if(update){job.stage='complete';await this.revoke(session);await this.save(session);return;}
    await checkpoint('owner account',async()=>{
     const password=job.adminPassword?await unseal<string>(job.adminPassword,this.env.ENCRYPTION_KEY):adminPassword();
     if(!job.adminPassword){job.adminPassword=await seal(password,this.env.ENCRYPTION_KEY);await this.save(session);}

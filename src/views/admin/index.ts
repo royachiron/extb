@@ -33,6 +33,8 @@ export type AdminSection =
   | 'activity';
 
 export function renderAdmin(opts: {
+  /** Pre-rendered "update available" banner for admins; empty when up to date. */
+  updateNotice?: string;
   user: User;
   rooms: Room[];
   allRooms: Room[];
@@ -179,6 +181,7 @@ export function renderAdmin(opts: {
       <div class="admin-hd">
         <h1>Admin: ${sectionLabel}</h1>
       </div>
+      ${opts.updateNotice ?? ''}
       ${sidebar}
       <div class="admin-ui">
         ${content}
