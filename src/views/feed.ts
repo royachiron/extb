@@ -389,6 +389,8 @@ export function renderFeed(opts: {
   feedStamp?: string;
 }): string {
   const { user, rooms, activeRoom, topics, pollUrl, siteKey, csrfToken, gate = false, ironGateActive = false, hasMore = false, baseUrl = '/', page = 0, feedStamp = '' } = opts;
+  // #topic-list hx-trigger: htmx 2.0.0 needs an event's filter right after its name ("feed-wake[...]").
+  // With a space it raises htmx:syntax:error and drops the filter, refreshing a paged list.
   const canCompose = !!activeRoom && canPost(user, activeRoom, ironGateActive);
 
   const anonComposer = activeRoom?.min_post === 'anon' && !user
