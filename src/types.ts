@@ -1,6 +1,5 @@
 export interface Env {
   DB: D1Database;
-  AI?: Ai;
   MEDIA?: R2Bucket;
   ASSETS: Fetcher;
   IMAGES?: ImagesBinding;

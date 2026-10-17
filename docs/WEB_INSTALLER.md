@@ -25,11 +25,11 @@ The installer finishes setup itself in a final "owner account" stage. It mints a
 
 The forum's `/healthz` returns readiness without credentials or community content and works before setup redirects. After deployment, Cloudflare can take a few minutes to publish a new `workers.dev` address. The installer polls `/healthz` every 5 seconds for up to 10 minutes before reporting a failure. Cloudflare 5xx/429 responses, timeouts and dropped connections are retried automatically up to 6 times with backoff. Meanwhile, the wizard shows a calm "publishing" or "retrying" note, not an error. Provisioning errors that remain expose sanitized stage information and a relevant Cloudflare dashboard link.
 
-## Optional personalization
+## Starter content with your own AI
 
-The installed forum uses its optional `AI` binding. Only the community name, purpose, preset and language are sent to Qwen. Copy is strictly validated; model output cannot control permissions. One generation and two explicit regenerations are allowed. Missing access, quota, invalid output and a 45-second timeout retain ready-made content.
+Starter content begins from a ready-made template in the forum's language. To personalize it, the wizard preview (and the forum's setup page) offers a ready-made prompt (`src/community/prompt.ts`). The prompt holds the current draft, an editable preferences section and the format's hard rules. The owner runs it in any assistant and pastes the reply into "Edit content". The reply may include code fences or surrounding prose. It is validated against the same strict schema as a manual edit, so it cannot change room slugs, permissions or roles.
 
-Cloudflare provides [10,000 free neurons daily across the account](https://developers.cloudflare.com/workers-ai/platform/pricing/), shared with other applications. No paid upgrade is enabled automatically.
+EXTB does not call a model itself. Workers AI personalization was removed after a measured comparison on 2026-10-17. Among `qwen3-30b-a3b-fp8`, `gemma-4-26b-a4b-it`, `glm-5.3-flash`, `deepseek-v4-flash`, `qwen3.8-27b` and `gpt-oss-120b`, only the old Qwen and gpt-oss-120b produced valid drafts in both languages. Qwen's Hebrew was unusable. Forums are deployed without an `AI` binding.
 
 ## Independent downstream projects
 

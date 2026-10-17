@@ -6,7 +6,7 @@ import { showAdminTokens, createAdminToken, revokeAdminToken } from './api/admin
 import { getInvitations, createInvitationPage, createResetPage } from './api/invitations';
 import { renderLayout, htmlResponse } from './views/layout';
 import { listRooms } from './db';
-import { getSetup, postSetup, postSetupPreview, postSetupPersonalize, postCreateInvite, postCreateResetLink } from './api/setup';
+import { getSetup, postSetup, postSetupPreview, postCreateInvite, postCreateResetLink } from './api/setup';
 import { postBranding } from './api/admin/settings';
 import type { Route } from './router';
 import {
@@ -163,7 +163,6 @@ export const routes: Route[] = [
   { method: 'POST', pattern: p('/setup'), handler: postSetup },
   { method: 'POST', pattern: p('/setup/claim'), handler: claimOwnership },
   { method: 'POST', pattern: p('/setup/preview'), handler: postSetupPreview },
-  { method: 'POST', pattern: p('/setup/personalize'), handler: postSetupPersonalize },
   { method: 'POST', pattern: p('/admin/reset-link'), handler: createResetPage },
   { method: 'POST', pattern: p('/admin/invites'), handler: createInvitationPage },
   { method: 'POST', pattern: p('/admin/users/:id/reset-link'), handler: createResetPage },

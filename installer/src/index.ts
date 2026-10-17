@@ -2,7 +2,7 @@ import { randomToken, digest, hexDigest, equal, seal, unseal } from './security'
 import { githubAuthorizeUrl, exchangeGithubCode, createPrivateForumRepository, connectWorkerBuilds, getWorkerBuildStatus, startWorkerBuild, GithubConnectionError, type GithubProgress, type InstalledForum, type BuildConnection } from './github';
 import { wizardScript } from './wizard';
 import { renderLandingPage, renderWizardPage, releaseVersion, resolvePortalLang, resolveWizardLang, langCookie, landingStyles } from './landing';
-import { communityDraftSchema, makeCommunityDraft, renderCommunityPreview } from '../../src/community/draft';
+import { communityDraftSchema, draftPrompt, makeCommunityDraft, parseDraftText, renderCommunityPreview } from '../../src/community/draft';
 import { cf, loadRelease, upload, checkedFile, type Release } from './cloudflare';
 import { ADMIN_USERNAME, adminPassword, createForumAdmin } from './owner';
 interface Env { INSTALLATIONS: DurableObjectNamespace; ENCRYPTION_KEY:string; INSTALLER_ORIGIN:string; OAUTH_CLIENT_ID:string; OAUTH_SCOPE:string; RELEASE_MANIFEST_URL:string; RELEASE_MANIFEST_SHA256:string; GITHUB_CLIENT_ID?:string; GITHUB_CLIENT_SECRET?:string; GITHUB_CF_SCOPE?:string }
@@ -79,7 +79,10 @@ export class Installation implements DurableObject {
  if(request.method!=='GET' && (request.headers.get('Origin')!==this.env.INSTALLER_ORIGIN || !equal(request.headers.get('x-csrf-token')||'',session.csrf)))return json({error:'Invalid CSRF authorization'},403);
  if(url.pathname==='/api/session')return json({csrf:session.csrf,accounts:session.accounts,githubConfigured:!!(this.env.GITHUB_CLIENT_ID&&this.env.GITHUB_CLIENT_SECRET&&this.env.GITHUB_CF_SCOPE),cloudflareAuthorized:!!session.encryptedToken,github:session.github?{authorized:!!session.github.encryptedToken,progress:session.github.progress,connection:session.github.connection,lastBuild:session.github.lastBuild}:undefined,job:session.job?this.publicJob(session.job):undefined});
  if(url.pathname==='/wizard')return wizard(request);
- if(url.pathname==='/api/preview' && request.method==='POST'){const body=await request.json() as {draft?:unknown;input?:Parameters<typeof makeCommunityDraft>[0]};const draft=body.draft ? communityDraftSchema.parse(body.draft) : makeCommunityDraft(body.input!);return json({draft,html:renderCommunityPreview(draft)});}
+ if(url.pathname==='/api/preview' && request.method==='POST'){const body=await request.json() as {draft?:unknown;draftText?:string;input?:Parameters<typeof makeCommunityDraft>[0]};let draft;
+  // draftText is pasted as is from the owner's own AI; code fences and stray prose are tolerated.
+  try{draft=typeof body.draftText==='string' ? parseDraftText(body.draftText) : body.draft ? communityDraftSchema.parse(body.draft) : makeCommunityDraft(body.input!);}catch{return json({error:'That content does not match the forum format. Paste the JSON exactly as your AI returned it, or fix the field it complains about.'},400);}
+  return json({draft,html:renderCommunityPreview(draft),prompt:draftPrompt(draft)});}
  if(url.pathname==='/api/install' && request.method==='POST'){
   if(session.job)return json({error:'Installation already started; use retry'},409);
   const body=await request.json() as {account:string;draft:unknown};if(!session.accounts?.some(a=>a.id===body.account) || !/^[a-f0-9]{32}$/.test(body.account))return json({error:'Account mismatch'},403);

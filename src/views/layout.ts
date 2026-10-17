@@ -700,6 +700,7 @@ body[data-uploads-enabled="false"] .md-upload, body[data-uploads-enabled="false"
   .setup-more summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text-main); }
   .setup-more form { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; align-items: flex-start; }
   .setup-more textarea { font-family: ui-monospace, monospace; font-size: 13px; }
+  .setup-more textarea.setup-prompt { margin-top: 8px; font-family: inherit; unicode-bidi: plaintext; }
   @media (max-width: 860px) {
     .setup-grid { grid-template-columns: minmax(0, 1fr); }
     .setup-owner { position: static; }

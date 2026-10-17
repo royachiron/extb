@@ -10,7 +10,7 @@ import { isValidDisplayName, isValidPassword } from './auth';
 import { CURRENT_TOS_VERSION } from '../views/tos';
 import { checkRateLimit, getClientIp } from '../lib/rate-limit';
 import { installerSetup, setupAuthorization, ownershipFragmentScript } from '../community/ownership';
-import { communityDraftSchema, draftStatements, renderCommunityPreview, type CommunityDraft } from '../community/draft';
+import { communityDraftSchema, draftPrompt, draftStatements, parseDraftText, renderCommunityPreview, type CommunityDraft } from '../community/draft';
 
 export async function isSetupComplete(ctx: AppContext): Promise<boolean> {
   return !!await ctx.env.DB.prepare("SELECT value FROM settings WHERE key = 'setup_complete'").first();
@@ -51,9 +51,11 @@ function setupForm(ctx: AppContext, error = '', draft?: CommunityDraft): string 
     <button class="btn setup-submit" type="submit">${he ? 'יצירת הקהילה' : 'Create community'}</button></form>
     <section class="setup-card setup-preview" aria-labelledby="setup-preview-title"><h2 class="setup-preview-title" id="setup-preview-title">${he ? 'תצוגה מקדימה של תוכן הפתיחה' : 'Starter content preview'}</h2>
     ${renderCommunityPreview(draft)}
+    <details class="setup-more"><summary>${he ? 'כתיבת התוכן עם ה-AI שלכם' : 'Write it with your own AI'}</summary>
+    <p class="form-hint">${he ? 'העתיקו את הפרומפט, ערכו בו את ההעדפות שלכם והריצו אותו ב-AI האהוב עליכם. את ה-JSON שיחזור הדביקו ב"עריכת התוכן" ולחצו על עדכון התצוגה.' : 'Copy the prompt, edit your preferences in it and run it in your favorite AI. Paste the JSON it returns into "Edit starter content" and update the preview.'}</p>
+    <textarea class="setup-prompt" rows="12" readonly dir="${he ? 'rtl' : 'ltr'}" aria-label="${he ? 'פרומפט לתוכן הפתיחה' : 'Starter content prompt'}" onfocus="this.select()">${esc(draftPrompt(draft))}</textarea></details>
     <details class="setup-more"><summary>${he ? 'עריכת התוכן' : 'Edit starter content'}</summary><form method="post" action="/setup/preview">${csrfField(ctx)}
-    <label class="form-label" for="setup-draft">${he ? 'תוכן הקהילה (JSON)' : 'Community draft (JSON)'}</label><textarea id="setup-draft" name="draft" rows="16" dir="ltr" required>${esc(JSON.stringify(draft, null, 2))}</textarea><button class="btn">${he ? 'עדכון התצוגה' : 'Update preview'}</button></form></details>
-    <details class="setup-more"><summary>${he ? 'התאמה אישית באמצעות AI (אופציונלי)' : 'Personalize with AI (optional)'}</summary><form method="post" action="/setup/personalize">${csrfField(ctx)}<p class="form-hint">${he ? 'פועל בחשבון Cloudflare שלכם. Cloudflare מספקת 10,000 נוירונים חינמיים ביום לכל החשבון.' : 'Runs in your Cloudflare account. Cloudflare provides 10,000 free neurons daily across the account.'}</p><button class="btn">${he ? 'יצירה מחדש (עד שלושה ניסיונות)' : 'Regenerate (up to three attempts)'}</button></form></details>
+    <label class="form-label" for="setup-draft">${he ? 'תוכן הקהילה (JSON, אפשר להדביק את תשובת ה-AI כמו שהיא)' : 'Community draft (JSON; you can paste the AI reply as is)'}</label><textarea id="setup-draft" name="draft" rows="16" dir="ltr" required>${esc(JSON.stringify(draft, null, 2))}</textarea><button class="btn">${he ? 'עדכון התצוגה' : 'Update preview'}</button></form></details>
     </section></div></div>`;
   }
   return `<div class="setup-page"><header class="setup-head"><h1>Create your community</h1><p>Your setup passphrase is the secret entered during Cloudflare deployment.</p></header>
@@ -158,7 +160,7 @@ export async function postSetupPreview(req: Request, ctx: AppContext): Promise<R
   if (!auth) return html('Invalid or expired ownership authorization.', 403);
   const form = await req.formData();
   let draft: CommunityDraft;
-  try { draft = communityDraftSchema.parse(JSON.parse(String(form.get('draft') || ''))); }
+  try { draft = parseDraftText(String(form.get('draft') || '')); }
   catch { return setupPage(ctx, 'Invalid community draft.', 400, await storedDraft(ctx)); }
   const update = await ctx.env.DB.prepare(`UPDATE settings SET value = ? WHERE key = 'setup_draft'
     AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'setup_complete')
@@ -166,24 +168,6 @@ export async function postSetupPreview(req: Request, ctx: AppContext): Promise<R
     AND EXISTS (SELECT 1 FROM settings WHERE key = 'setup_session_expires_at' AND CAST(value AS INTEGER) > ?)`).bind(JSON.stringify(draft), auth.hash, Date.now()).run();
   if (!update.meta.changes) return html('Invalid or expired ownership authorization.', 403);
   return setupPage(ctx, '', 200, draft);
-}
-
-export async function postSetupPersonalize(req: Request, ctx: AppContext): Promise<Response> {
-  await verifyCsrf(req, ctx);
-  const auth = await setupAuthorization(req, ctx);
-  if (!auth) return html('Invalid or expired ownership authorization.', 403);
-  const draft = await storedDraft(ctx);
-  if (!draft) return html('Missing community draft.', 503);
-  const { personalizeCommunity } = await import('../community/ai');
-  const attempts = await ctx.env.DB.prepare("SELECT value FROM settings WHERE key = 'setup_ai_attempts'").first<{ value: string }>();
-  const result = await personalizeCommunity(ctx.env, { name: draft.name, purpose: draft.purpose, preset: draft.preset, language: draft.language }, Number(attempts?.value || 0) > 0);
-  const chosen = result.source === 'template' ? draft : result.draft;
-  const updated = await ctx.env.DB.prepare(`UPDATE settings SET value = ? WHERE key = 'setup_draft' AND value = ?
-    AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'setup_complete')
-    AND EXISTS (SELECT 1 FROM settings WHERE key = 'setup_session_hash' AND value = ?)
-    AND EXISTS (SELECT 1 FROM settings WHERE key = 'setup_session_expires_at' AND CAST(value AS INTEGER) > ?)`).bind(JSON.stringify(chosen), JSON.stringify(draft), auth.hash, Date.now()).run();
-  if (!await setupAuthorization(req, ctx)) return html('Invalid or expired ownership authorization.', 403);
-  return setupPage(ctx, result.source === 'template' ? 'Ready-made content retained. AI personalization is unavailable.' : '', 200, updated.meta.changes ? chosen : await storedDraft(ctx));
 }
 
 export async function postCreateInvite(req: Request, ctx: AppContext): Promise<Response> {

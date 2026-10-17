@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { wizardScript } from '../installer/src/wizard.ts';
-import { makeCommunityDraft, renderCommunityPreview } from '../src/community/draft.ts';
+import { draftPrompt, makeCommunityDraft, parseDraftText, renderCommunityPreview } from '../src/community/draft.ts';
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined });
 try {
   for (const locale of ['en-US', 'he-IL']) {
@@ -14,8 +14,8 @@ try {
       if (path === '/wizard.js') return route.fulfill({ contentType: 'application/javascript', body: wizardScript });
       if (path === '/api/session') return route.fulfill({ json: { csrf: 'csrf', accounts: [{ id: 'a'.repeat(32), name: 'Account' }] } });
       if (path === '/api/preview') {
-        const body = request.postDataJSON(); const draft = body.draft || makeCommunityDraft(body.input);
-        return route.fulfill({ json: { draft, html: renderCommunityPreview(draft) } });
+        const body = request.postDataJSON(); const draft = body.draftText ? parseDraftText(body.draftText) : body.draft || makeCommunityDraft(body.input);
+        return route.fulfill({ json: { draft, html: renderCommunityPreview(draft), prompt: draftPrompt(draft) } });
       }
       if (path === '/api/install') { installed = request.postDataJSON().draft; return route.fulfill({ status: 202, json: { stage: 'account checks', completed: [] } }); }
       if (path === '/api/status') return route.fulfill({ json: { stage: 'complete', completed: ['account checks', 'database creation', 'migrations', 'ownership authorization', 'Worker deployment', 'readiness', 'owner account'], dashboard: 'https://dash.cloudflare.com', url: 'https://example.workers.dev', admin: { username: 'admin', password: 'EXTB2026-abcd-efgh-jkmn' } } });
@@ -30,11 +30,15 @@ try {
     assert.equal(await page.locator('.community-preview script').count(), 0);
     assert.equal(await page.locator('.community-preview').getAttribute('dir'), locale.startsWith('he') ? 'rtl' : 'ltr');
     const approve = page.getByRole('button', { name: locale.startsWith('he') ? 'אישור ויצירת הקהילה' : 'Approve and create community', exact: true });
-    await page.locator('details summary').click();
-    const editor = page.locator('textarea'); const draft = JSON.parse(await editor.inputValue());
-    draft.homepageCopy = 'Owner edited starter copy'; await editor.fill(JSON.stringify(draft));
+    await page.locator('#draft-ai summary').click();
+    const prompt = await page.locator('#draft-prompt').inputValue();
+    assert.match(prompt, /"slug": "announcements"/); assert.match(prompt, locale.startsWith('he') ? /ההעדפות שלי/ : /My preferences/);
+    await page.locator('#draft-edit summary').click();
+    const editor = page.locator('#draft-editor'); const draft = JSON.parse(await editor.inputValue());
+    // Paste an assistant-style reply: prose and a code fence around the JSON.
+    draft.homepageCopy = 'Owner edited starter copy'; await editor.fill('Here is your JSON:\n```json\n' + JSON.stringify(draft) + '\n```');
     assert.equal(await approve.isDisabled(), true);
-    await page.locator('details button').click();
+    await page.locator('#draft-update').click();
     await page.getByText('Owner edited starter copy', { exact: true }).waitFor();
     assert.equal(await approve.isEnabled(), true);
     await approve.click(); await page.getByText(locale.startsWith('he') ? 'הפורום שלך באוויר!' : 'Your forum is live!', { exact: true }).waitFor();

@@ -97,7 +97,7 @@ const landingPageEn = (version: string) => `<!doctype html>
     <a class="portal-tab" href="#features">Feature Directory</a>
     <a class="portal-tab" href="#board-preview">Live Board Preview</a>
     <a class="portal-tab" href="#architecture">2026 Edge Specs</a>
-    <a class="portal-tab" href="#agent-mcp">AI &amp; MCP Admin</a>
+    <a class="portal-tab" href="#agent-mcp">MCP Admin</a>
     <a class="portal-tab" href="https://github.com/royachiron/extb" target="_blank" rel="noopener">Source Code (GitHub)</a>
   </nav>
 
@@ -120,7 +120,7 @@ const landingPageEn = (version: string) => `<!doctype html>
           <ol class="portal-steps">
             <li><strong>Authorize Cloudflare:</strong> Connect via official PKCE OAuth. Credentials are sealed and auto-revoked after deploy.</li>
             <li><strong>Shape Your Board:</strong> Pick a name, purpose, language (EN / HE), and starter preset.</li>
-            <li><strong>Preview &amp; Approve:</strong> Inspect or customize starter rooms and welcome threads before anything is created.</li>
+            <li><strong>Preview &amp; Approve:</strong> Inspect or customize starter rooms and welcome threads before anything is created, or copy a ready-made prompt into your favorite AI and paste back what it writes.</li>
             <li><strong>Claim Ownership:</strong> Your Worker + D1 database deploy automatically. Create your admin account directly on your forum.</li>
           </ol>
           <div class="portal-mini-cta">
@@ -141,7 +141,7 @@ const landingPageEn = (version: string) => `<!doctype html>
               <tr><th>Frontend</th><td>SSR HTML + HTMX 2.0</td></tr>
               <tr><th>Themes</th><td>Light &amp; Dark Mode (CSS Vars)</td></tr>
               <tr><th>Languages</th><td>English (LTR) &amp; Hebrew (RTL)</td></tr>
-              <tr><th>AI Ready</th><td>Workers AI (Qwen) + MCP API</td></tr>
+              <tr><th>Admin API</th><td>MCP server (bring your own AI)</td></tr>
               <tr><th>Monthly Cost</th><td><strong>$0</strong> on the free plan</td></tr>
             </tbody>
           </table>
@@ -263,7 +263,7 @@ const landingPageEn = (version: string) => `<!doctype html>
             </div>
 
             <div class="portal-dir-item" id="agent-mcp">
-              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Built-In AI &amp; MCP Server</h3>
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> Built-In MCP Server</h3>
               <p class="portal-dir-links">
                 Model Context Protocol (<code>/mcp</code>) &middot; Scoped Tokens &middot; Claude / Cursor / CLI Ready
               </p>
@@ -473,7 +473,7 @@ const landingPageEn = (version: string) => `<!doctype html>
               <tr><td>Hosting Bill</td><td>Paid Host</td><td><strong>$0 Free Plan</strong></td></tr>
               <tr><td>Live Chat</td><td>Plugin</td><td><strong>Built-In</strong></td></tr>
               <tr><td>Mobile UI</td><td>None</td><td><strong>Native</strong></td></tr>
-              <tr><td>AI / MCP</td><td>None</td><td><strong>Built-In</strong></td></tr>
+              <tr><td>MCP Admin API</td><td>None</td><td><strong>Built-In</strong></td></tr>
             </tbody>
           </table>
         </div>
@@ -581,7 +581,7 @@ const landingPageHe = (version: string) => `<!doctype html>
     <a class="portal-tab" href="#features">אינדקס יכולות</a>
     <a class="portal-tab" href="#board-preview">תצוגת לוח הפורומים</a>
     <a class="portal-tab" href="#architecture">מפרט טכני 2026</a>
-    <a class="portal-tab" href="#agent-mcp">ניהול AI ו-MCP</a>
+    <a class="portal-tab" href="#agent-mcp">ניהול MCP</a>
     <a class="portal-tab" href="https://github.com/royachiron/extb" target="_blank" rel="noopener">קוד מקור (GitHub)</a>
   </nav>
 
@@ -604,7 +604,7 @@ const landingPageHe = (version: string) => `<!doctype html>
           <ol class="portal-steps">
             <li><strong>חיבור Cloudflare:</strong> אימות רשמי ומאובטח (PKCE OAuth). ההרשאה מוצפנת ומתבטלת אוטומטית מיד בסיום ההתקנה.</li>
             <li><strong>עיצוב הקהילה:</strong> בחירת שם, מטרה, שפת ממשק (עברית / אנגלית) וערכת נושא מוכנה.</li>
-            <li><strong>תצוגה מקדימה ואישור:</strong> צפייה ועריכה של החדרים ונושאי הפתיחה לפני שנוצר משאב כלשהו.</li>
+            <li><strong>תצוגה מקדימה ואישור:</strong> צפייה ועריכה של החדרים ונושאי הפתיחה לפני שנוצר משאב כלשהו, או העתקת פרומפט מוכן ל-AI האהוב עליכם והדבקת מה שהוא כותב.</li>
             <li><strong>קבלת בעלות מלאה:</strong> ה-Worker ומסד הנתונים (D1) עולים אוטומטית. יצירת חשבון המנהל מתבצעת ישירות בפורום שלך.</li>
           </ol>
           <div class="portal-mini-cta">
@@ -625,7 +625,7 @@ const landingPageHe = (version: string) => `<!doctype html>
               <tr><th>ממשק משתמש</th><td>SSR HTML + HTMX 2.0</td></tr>
               <tr><th>ערכות צבע</th><td>מצב בהיר ומצב כהה מובנים</td></tr>
               <tr><th>שפות וכיווניות</th><td>עברית (RTL) ואנגלית (LTR)</td></tr>
-              <tr><th>מוכנות ל-AI</th><td>Workers AI (Qwen) + שרת MCP</td></tr>
+              <tr><th>API לניהול</th><td>שרת MCP (עם ה-AI שלכם)</td></tr>
               <tr><th>עלות חודשית</th><td><strong>0 ₪</strong> במסלול החינמי</td></tr>
             </tbody>
           </table>
@@ -747,7 +747,7 @@ const landingPageHe = (version: string) => `<!doctype html>
             </div>
 
             <div class="portal-dir-item" id="agent-mcp">
-              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> שרת AI ו-MCP מובנה</h3>
+              <h3><span class="portal-folder" aria-hidden="true">&#9638;</span> שרת MCP מובנה</h3>
               <p class="portal-dir-links">
                 פרוטוקול Model Context Protocol (<code>/mcp</code>) &middot; אסימונים מוגבלי הרשאות &middot; תמיכה ב-Claude ו-Cursor
               </p>
@@ -957,7 +957,7 @@ const landingPageHe = (version: string) => `<!doctype html>
               <tr><td>עלות אחסון</td><td>אחסון בתשלום</td><td><strong>0 ₪ במסלול החינמי</strong></td></tr>
               <tr><td>צ׳אט חי</td><td>תוסף חיצוני</td><td><strong>מובנה</strong></td></tr>
               <tr><td>ממשק נייד</td><td>אין</td><td><strong>מותאם מלא</strong></td></tr>
-              <tr><td>AI / MCP</td><td>אין</td><td><strong>מובנה</strong></td></tr>
+              <tr><td>API ניהול (MCP)</td><td>אין</td><td><strong>מובנה</strong></td></tr>
             </tbody>
           </table>
         </div>
@@ -1154,6 +1154,8 @@ const wizardStyles = String.raw`
 .portal-body .portal-wizard button:disabled { opacity: .55; cursor: default; text-decoration: none; }
 .portal-body .portal-wizard a.wizard-new { text-decoration: none; line-height: 22px; }
 .portal-body .portal-wizard a.wizard-new:hover { text-decoration: underline; }
+/* Each line of the prompt picks its own direction, so the JSON stays readable inside Hebrew text. */
+.portal-body .portal-wizard #draft-prompt { unicode-bidi: plaintext; }
 .portal-body .portal-wizard .wizard-headline { margin: 0 0 10px; font-size: 20px; font-weight: 700; color: var(--pt-navy); }
 .portal-body .portal-wizard .wizard-bar { height: 18px; margin: 0 0 14px; background: var(--pt-paper); border: 2px inset var(--pt-gold-edge); }
 .portal-body .portal-wizard .wizard-bar span { display: block; height: 100%; background: repeating-linear-gradient(45deg, var(--pt-gold-hi) 0 10px, var(--pt-gold) 10px 20px); background-size: 28px 28px; transition: width .6s ease; animation: wizard-stripes 1s linear infinite; }

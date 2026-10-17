@@ -37,3 +37,62 @@ export function draftContentStatements(env:Pick<Env,'DB'>,input:CommunityDraft,o
  const d=communityDraftSchema.parse(input);
  return [{...d.welcome,roomSlug:'announcements',pinned:1},{...d.joiningGuide,roomSlug:'introductions',pinned:1},...d.discussions.map(t=>({...t,pinned:0}))].map(t=>env.DB.prepare("INSERT INTO topics(room_id,user_id,title,content,status,is_pinned,short_id) SELECT id,?,?,?,'approved',?,? FROM rooms WHERE slug=?").bind(ownerId,t.title,t.content,t.pinned,crypto.randomUUID().replaceAll('-','').slice(0,12),t.roomSlug));
 }
+
+// "Bring your own AI": the owner runs this prompt in any assistant and pastes the JSON back.
+// Nothing here calls a model; the reply is validated by communityDraftSchema like a manual edit.
+
+export function draftPrompt(draft: CommunityDraft): string {
+  const he = draft.language === 'he';
+  const json = JSON.stringify(draft, null, 2);
+  if (he) return `אתה עוזר לי לכתוב את תוכן הפתיחה של פורום חדש בשם "${draft.name}".
+מטרת הפורום: ${draft.purpose}
+
+ההעדפות שלי (ערכו את השורות האלה לפני השליחה):
+- טון: חם ולא רשמי
+- קהל:
+- נושאים שחשוב לי שיופיעו:
+- מה להימנע ממנו:
+
+המשימה: כתבו מחדש את ה-JSON שבסוף, כך שיתאים לפורום ולהעדפות שלי. כל הטקסט בעברית.
+
+כללים מחייבים:
+1. החזירו JSON תקין בלבד, בלי הסברים ובלי טקסט לפניו או אחריו.
+2. אל תשנו את השדות version, name, purpose, preset, language.
+3. בדיוק 6 חדרים, באותו סדר ועם אותם slug: ${ROOM_SLUGS.join(', ')}. מותר לשנות רק name (עד 100 תווים) ו-description (עד 500).
+4. בדיוק 3 דיונים ב-discussions. roomSlug של כל אחד הוא general, questions או resources. title עד 200 תווים, content עד 6000.
+5. homepageCopy עד 2000 תווים, rules עד 10000, welcome ו-joiningGuide עם title ו-content.
+6. אל תמציאו חברים, פעילות, נתונים, ציטוטים או עובדות שאינכם בטוחים בהן. דיוני הפתיחה הם שאלות והזמנות לשיחה, לא דיווחים.
+7. בלי ייעוץ רפואי, משפטי או פיננסי, ובלי הבטחות בשם הפורום.
+
+ה-JSON לעריכה:
+${json}`;
+  return `Help me write the starter content for a new forum called "${draft.name}".
+Forum purpose: ${draft.purpose}
+
+My preferences (edit these lines before sending):
+- Tone: warm and informal
+- Audience:
+- Topics I want included:
+- Things to avoid:
+
+Task: rewrite the JSON at the end so it fits this forum and my preferences. Write all text in English.
+
+Hard rules:
+1. Return valid JSON only, with no explanation and no text before or after it.
+2. Do not change version, name, purpose, preset or language.
+3. Exactly 6 rooms, in the same order, with the same slugs: ${ROOM_SLUGS.join(', ')}. Only change name (up to 100 characters) and description (up to 500).
+4. Exactly 3 entries in discussions. Each roomSlug is general, questions or resources. title up to 200 characters, content up to 6000.
+5. homepageCopy up to 2000 characters, rules up to 10000, welcome and joiningGuide each with title and content.
+6. Do not invent members, activity, statistics, quotes or facts you are unsure of. Starter discussions are questions and invitations, not reports.
+7. No medical, legal or financial advice, and no promises on the forum's behalf.
+
+JSON to edit:
+${json}`;
+}
+
+/** Accepts an assistant's reply: tolerates code fences and stray text around the JSON object. */
+export function parseDraftText(text: string): CommunityDraft {
+  const start = text.indexOf('{'), end = text.lastIndexOf('}');
+  if (start < 0 || end < start) throw new Error('No JSON object found');
+  return communityDraftSchema.parse(JSON.parse(text.slice(start, end + 1)));
+}
